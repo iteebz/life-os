@@ -3,6 +3,7 @@ import sys
 from . import accounts as _accounts
 from . import achievements as _achievements
 from . import add as _add
+from . import daemon as _daemon
 from . import dash as _dash
 from . import dates as _dates
 from . import db
@@ -19,6 +20,7 @@ from . import tag as _tags
 from . import tasks as _tasks
 
 _ = (
+    _daemon,
     _steward,
     _accounts,
     _achievements,
