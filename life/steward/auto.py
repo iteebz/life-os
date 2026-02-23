@@ -147,7 +147,9 @@ def _select_required_real_world_task(tasks: list[Any]) -> "Task | None":
     from ..models import Task
 
     discomfort = {"finance", "legal", "janice"}
-    candidates: list[Task] = [t for t in tasks if isinstance(t, Task) and set(t.tags or []).intersection(discomfort)]
+    candidates: list[Task] = [
+        t for t in tasks if isinstance(t, Task) and set(t.tags or []).intersection(discomfort)
+    ]
     if not candidates:
         return None
     overdue = [t for t in candidates if t.scheduled_date and t.scheduled_date < today()]
@@ -155,9 +157,16 @@ def _select_required_real_world_task(tasks: list[Any]) -> "Task | None":
     return sorted(ranked, key=lambda t: t.created)[0]
 
 
-def _run_autonomous() -> None:
+def _build_provider_cmd_env(provider: str, prompt: str) -> tuple[list[str], dict[str, str]]:
+    from ..lib.providers import claude, glm
+
+    if provider == "glm":
+        return glm.build_command(prompt), glm.build_env()
+    return claude.build_command(prompt), claude.build_env()
+
+
+def _run_autonomous(provider: str = "claude") -> None:
     from ..lib.clock import today
-    from ..lib.providers import glm
     from ..loop import (
         load_loop_state,
         require_real_world_closure,
@@ -187,8 +196,8 @@ def _run_autonomous() -> None:
         )
         echo(f"steward gate: close real-world loop first -> {required_task.content}")
 
-    cmd = glm.build_command(prompt=prompt)
-    env = glm.build_env()
+    echo(f"[auto] provider: {provider}")
+    cmd, env = _build_provider_cmd_env(provider, prompt)
     rc = _run_tail_stream(
         cmd,
         cwd=Path.home() / "life",
@@ -244,7 +253,7 @@ def _run_autonomous() -> None:
 def cmd_tail(
     cycles: int = 1,
     interval_seconds: int = 0,
-    model: str = "glm-5",
+    provider: str = "claude",
     dry_run: bool = False,
     continue_on_error: bool = False,
     timeout_seconds: int = 1200,
@@ -253,8 +262,6 @@ def cmd_tail(
     raw: bool = False,
     quiet_system: bool = False,
 ) -> None:
-    from ..lib.providers import glm
-
     if cycles < 1:
         exit_error("--cycles must be >= 1")
     if interval_seconds < 0:
@@ -270,9 +277,8 @@ def cmd_tail(
     prompt = _steward_prompt()
 
     for i in range(1, cycles + 1):
-        echo(f"[tail] cycle {i}/{cycles}")
-        cmd = glm.build_command(prompt=prompt)
-        env = glm.build_env()
+        echo(f"[tail] cycle {i}/{cycles} provider={provider}")
+        cmd, env = _build_provider_cmd_env(provider, prompt)
         attempts = retries + 1
         if dry_run:
             echo(" ".join(cmd))
@@ -315,7 +321,9 @@ def cmd_tail(
 def auto(
     cycles: int = 1,
     every: int = 0,
-    model: str = "glm-4",
+    provider: str = "claude",
+    glm: bool = False,
+    sonnet: bool = False,
     timeout: int = 1200,
     retries: int = 2,
     retry_delay: int = 2,
@@ -324,11 +332,15 @@ def auto(
     quiet_system: bool = False,
     continue_on_error: bool = False,
 ) -> None:
-    """Run unattended Steward loop through the glm connector"""
+    """Run unattended Steward loop (default: claude, --glm to use GLM)"""
+    if glm:
+        provider = "glm"
+    elif sonnet:
+        provider = "claude"
     cmd_tail(
         cycles=cycles,
         interval_seconds=every,
-        model=model,
+        provider=provider,
         timeout_seconds=timeout,
         retries=retries,
         retry_delay_seconds=retry_delay,
@@ -340,6 +352,14 @@ def auto(
 
 
 @cli("life steward", name="run")
-def steward_run() -> None:
-    """Run autonomous steward loop"""
-    _run_autonomous()
+def steward_run(
+    provider: str = "claude",
+    glm: bool = False,
+    sonnet: bool = False,
+) -> None:
+    """Run autonomous steward loop (default: claude, --glm to use GLM)"""
+    if glm:
+        provider = "glm"
+    elif sonnet:
+        provider = "claude"
+    _run_autonomous(provider=provider)

@@ -1,3 +1,3 @@
-from . import glm
+from . import claude, glm
 
-__all__ = ["glm"]
+__all__ = ["claude", "glm"]
