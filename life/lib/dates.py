@@ -1,6 +1,9 @@
 from datetime import date, datetime, timedelta
 from typing import Any
 
+from dateutil import parser as dateutil_parser
+from dateutil.parser import ParserError
+
 from . import clock
 
 
@@ -46,9 +49,12 @@ def parse_due_date(due_str: str) -> str | None:
             days_ahead = 7
         return (today + timedelta(days=days_ahead)).isoformat()
     try:
-        parsed_date = date.fromisoformat(due_str)
-        return parsed_date.isoformat()
-    except ValueError:
+        return (
+            dateutil_parser.parse(due_str, default=datetime(today.year, today.month, today.day))
+            .date()
+            .isoformat()
+        )
+    except (ParserError, ValueError, OverflowError):
         return None
 
 
