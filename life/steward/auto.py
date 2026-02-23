@@ -377,17 +377,3 @@ def tail(watch: bool = False) -> None:
             time.sleep(0.1)
     except KeyboardInterrupt:
         pass
-
-
-@cli("life")
-def auto(
-    cycles: int = 1,
-    every: int = 0,
-    provider: str = "claude",
-    glm: bool = False,
-    timeout: int = 1200,
-) -> None:
-    """run steward loop (alias for steward on)"""
-    if glm:
-        provider = "glm"
-    on(provider=provider, cycles=cycles, every=every, timeout=timeout)
