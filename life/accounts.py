@@ -7,7 +7,7 @@ from fncli import cli
 from .lib.errors import echo, exit_error
 
 
-@cli("life accounts", name="list")
+@cli("life accounts", name="ls")
 def accounts_list():
     """List all linked accounts"""
     from .comms import accounts as accts_module

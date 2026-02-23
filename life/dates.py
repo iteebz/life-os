@@ -23,7 +23,7 @@ def rm(name: str):
     echo(f"removed: {name}")
 
 
-@cli("life dates", name="list")
+@cli("life dates", name="ls")
 def ls():
     """List all recurring dates"""
     items = list_dates()
@@ -37,4 +37,4 @@ def ls():
         echo(f"  {d['name']} — {d['day']:02d}-{d['month']:02d}{type_label}  ({days_str})")
 
 
-fncli._REGISTRY["life dates"] = fncli._REGISTRY["life dates list"]
+fncli._REGISTRY["life dates"] = fncli._REGISTRY["life dates ls"]
