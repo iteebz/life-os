@@ -183,26 +183,6 @@ def _edit_suffix(raw_name: str, args: dict[str, object]) -> str:
     return f" ({' '.join(parts)})" if parts else ""
 
 
-def _format_tool_call(raw_name: str, args: dict[str, object]) -> str:
-    name = _TOOL_DISPLAY.get(raw_name, raw_name.lower())
-    is_bash = raw_name == "Bash"
-    arg = _tool_arg(raw_name, args)
-    arg = arg.replace(_HOME, "~").replace(_CWD, ".")
-
-    if is_bash:
-        name, arg = _parse_bash(arg.split("\n")[0])
-        name = _TOOL_DISPLAY.get(name, name)
-
-    suffix = ""
-    if raw_name in ("Edit", "MultiEdit", "Write"):
-        suffix = _edit_suffix(raw_name, args)
-
-    color_fn = _TOOL_COLORS.get(name, gray)
-    label = bold(color_fn(name))
-    arg_fmt = _format_tool_arg(name, arg[:100]) if arg else ""
-    return f"  {label} {arg_fmt}{suffix}"
-
-
 def _format_bash_chain(raw_name: str, args: dict[str, object]) -> list[str] | None:
     if raw_name != "Bash":
         return None
@@ -223,9 +203,48 @@ def _format_bash_chain(raw_name: str, args: dict[str, object]) -> list[str] | No
     return lines if lines else None
 
 
+_MAX_PENDING = 50
+
+
+class EventPairer:
+    def __init__(self) -> None:
+        self._pending: dict[str, dict[str, object]] = {}
+
+    def process(self, entry: dict[str, object]) -> list[dict[str, object]]:
+        kind = entry.get("type")
+
+        if kind == "tool_call":
+            tool_use_id = str(entry.get("tool_use_id") or "")
+            if tool_use_id:
+                self._pending[tool_use_id] = entry
+                if len(self._pending) > _MAX_PENDING:
+                    self._pending.pop(next(iter(self._pending)))
+            return []
+
+        if kind == "tool_result":
+            tool_use_id = str(entry.get("tool_use_id") or "")
+            call = self._pending.pop(tool_use_id, None) if tool_use_id else None
+            out: list[dict[str, object]] = []
+            if call:
+                merged = dict(call)
+                merged["_result"] = entry
+                out.append(merged)
+            if entry.get("is_error"):
+                out.append(entry)
+            return out
+
+        return [entry]
+
+    def flush(self) -> list[dict[str, object]]:
+        out = list(self._pending.values())
+        self._pending.clear()
+        return out
+
+
 class StreamParser:
     def __init__(self) -> None:
         self._tool_map: dict[str, str] = {}
+        self._pairer = EventPairer()
 
     def parse_line(self, line: str) -> list[dict[str, object]]:
         raw = line.strip()
@@ -238,9 +257,55 @@ class StreamParser:
         if not isinstance(event, dict):
             return [{"type": "raw", "raw": raw}]
         normalized = glm.normalize_event(event, tool_map=self._tool_map)
-        if normalized:
-            return normalized
-        return [{"type": "raw", "raw": raw}]
+        if not normalized:
+            return [{"type": "raw", "raw": raw}]
+        out: list[dict[str, object]] = []
+        for entry in normalized:
+            out.extend(self._pairer.process(entry))
+        return out
+
+    def flush(self) -> list[dict[str, object]]:
+        return self._pairer.flush()
+
+
+def _format_tool_call_with_result(
+    raw_name: str, args: dict[str, object], result: dict[str, object] | None
+) -> str:
+    name = _TOOL_DISPLAY.get(raw_name, raw_name.lower())
+    is_bash = raw_name == "Bash"
+    arg = _tool_arg(raw_name, args)
+    arg = arg.replace(_HOME, "~").replace(_CWD, ".")
+
+    if is_bash:
+        name, arg = _parse_bash(arg.split("\n")[0])
+        name = _TOOL_DISPLAY.get(name, name)
+
+    if raw_name in ("Edit", "MultiEdit", "Write"):
+        suffix = _edit_suffix(raw_name, args)
+    elif raw_name == "Read" and result:
+        out_text = str(result.get("result", ""))
+        lines = out_text.count("\n") + (1 if out_text and not out_text.endswith("\n") else 0)
+        suffix = f" {white(f'({lines})')}" if lines else ""
+    elif raw_name in ("Glob", "Grep") and result:
+        out_text = str(result.get("result", ""))
+        hits = [ln for ln in out_text.strip().split("\n") if ln]
+        suffix = f" {white(f'({len(hits)})')}" if hits else f" {gray('(0)')}"
+    elif name in _RUN_NAMES and result and not result.get("is_error"):
+        out_text = str(result.get("result", "")).strip()
+        lines = [ln for ln in out_text.split("\n") if ln.strip()]
+        if lines:
+            preview = lines[0][:80]
+            more = f" {dim(f'+{len(lines) - 1}')}" if len(lines) > 1 else ""
+            suffix = f" {dim('→')} {gray(preview)}{more}"
+        else:
+            suffix = ""
+    else:
+        suffix = ""
+
+    color_fn = _TOOL_COLORS.get(name, gray)
+    label = bold(color_fn(name))
+    arg_fmt = _format_tool_arg(name, arg[:100]) if arg else ""
+    return f"  {label} {arg_fmt}{suffix}"
 
 
 def format_entry(entry: dict[str, object], quiet_system: bool = False) -> str | None:
@@ -259,10 +324,13 @@ def format_entry(entry: dict[str, object], quiet_system: bool = False) -> str | 
         args = entry.get("args", {})
         if not isinstance(args, dict):
             args = {}
+        result = entry.get("_result")
+        if not isinstance(result, dict):
+            result = None
         chain = _format_bash_chain(raw_name, args)
         if chain:
             return "\n".join(chain)
-        return _format_tool_call(raw_name, args)
+        return _format_tool_call_with_result(raw_name, args, result)
 
     if kind == "tool_result":
         is_error = bool(entry.get("is_error"))

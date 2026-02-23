@@ -144,6 +144,10 @@ def _run_tail_stream(
     finally:
         if log_fh:
             log_fh.close()
+        for entry in parser.flush():
+            rendered = format_entry(entry, quiet_system=True)
+            if rendered:
+                print(rendered)
 
     if timed_out:
         proc.terminate()
@@ -332,7 +336,7 @@ def tail(watch: bool = False) -> None:
     parser = StreamParser()
     last_rendered: str | None = None
 
-    def _replay_path(p: Path, position: int = 0) -> int:
+    def _replay_path(p: Path, position: int = 0, final: bool = False) -> int:
         nonlocal last_rendered
         with p.open() as f:
             f.seek(position)
@@ -349,9 +353,15 @@ def tail(watch: bool = False) -> None:
                         continue
                     print(rendered)
                     last_rendered = rendered
-            return f.tell()
+            pos = f.tell()
+        if final:
+            for entry in parser.flush():
+                rendered = format_entry(entry, quiet_system=True)
+                if rendered:
+                    print(rendered)
+        return pos
 
-    pos = _replay_path(path)
+    pos = _replay_path(path, final=True)
 
     if not watch:
         return
