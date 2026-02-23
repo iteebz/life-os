@@ -1,5 +1,6 @@
 from collections.abc import Sequence
 from datetime import date, timedelta
+from zlib import crc32
 
 from life.habits import get_subhabits
 from life.models import Habit, Task, TaskMutation
@@ -69,9 +70,14 @@ def _get_direct_tags(task: Task, all_pending: list[Task]) -> list[str]:
     return [tag for tag in task.tags if tag not in parent_tags]
 
 
+def _tag_color(tag: str) -> str:
+    idx = crc32(tag.encode()) % len(ANSI.POOL)
+    return ANSI.POOL[idx]
+
+
 def _build_tag_colors(items: Sequence[Task | Habit]) -> dict[str, str]:
-    tags = sorted({tag for item in items for tag in item.tags})
-    return {tag: ANSI.POOL[i % len(ANSI.POOL)] for i, tag in enumerate(tags)}
+    tags = {tag for item in items for tag in item.tags}
+    return {tag: _tag_color(tag) for tag in tags}
 
 
 def _get_trend(current: int, previous: int) -> str:
@@ -297,7 +303,7 @@ def _render_habits(
 
     checked_count = sum(1 for h in habits if h.id in today_habit_ids)
     total = len(habits)
-    lines = [f"\n{bold(white(f'HABITS ({checked_count}/{total})'))}"]
+    lines = [f"\n{ANSI.BOLD}{ANSI.GRAY}HABITS ({checked_count}/{total}){ANSI.RESET}"]
     sorted_habits = sorted(visible, key=lambda x: x.content.lower())
     unchecked = [h for h in sorted_habits if h.id not in today_habit_ids]
     checked = [h for h in sorted_habits if h.id in today_habit_ids]
@@ -413,7 +419,8 @@ def _render_tasks(
     for tag in sections:
         tasks = groups[tag]
         label = tag.upper() if tag else "BACKLOG"
-        lines_out.append(f"\n{bold(white(f'{label} ({len(tasks)})'))}")
+        header_color = _tag_color(tag) if tag else ANSI.WHITE
+        lines_out.append(f"\n{ANSI.BOLD}{header_color}{label} ({len(tasks)}){ANSI.RESET}")
         for task in tasks:
             secondary_tags = [t for t in task.tags if t != tag] if tag else task.tags
             task_for_render = task
@@ -605,7 +612,7 @@ def render_day_summary(
     if completed_habits:
         checked_count = len(completed_habits)
         total_str = f"/{total_habits}" if total_habits else ""
-        lines.append(f"\n{bold(white(f'HABITS ({checked_count}{total_str})'))}")
+        lines.append(f"\n{ANSI.BOLD}{ANSI.GRAY}HABITS ({checked_count}{total_str}){ANSI.RESET}")
         sorted_habits = sorted(completed_habits, key=lambda h: h.content.lower())
         for habit in sorted_habits:
             tags_str = _fmt_tags(habit.tags, tag_colors)
