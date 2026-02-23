@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fncli import cli
 
@@ -15,7 +15,7 @@ def log(
     if not sessions:
         echo("no sessions logged")
         return
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     for s in sessions:
         rel = _rel((now - s.logged_at).total_seconds())
         echo(f"{rel:<10}  {s.summary}")

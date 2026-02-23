@@ -3,6 +3,10 @@ import threading
 import time
 from pathlib import Path
 from queue import Empty, Queue
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from ..models import Task
 
 from fncli import cli
 
@@ -138,11 +142,12 @@ def _run_tail_stream(
     return rc
 
 
-def _select_required_real_world_task(tasks):
+def _select_required_real_world_task(tasks: list[Any]) -> "Task | None":
     from ..lib.clock import today
+    from ..models import Task
 
     discomfort = {"finance", "legal", "janice"}
-    candidates = [t for t in tasks if set(t.tags or []).intersection(discomfort)]
+    candidates: list[Task] = [t for t in tasks if isinstance(t, Task) and set(t.tags or []).intersection(discomfort)]
     if not candidates:
         return None
     overdue = [t for t in candidates if t.scheduled_date and t.scheduled_date < today()]

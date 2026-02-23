@@ -315,7 +315,7 @@ def _render_overdue(
         tags_str = _fmt_tags(task.tags, tag_colors)
         id_str = f" {_GREY}[{task.id[:8]}]{_R}"
         fire = f" {ANSI.BOLD}🔥{_R}" if task.focus else ""
-        label = _fmt_rel_date(task.scheduled_date, today, task.scheduled_time, task.is_deadline)
+        label = _fmt_rel_date(task.scheduled_date or today, today, task.scheduled_time, task.is_deadline)
         lines.append(f"  □ {label} {task.content.lower()}{tags_str}{fire}{id_str}")
         for sub in sorted(subtasks_by_parent.get(task.id, []), key=_task_sort_key):
             scheduled_ids.add(sub.id)
@@ -340,7 +340,7 @@ def _render_task_row(
 
     date_str = ""
     if task.scheduled_date and task.scheduled_date.isoformat() not in (today_str, tomorrow_str):
-        label = _fmt_rel_date(task.scheduled_date, today, task.scheduled_time, task.is_deadline)
+        label = _fmt_rel_date(task.scheduled_date or today, today, task.scheduled_time, task.is_deadline)
         date_str = f"{label} "
 
     if task.blocked_by:

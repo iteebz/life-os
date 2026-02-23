@@ -7,7 +7,7 @@ from fncli import cli
 from . import db
 from .lib.ansi import ANSI
 from .lib.converters import hydrate_tags_onto, row_to_habit, row_to_task
-from .lib.errors import echo, exit_error
+from .lib.errors import echo
 from .models import Habit, Task
 
 T = TypeVar("T", Task, Habit)

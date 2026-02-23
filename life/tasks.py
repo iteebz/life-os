@@ -5,6 +5,7 @@ import sys
 import uuid
 from datetime import date as _date
 from datetime import datetime
+from typing import Any
 
 from fncli import UsageError, cli
 
@@ -500,7 +501,7 @@ def _schedule(args: list[str], remove: bool = False) -> None:
     if not date_str and not time_str:
         exit_error("Schedule spec required: today, tomorrow, day name, YYYY-MM-DD, HH:MM, or 'now'")
     t = resolve_task(item_name)
-    updates: dict = {"is_deadline": False}
+    updates: dict[str, Any] = {"is_deadline": False}
     if date_str:
         updates["scheduled_date"] = date_str
     if time_str:
@@ -509,7 +510,7 @@ def _schedule(args: list[str], remove: bool = False) -> None:
     if time_str:
         label = f"{ANSI.GREY}{time_str}{ANSI.RESET}"
     else:
-        label = f"{ANSI.GREY}{_fmt_date_label(date_str)}{ANSI.RESET}"
+        label = f"{ANSI.GREY}{_fmt_date_label(date_str or '')}{ANSI.RESET}"
     echo(format_status(label, t.content, t.id))
 
 
@@ -561,7 +562,7 @@ def task(
         source=source,
     )
     if resolved_due or resolved_time:
-        updates: dict = {}
+        updates: dict[str, Any] = {}
         if resolved_due:
             updates["scheduled_date"] = resolved_due
         if resolved_time:
@@ -630,7 +631,7 @@ def due(ref: list[str], when: str, remove: bool = False) -> None:
         exit_error(
             "Due spec required: today, tomorrow, day name, YYYY-MM-DD, HH:MM, 'now', or -r to clear"
         )
-    updates: dict = {"is_deadline": True}
+    updates: dict[str, Any] = {"is_deadline": True}
     if date_str:
         updates["scheduled_date"] = date_str
     if time_str:
@@ -639,7 +640,7 @@ def due(ref: list[str], when: str, remove: bool = False) -> None:
     if time_str:
         label = f"{ANSI.CORAL}{time_str}{ANSI.RESET}"
     else:
-        label = f"{ANSI.CORAL}{_fmt_date_label(date_str)}{ANSI.RESET}"
+        label = f"{ANSI.CORAL}{_fmt_date_label(date_str or '')}{ANSI.RESET}"
     echo(format_status(label, t.content, t.id))
 
 

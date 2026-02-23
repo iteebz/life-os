@@ -86,11 +86,11 @@ def _rel(secs: float) -> str:
 
 
 from . import auto, boot, close, dash, improve, log  # noqa: E402, F401
-from .auto import cmd_tail, subprocess, time, echo  # noqa: E402, F401
 
 __all__ = [
     "Observation",
     "StewardSession",
+    "_rel",
     "add_observation",
     "add_session",
     "auto",

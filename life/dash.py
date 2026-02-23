@@ -1,12 +1,9 @@
-from datetime import datetime
-
 from fncli import cli
 
-from .config import get_profile, set_profile
 from .dashboard import get_pending_items, get_today_breakdown, get_today_completed
 from .habits import get_habits
 from .lib.clock import now, today
-from .lib.errors import echo, exit_error
+from .lib.errors import echo
 from .lib.render import render_dashboard, render_momentum
 from .metrics import build_feedback_snapshot, render_feedback_snapshot
 from .momentum import weekly_momentum

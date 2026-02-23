@@ -4,7 +4,7 @@ from datetime import datetime
 from fncli import cli
 
 from .db import get_db
-from .lib.errors import echo, exit_error
+from .lib.errors import echo
 
 
 @dataclass(frozen=True)

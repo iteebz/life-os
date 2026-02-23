@@ -8,6 +8,7 @@
   "reportDuplicateImport": true,
   "reportDeprecated": true,
   "reportConstantRedefinition": true,
+  "reportMissingTypeStubs": false,
   "reportUnknownMemberType": false,
   "reportUnknownArgumentType": false,
   "reportMissingParameterType": false,

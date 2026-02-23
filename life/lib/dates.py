@@ -1,4 +1,5 @@
 from datetime import date, datetime, timedelta
+from typing import Any
 
 from . import clock
 
@@ -58,7 +59,7 @@ def _days_until(month: int, day: int, today: date) -> int:
     return (next_year - today).days
 
 
-def list_dates() -> list[dict]:
+def list_dates() -> list[dict[str, Any]]:
     """Get all special dates from DB, sorted by next occurrence."""
     from life import db
 
@@ -108,6 +109,6 @@ def remove_date(name: str) -> None:
         conn.execute("DELETE FROM special_dates WHERE name = ?", (name,))
 
 
-def upcoming_dates(within_days: int = 14) -> list[dict]:
+def upcoming_dates(within_days: int = 14) -> list[dict[str, Any]]:
     """Get dates occurring within the next N days."""
     return [d for d in list_dates() if d["days_until"] <= within_days]

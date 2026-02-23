@@ -33,7 +33,7 @@ def _poll_once(phones: list[str], timeout: int = 1) -> int:
     total = 0
     for phone in phones:
         try:
-            msgs = signal_adapter.receive(phone, timeout=timeout, store=True)
+            msgs = signal_adapter.receive(timeout=timeout, phone=phone, store=True)
             if msgs:
                 total += len(msgs)
                 for m in msgs:

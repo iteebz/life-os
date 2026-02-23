@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from fncli import cli
 
 from .lib.errors import echo, exit_error
@@ -175,7 +177,7 @@ def reply(thread_id: str, body: str | None = None, email: str | None = None, all
         exit_error("--body required")
     from .comms.services import reply_to_thread
 
-    draft_id, to_addr, subject, cc = _run_service(reply_to_thread, thread_id=thread_id, body=body, email=email, reply_all=all)
+    draft_id, to_addr, _subject, _cc = _run_service(reply_to_thread, thread_id=thread_id, body=body, email=email, reply_all=all)
     echo(f"reply draft {draft_id[:8]} → {to_addr}")
     echo(f"run `life email approve {draft_id[:8]}` to approve")
 
@@ -197,7 +199,7 @@ def draft_reply(thread_id: str, instructions: str | None = None, email: str | No
     if not body:
         exit_error(f"failed: {reasoning}")
 
-    draft_id, to_addr, subject, cc = _run_service(services.reply_to_thread, thread_id=full_id, body=body, email=email, reply_all=all)
+    draft_id, to_addr, subject, _cc = _run_service(services.reply_to_thread, thread_id=full_id, body=body, email=email, reply_all=all)
     echo(f"\nreasoning: {reasoning}")
     echo(f"\ndraft {draft_id[:8]} → {to_addr}  |  {subject}")
     echo(f"\n{body}\n")
@@ -318,7 +320,7 @@ def review(action: str | None = None):
     if not items:
         echo("no proposals")
         return
-    by_action: dict = {}
+    by_action: dict[str, list[Any]] = {}
     for p in items:
         by_action.setdefault(p["proposed_action"], []).append(p)
     for act in ["flag", "archive", "delete"]:

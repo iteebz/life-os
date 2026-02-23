@@ -1,4 +1,5 @@
 import sys
+from typing import Any
 
 from fncli import cli
 
@@ -151,7 +152,7 @@ def add(
         source=source,
     )
     if resolved_due or resolved_time:
-        updates: dict = {}
+        updates: dict[str, Any] = {}
         if resolved_due:
             updates["scheduled_date"] = resolved_due
         if resolved_time:
