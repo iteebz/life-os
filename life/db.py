@@ -38,7 +38,9 @@ def get_db(db_path: Path | None = None):
 
 def _create_backup(db_path: Path) -> Path:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    backup_path = db_path.with_suffix(f".{timestamp}.backup")
+    mig_dir = config.BACKUP_DIR / "migrations"
+    mig_dir.mkdir(parents=True, exist_ok=True)
+    backup_path = mig_dir / f"life.{timestamp}.backup"
     src = sqlite3.connect(db_path, timeout=30)
     dst = sqlite3.connect(backup_path)
     try:
