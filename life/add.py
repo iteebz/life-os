@@ -34,6 +34,53 @@ def get_learnings() -> list[Learning]:
     ]
 
 
+@cli("life add", name="t", flags={"tag": ["-t", "--tag"]})
+def add_task_cmd(
+    content: list[str], tag: list[str] | None = None, due: str | None = None, focus: bool = False
+):
+    """Add a task"""
+    from .items import add as _add
+
+    _add(content, tag=tag, due=due, focus=focus)
+
+
+@cli("life add", name="o", flags={"tag": ["-t", "--tag"]})
+def add_observation_sub(body: str, tag: str | None = None):
+    """Log an observation"""
+    from .steward import add_observation as _add
+
+    _add(body, tag=tag)
+    suffix = f" #{tag}" if tag else ""
+    print(f"→ {body}{suffix}")
+
+
+@cli("life add", name="p", flags={"tag": ["-t", "--tag"]})
+def add_pattern_sub(body: str, tag: str | None = None):
+    """Log a pattern"""
+    from .patterns import add_pattern as _add
+
+    _add(body, tag=tag)
+    suffix = f" #{tag}" if tag else ""
+    print(f"~ {body}{suffix}")
+
+
+@cli("life add", name="l", flags={"tags": ["-t", "--tags"]})
+def add_learning_sub(body: str, tags: str | None = None):
+    """Log a steward learning"""
+    add_learning(body, tags)
+    suffix = f" [{tags}]" if tags else ""
+    print(f"◆ {body}{suffix}")
+
+
+@cli("life add", name="a", flags={"tags": ["-t", "--tags"]})
+def add_achievement_sub(name: str, tags: str | None = None):
+    """Log an achievement"""
+    from .achievements import add_achievement as _add
+
+    _add(name, tags)
+    print(f"★ {name}")
+
+
 @cli("life log", name="a", flags={"tags": ["-t", "--tags"]})
 def add_achievement(name: str, tags: str | None = None):
     """Log an achievement"""

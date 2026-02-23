@@ -73,7 +73,7 @@ def rm(ref: list[str]) -> None:
         print(f"{ANSI.DIM}{habit.content}{ANSI.RESET}")
 
 
-@cli("life")
+@cli("life", flags={"tag": ["-t", "--tag"]})
 def add(
     content: list[str],
     habit: bool = False,
