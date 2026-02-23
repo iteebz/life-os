@@ -10,6 +10,7 @@ from . import email as _email
 from . import habits as _habits
 from . import interventions as _interventions
 from . import items as _items
+from . import messaging as _messaging
 from . import mood as _mood
 from . import patterns as _patterns
 from . import signal as _signal
@@ -29,6 +30,7 @@ _ = (
     _items,
     _mood,
     _patterns,
+    _messaging,
     _signal,
     _tasks,
     _habits,
