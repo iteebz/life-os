@@ -26,7 +26,7 @@ def _animate_uncheck(label: str) -> None:
     sys.stdout.flush()
 
 
-@cli("life", aliases=["done"])
+@cli("life", name="done")
 def check(ref: list[str], date: str | None = None) -> None:
     """Toggle done"""
     from .habits import check_habit, get_checks, toggle_check

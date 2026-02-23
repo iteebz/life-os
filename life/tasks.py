@@ -738,12 +738,6 @@ def schedule(ref: list[str], remove: bool = False) -> None:
 
 
 @cli("life")
-def now(ref: list[str]) -> None:
-    """Schedule task for right now"""
-    _schedule(["now", *ref])
-
-
-@cli("life")
 def today(ref: list[str]) -> None:
     """Schedule task for today"""
     _schedule(["today", *ref])
