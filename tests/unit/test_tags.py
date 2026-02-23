@@ -1,6 +1,4 @@
 import pytest
-
-from life.habits import add_habit
 from life.tags import (
     add_tag,
     get_habits_by_tag,
@@ -10,6 +8,8 @@ from life.tags import (
     list_all_tags,
     remove_tag,
 )
+
+from life.habits import add_habit
 from life.tasks import add_task
 
 

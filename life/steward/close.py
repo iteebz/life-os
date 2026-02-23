@@ -1,7 +1,7 @@
 from fncli import cli
 
 from ..lib.errors import echo, exit_error
-from . import add_session, add_observation, delete_observation, get_observations
+from . import add_observation, add_session, delete_observation, get_observations
 
 
 @cli("life steward")
@@ -18,8 +18,9 @@ def observe(
     about: str | None = None,
 ):
     """Log a raw observation — things Tyson says that should persist as context"""
-    from ..lib.dates import parse_due_date
     from datetime import date
+
+    from ..lib.dates import parse_due_date
 
     about_date: date | None = None
     if about:

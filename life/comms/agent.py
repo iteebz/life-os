@@ -92,7 +92,7 @@ COMMAND_MAP = {
 
 
 def parse_natural_language(text: str) -> Command | None:
-    import json  # noqa: PLC0415
+    import json
 
     prompt = f"""Parse this message into a comms command. Return JSON only.
 

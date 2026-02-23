@@ -202,4 +202,3 @@ def db_health():
     from .health import cli as health_cli
 
     health_cli()
-

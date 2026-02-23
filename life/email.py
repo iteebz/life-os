@@ -87,8 +87,16 @@ def clear(limit: int = 50, confidence: float = 0.8, dry_run: bool = False):
     def _is_high_priority(p) -> bool:
         return any(pat in p.item.sender.lower() for pat in high_priority)
 
-    auto = [p for p in proposals if p.confidence >= confidence and p.action != "ignore" and not _is_high_priority(p)]
-    review = [p for p in proposals if p.confidence < confidence or p.action == "ignore" or _is_high_priority(p)]
+    auto = [
+        p
+        for p in proposals
+        if p.confidence >= confidence and p.action != "ignore" and not _is_high_priority(p)
+    ]
+    review = [
+        p
+        for p in proposals
+        if p.confidence < confidence or p.action == "ignore" or _is_high_priority(p)
+    ]
 
     echo(f"\nauto ({len(auto)}) | review ({len(review)})\n")
     for p in auto:
@@ -159,13 +167,21 @@ def summarize(thread_id: str, email: str | None = None):
 
 
 @cli("life email", name="compose")
-def compose(to: str, subject: str | None = None, body: str | None = None, cc: str | None = None, email: str | None = None):
+def compose(
+    to: str,
+    subject: str | None = None,
+    body: str | None = None,
+    cc: str | None = None,
+    email: str | None = None,
+):
     """Compose new email draft"""
     if not body:
         exit_error("--body required")
     from .comms.services import compose_email_draft
 
-    draft_id, from_addr = _run_service(compose_email_draft, to_addr=to, subject=subject, body=body, cc_addr=cc, email=email)
+    draft_id, from_addr = _run_service(
+        compose_email_draft, to_addr=to, subject=subject, body=body, cc_addr=cc, email=email
+    )
     echo(f"draft {draft_id[:8]} — from {from_addr} to {to}")
     echo(f"run `life email approve {draft_id[:8]}` to approve")
 
@@ -177,13 +193,17 @@ def reply(thread_id: str, body: str | None = None, email: str | None = None, all
         exit_error("--body required")
     from .comms.services import reply_to_thread
 
-    draft_id, to_addr, _subject, _cc = _run_service(reply_to_thread, thread_id=thread_id, body=body, email=email, reply_all=all)
+    draft_id, to_addr, _subject, _cc = _run_service(
+        reply_to_thread, thread_id=thread_id, body=body, email=email, reply_all=all
+    )
     echo(f"reply draft {draft_id[:8]} → {to_addr}")
     echo(f"run `life email approve {draft_id[:8]}` to approve")
 
 
 @cli("life email", name="draft-reply")
-def draft_reply(thread_id: str, instructions: str | None = None, email: str | None = None, all: bool = False):
+def draft_reply(
+    thread_id: str, instructions: str | None = None, email: str | None = None, all: bool = False
+):
     """Generate AI reply draft"""
     from .comms import claude, services
 
@@ -191,15 +211,16 @@ def draft_reply(thread_id: str, instructions: str | None = None, email: str | No
     messages = _run_service(services.fetch_thread, full_id, email)
 
     context = "\n---\n".join(
-        f"From: {m['from']}\nDate: {m['date']}\nBody: {m['body'][:500]}"
-        for m in messages[-5:]
+        f"From: {m['from']}\nDate: {m['date']}\nBody: {m['body'][:500]}" for m in messages[-5:]
     )
     echo("generating draft...")
     body, reasoning = claude.generate_reply(context, instructions)
     if not body:
         exit_error(f"failed: {reasoning}")
 
-    draft_id, to_addr, subject, _cc = _run_service(services.reply_to_thread, thread_id=full_id, body=body, email=email, reply_all=all)
+    draft_id, to_addr, subject, _cc = _run_service(
+        services.reply_to_thread, thread_id=full_id, body=body, email=email, reply_all=all
+    )
     echo(f"\nreasoning: {reasoning}")
     echo(f"\ndraft {draft_id[:8]} → {to_addr}  |  {subject}")
     echo(f"\n{body}\n")
@@ -240,7 +261,8 @@ def draft_show(draft_id: str):
 @cli("life email", name="approve")
 def approve_draft(draft_id: str):
     """Approve draft for sending"""
-    from .comms import drafts as drafts_module, policy
+    from .comms import drafts as drafts_module
+    from .comms import policy
 
     full_id = drafts_module.resolve_draft_id(draft_id) or draft_id
     d = drafts_module.get_draft(full_id)
@@ -259,7 +281,8 @@ def approve_draft(draft_id: str):
 @cli("life email", name="send")
 def send_draft(draft_id: str):
     """Send approved draft"""
-    from .comms import drafts as drafts_module, services
+    from .comms import drafts as drafts_module
+    from .comms import services
 
     full_id = drafts_module.resolve_draft_id(draft_id) or draft_id
     d = drafts_module.get_draft(full_id)
@@ -302,10 +325,13 @@ def flag(thread_id: str, email: str | None = None):
 @cli("life email", name="snooze")
 def snooze(thread_id: str, until: str = "tomorrow", email: str | None = None):
     """Snooze thread"""
-    from .comms import services, snooze as snooze_module
+    from .comms import services
+    from .comms import snooze as snooze_module
 
     full_id = _run_service(services.resolve_thread_id, thread_id, email) or thread_id
-    _, snooze_until = snooze_module.snooze_item(entity_type="thread", entity_id=full_id, until=until, source_id=email)
+    _, snooze_until = snooze_module.snooze_item(
+        entity_type="thread", entity_id=full_id, until=until, source_id=email
+    )
     echo(f"snoozed until {snooze_until.strftime('%Y-%m-%d %H:%M')}")
 
 
@@ -354,7 +380,8 @@ def approve_proposal(proposal_id: str | None = None, action: str | None = None, 
 @cli("life email", name="resolve")
 def resolve():
     """Execute all approved proposals"""
-    from .comms import proposals as proposals_module, services
+    from .comms import proposals as proposals_module
+    from .comms import services
 
     approved = proposals_module.get_approved_proposals()
     if not approved:
@@ -377,7 +404,9 @@ def senders(limit: int = 20):
         return
     for s in top:
         resp = f"{s.response_rate:.0%}" if s.received_count > 0 else "n/a"
-        echo(f"  {s.sender[:30]:30} | recv:{s.received_count:3} resp:{resp:4} pri:{s.priority_score:.2f}")
+        echo(
+            f"  {s.sender[:30]:30} | recv:{s.received_count:3} resp:{resp:4} pri:{s.priority_score:.2f}"
+        )
 
 
 @cli("life email", name="stats")
