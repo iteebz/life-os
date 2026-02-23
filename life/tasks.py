@@ -469,6 +469,16 @@ def _animate_check(label: str) -> None:
     sys.stdout.flush()
 
 
+def _fmt_date_label(date_str: str) -> str:
+    d = _date.fromisoformat(date_str)
+    delta = (d - clock.today()).days
+    if delta == 0:
+        return "today"
+    if delta == 1:
+        return "tomorrow"
+    return f"{d.day:02d}/{d.month:02d}"
+
+
 def _schedule(args: list[str], remove: bool = False) -> None:
     from .lib.resolve import resolve_task
 
@@ -499,9 +509,7 @@ def _schedule(args: list[str], remove: bool = False) -> None:
     if time_str:
         label = f"{ANSI.GREY}{time_str}{ANSI.RESET}"
     else:
-        d = _date.fromisoformat(date_str)
-        delta = (d - clock.today()).days
-        label = f"{ANSI.GREY}+{delta}d{ANSI.RESET}"
+        label = f"{ANSI.GREY}{_fmt_date_label(date_str)}{ANSI.RESET}"
     echo(format_status(label, t.content, t.id))
 
 
@@ -631,9 +639,7 @@ def due(ref: list[str], when: str, remove: bool = False) -> None:
     if time_str:
         label = f"{ANSI.CORAL}{time_str}{ANSI.RESET}"
     else:
-        d = _date.fromisoformat(date_str)
-        delta = (d - clock.today()).days
-        label = f"{ANSI.CORAL}+{delta}d{ANSI.RESET}"
+        label = f"{ANSI.CORAL}{_fmt_date_label(date_str)}{ANSI.RESET}"
     echo(format_status(label, t.content, t.id))
 
 
