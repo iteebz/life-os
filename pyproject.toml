@@ -112,5 +112,5 @@ testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 
 [tool.uv.sources]
-fncli = { path = "/Users/iteebz/space/fncli", editable = true }
-atrace = { path = "/Users/iteebz/space/atrace", editable = true }
+fncli = { git = "https://github.com/iteebz/fncli.git" }
+atrace = { git = "https://github.com/iteebz/trace.git" }

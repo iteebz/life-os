@@ -9,16 +9,7 @@ resolution-markers = [
 [[package]]
 name = "atrace"
 version = "0.1.0"
-source = { editable = "../../space/atrace" }
-
-[package.metadata]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pyright", specifier = ">=1.1.408" },
-    { name = "pytest", specifier = ">=8.4.1" },
-    { name = "ruff", specifier = ">=0.13.0" },
-]
+source = { git = "https://github.com/iteebz/trace.git#2593a1381230489589cae6bf5f7963f7be1d9611" }
 
 [[package]]
 name = "certifi"
@@ -208,16 +199,7 @@ wheels = [
 [[package]]
 name = "fncli"
 version = "0.0.1"
-source = { editable = "../../space/fncli" }
-
-[package.metadata]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pyright", specifier = ">=1.1.408" },
-    { name = "pytest", specifier = ">=8.0" },
-    { name = "ruff", specifier = ">=0.13.0" },
-]
+source = { git = "https://github.com/iteebz/fncli.git#46dee6d7be838db86a125161cff1284d420fa30a" }
 
 [[package]]
 name = "google-api-core"
@@ -420,8 +402,8 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "atrace", editable = "../../space/atrace" },
-    { name = "fncli", editable = "../../space/fncli" },
+    { name = "atrace", git = "https://github.com/iteebz/trace.git" },
+    { name = "fncli", git = "https://github.com/iteebz/fncli.git" },
     { name = "google-api-python-client", specifier = ">=2.0.0" },
     { name = "google-auth", specifier = ">=2.0.0" },
     { name = "google-auth-httplib2", specifier = ">=0.2.0" },
