@@ -159,9 +159,9 @@ def load_tags_for_habits(
         return _run(c)
 
 
-@cli("life")
-def tag(ref: str, tag_name: str) -> None:
-    """Add tag to item: life tag <item> <tag>"""
+@cli("life tag", name="add")
+def tag_add(ref: str, tag_name: str) -> None:
+    """Add tag to item"""
     from .lib.resolve import resolve_item_exact
 
     task, habit = resolve_item_exact(ref)
@@ -173,8 +173,8 @@ def tag(ref: str, tag_name: str) -> None:
         echo(f"{habit.content} {ANSI.GREY}#{tag_name}{ANSI.RESET}")
 
 
-@cli("life")
-def untag(ref: str, tag_name: str) -> None:
+@cli("life tag", name="rm")
+def tag_rm(ref: str, tag_name: str) -> None:
     """Remove tag from item"""
     from .lib.resolve import resolve_item_exact
 
