@@ -47,29 +47,23 @@ class ANSI:
     INDIGO = "\033[38;5;99m"
 
     POOL: ClassVar[list[str]] = [
-        ORANGE,
-        BLUE,
-        MAGENTA,
-        CYAN,
-        YELLOW,
-        GREEN,
-        RED,
-        PURPLE,
-        TEAL,
-        PINK,
-        LAVENDER,
-        CORAL,
-        LIME,
-        SKY,
-        APRICOT,
-        MINT,
-        BERRY,
-        GOLD,
-        SAGE,
-        INDIGO,
-        FOREST,
-        SLATE,
-        PEACH,
+        "\033[38;5;167m",  # red-rose
+        "\033[38;5;210m",  # salmon
+        "\033[38;5;209m",  # coral
+        "\033[38;5;216m",  # peach
+        "\033[38;5;215m",  # apricot
+        "\033[38;5;180m",  # sand
+        "\033[38;5;151m",  # sage
+        "\033[38;5;157m",  # mint
+        "\033[38;5;116m",  # seafoam
+        "\033[38;5;117m",  # sky
+        "\033[38;5;111m",  # cornflower
+        "\033[38;5;147m",  # periwinkle
+        "\033[38;5;183m",  # lilac
+        "\033[38;5;141m",  # purple
+        "\033[38;5;182m",  # mauve
+        "\033[38;5;175m",  # dusty-rose
+        "\033[38;5;211m",  # pink
     ]
 
 
