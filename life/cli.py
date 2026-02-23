@@ -9,6 +9,7 @@ from . import dates as _dates
 from . import db
 from . import email as _email
 from . import habits as _habits
+from . import install as _install
 from . import interventions as _interventions
 from . import items as _items
 from . import messaging as _messaging
@@ -21,6 +22,7 @@ from . import tasks as _tasks
 
 _ = (
     _daemon,
+    _install,
     _steward,
     _accounts,
     _achievements,
