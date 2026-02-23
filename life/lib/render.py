@@ -18,6 +18,18 @@ __all__ = [
     "render_task_detail",
 ]
 
+TAG_ORDER = ["finance", "legal", "janice", "comms", "home", "income"]
+
+
+def _primary_tag(task: Task) -> str | None:
+    for tag in TAG_ORDER:
+        if tag in task.tags:
+            return tag
+    if task.tags:
+        return sorted(task.tags)[0]
+    return None
+
+
 _R = ANSI.RESET
 _GREY = ANSI.MUTED
 
@@ -330,8 +342,11 @@ def _render_task_row(
     completed_subs_by_parent: dict[str, list[Task]],
     all_pending: list[Task],
     indent: str = "  ",
+    secondary_tags_override: list[str] | None = None,
 ) -> list[str]:
-    tags_str = _fmt_tags(task.tags, tag_colors)
+    tags_str = _fmt_tags(
+        secondary_tags_override if secondary_tags_override is not None else task.tags, tag_colors
+    )
     id_str = f" {_GREY}[{task.id[:8]}]{_R}"
 
     date_str = ""
@@ -382,29 +397,42 @@ def _render_tasks(
 
     subtask_ids = {t.id for t in regular_items if t.parent_id}
     top_level = [t for t in regular_items if t.id not in subtask_ids]
-    lines_out: list[str] = [f"\n{bold(white(f'TASKS ({len(top_level)})'))}"]
 
-    lines: list[str] = []
-    seen: set[str] = set()
+    groups: dict[str, list[Task]] = {}
     for task in sorted(top_level, key=lambda t: t.content.lower()):
-        if task.id in seen:
-            continue
-        seen.add(task.id)
-        lines.extend(
-            _render_task_row(
-                task,
-                today,
-                today_str,
-                tomorrow_str,
-                tag_colors,
-                task_id_to_content,
-                subtasks_by_parent,
-                completed_subs_by_parent,
-                all_pending,
-            )
-        )
+        key = _primary_tag(task) or ""
+        groups.setdefault(key, []).append(task)
 
-    return lines_out + lines
+    present_tags = [t for t in TAG_ORDER if t in groups]
+    other_tags = sorted(k for k in groups if k and k not in TAG_ORDER)
+    sections = present_tags + other_tags
+    if "" in groups:
+        sections.append("")
+
+    lines_out: list[str] = []
+    for tag in sections:
+        tasks = groups[tag]
+        label = tag.upper() if tag else "BACKLOG"
+        lines_out.append(f"\n{bold(white(f'{label} ({len(tasks)})'))}")
+        for task in tasks:
+            secondary_tags = [t for t in task.tags if t != tag] if tag else task.tags
+            task_for_render = task
+            lines_out.extend(
+                _render_task_row(
+                    task_for_render,
+                    today,
+                    today_str,
+                    tomorrow_str,
+                    tag_colors,
+                    task_id_to_content,
+                    subtasks_by_parent,
+                    completed_subs_by_parent,
+                    all_pending,
+                    secondary_tags_override=secondary_tags,
+                )
+            )
+
+    return lines_out
 
 
 def render_dashboard(
