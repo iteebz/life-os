@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
+just bin 2>/dev/null || true
+
 STAGED=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$' || true)
 
 if [ -z "$STAGED" ]; then
