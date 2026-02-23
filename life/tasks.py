@@ -25,7 +25,6 @@ __all__ = [
     "cancel_task",
     "check_task",
     "check_task_cmd",
-    "count_overdue_resets",
     "defer_task",
     "delete_task",
     "find_task",
@@ -302,15 +301,6 @@ def defer_task(task_id: str, reason: str) -> Task | None:
             (task_id, reason),
         )
     return task
-
-
-def count_overdue_resets(window_start: str, window_end: str) -> int:
-    with db.get_db() as conn:
-        row = conn.execute(
-            "SELECT COUNT(*) FROM task_mutations WHERE reason = 'overdue_reset' AND date(mutated_at) >= ? AND date(mutated_at) <= ?",
-            (window_start, window_end),
-        ).fetchone()
-    return row[0] if row else 0
 
 
 def cancel_task(task_id: str, reason: str) -> None:

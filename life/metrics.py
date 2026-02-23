@@ -52,6 +52,10 @@ def _count_overdue_resets(window_start: date, window_end: date) -> int:
         return row[0] if row else 0
 
 
+def _is_top_level(t: Task) -> bool:
+    return t.parent_id is None
+
+
 def build_feedback_snapshot(
     *,
     all_tasks: list[Task],
@@ -62,20 +66,23 @@ def build_feedback_snapshot(
 ) -> FeedbackSnapshot:
     window_start = today - timedelta(days=window_days - 1)
 
+    top_all = [t for t in all_tasks if _is_top_level(t)]
+    top_pending = [t for t in pending_tasks if _is_top_level(t)]
+
     admin_closed = sum(
         1
-        for t in all_tasks
+        for t in top_all
         if set(t.tags or []).intersection(DISCOMFORT_TAGS)
         and _in_window(t.completed_at, window_start, today)
     )
-    admin_open = sum(1 for t in pending_tasks if set(t.tags or []).intersection(DISCOMFORT_TAGS))
+    admin_open = sum(1 for t in top_pending if set(t.tags or []).intersection(DISCOMFORT_TAGS))
 
     janice_done = sum(
         1
-        for t in all_tasks
+        for t in top_all
         if "janice" in (t.tags or []) and _in_window(t.completed_at, window_start, today)
     )
-    janice_open = sum(1 for t in pending_tasks if "janice" in (t.tags or []))
+    janice_open = sum(1 for t in top_pending if "janice" in (t.tags or []))
 
     defer_count = _count_defers(window_start, today)
     overdue_resets = _count_overdue_resets(window_start, today)
@@ -127,8 +134,23 @@ def render_feedback_snapshot(snapshot: FeedbackSnapshot) -> list[str]:
     return lines
 
 
+def render_feedback_headline(snapshot: FeedbackSnapshot) -> str:
+    admin_total = snapshot.admin_closed + snapshot.admin_open
+    janice_total = snapshot.janice_done + snapshot.janice_open
+    parts = []
+    if admin_total:
+        parts.append(f"closure {_format_ratio(snapshot.admin_closed, admin_total)}")
+    if janice_total:
+        parts.append(f"partner {_format_ratio(snapshot.janice_done, janice_total)}")
+    parts.append(f"rhythm {snapshot.habit_rate:.0%}")
+    if snapshot.flags:
+        parts.append("⚑ " + ", ".join(snapshot.flags))
+    return "  ".join(parts)
+
+
 __all__ = [
     "FeedbackSnapshot",
     "build_feedback_snapshot",
+    "render_feedback_headline",
     "render_feedback_snapshot",
 ]

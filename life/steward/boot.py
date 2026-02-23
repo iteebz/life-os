@@ -17,7 +17,7 @@ def boot():
     from ..habits import get_habits
     from ..improvements import get_improvements
     from ..lib.clock import today
-    from ..metrics import build_feedback_snapshot, render_feedback_snapshot
+    from ..metrics import build_feedback_snapshot, render_feedback_headline
     from ..mood import get_recent_moods
     from ..tasks import get_all_tasks, get_tasks
 
@@ -38,7 +38,7 @@ def boot():
     snapshot = build_feedback_snapshot(
         all_tasks=all_tasks, pending_tasks=tasks, habits=habits, today=today_date
     )
-    echo("\n".join(render_feedback_snapshot(snapshot)))
+    echo(render_feedback_headline(snapshot))
 
     sessions = get_sessions(limit=1)
     if sessions:
