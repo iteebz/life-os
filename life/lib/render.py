@@ -1,6 +1,6 @@
+import random
 from collections.abc import Sequence
 from datetime import date, timedelta
-from zlib import crc32
 
 from life.habits import get_subhabits
 from life.models import Habit, Task, TaskMutation
@@ -70,14 +70,10 @@ def _get_direct_tags(task: Task, all_pending: list[Task]) -> list[str]:
     return [tag for tag in task.tags if tag not in parent_tags]
 
 
-def _tag_color(tag: str) -> str:
-    idx = crc32(tag.encode()) % len(ANSI.POOL)
-    return ANSI.POOL[idx]
-
-
 def _build_tag_colors(items: Sequence[Task | Habit]) -> dict[str, str]:
-    tags = {tag for item in items for tag in item.tags}
-    return {tag: _tag_color(tag) for tag in tags}
+    tags = sorted({tag for item in items for tag in item.tags})
+    pool = random.sample(ANSI.POOL, len(ANSI.POOL))
+    return {tag: pool[i % len(pool)] for i, tag in enumerate(tags)}
 
 
 def _get_trend(current: int, previous: int) -> str:
@@ -419,7 +415,7 @@ def _render_tasks(
     for tag in sections:
         tasks = groups[tag]
         label = tag.upper() if tag else "BACKLOG"
-        header_color = _tag_color(tag) if tag else ANSI.WHITE
+        header_color = tag_colors.get(tag, ANSI.WHITE) if tag else ANSI.WHITE
         lines_out.append(f"\n{ANSI.BOLD}{header_color}{label} ({len(tasks)}){ANSI.RESET}")
         for task in tasks:
             secondary_tags = [t for t in task.tags if t != tag] if tag else task.tags
