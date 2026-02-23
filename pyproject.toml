@@ -112,5 +112,5 @@ testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 
 [tool.uv.sources]
-fncli = { path = "../../space/fncli", editable = true }
-atail = { path = "../../infra/trace", editable = true }
+fncli = { path = "/Users/iteebz/space/fncli", editable = true }
+atail = { path = "/Users/iteebz/space/atrace", editable = true }

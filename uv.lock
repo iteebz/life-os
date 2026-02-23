@@ -9,7 +9,7 @@ resolution-markers = [
 [[package]]
 name = "atail"
 version = "0.1.0"
-source = { editable = "../../infra/trace" }
+source = { editable = "../../space/atrace" }
 
 [package.metadata]
 
@@ -420,7 +420,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "atail", editable = "../../infra/trace" },
+    { name = "atail", editable = "../../space/atrace" },
     { name = "fncli", editable = "../../space/fncli" },
     { name = "google-api-python-client", specifier = ">=2.0.0" },
     { name = "google-auth", specifier = ">=2.0.0" },
