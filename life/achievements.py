@@ -63,6 +63,47 @@ def _achievement_tag_colors(entries: list["Achievement"]) -> dict[str, str]:
     return {tag: ANSI.POOL[i % len(ANSI.POOL)] for i, tag in enumerate(unique)}
 
 
+def update_achievement(
+    id: int,
+    name: str | None = None,
+    description: str | None = None,
+    tags: str | None = None,
+) -> None:
+    fields = []
+    values = []
+    if name is not None:
+        fields.append("name = ?")
+        values.append(name)
+    if description is not None:
+        fields.append("description = ?")
+        values.append(description)
+    if tags is not None:
+        fields.append("tags = ?")
+        values.append(tags)
+    if not fields:
+        return
+    values.append(id)
+    with get_db() as conn:
+        conn.execute(f"UPDATE achievements SET {', '.join(fields)} WHERE id = ?", values)  # noqa: S608
+
+
+@cli(
+    "life achievement",
+    name="update",
+    flags={
+        "name": ["-n", "--name"],
+        "description": ["-d", "--description"],
+        "tags": ["-t", "--tags"],
+    },
+)
+def update(
+    id: int, name: str | None = None, description: str | None = None, tags: str | None = None
+):
+    """Update an achievement"""
+    update_achievement(id, name, description, tags)
+    echo(f"✓ updated {id}")
+
+
 @cli("life achievement", name="ls")
 def ls():
     """List all achievements"""
