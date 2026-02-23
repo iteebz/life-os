@@ -1,5 +1,6 @@
 import re
 from typing import ClassVar
+from zlib import crc32
 
 _ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 _MD_BOLD_RE = re.compile(r"\*\*([^*]+)\*\*")
@@ -194,3 +195,90 @@ def sage(text: str) -> str:
 
 def indigo(text: str) -> str:
     return f"{ANSI.INDIGO}{text}{_R}"
+
+
+_REFERENCE_RE = re.compile(r"(?<![a-zA-Z0-9_.:/-])([a-z])/([a-f0-9]{8})(?![a-zA-Z0-9_])")
+_MENTION_RE = re.compile(r"@(\w+)")
+
+_PATH_SEGMENT = r"[a-zA-Z0-9_.][a-zA-Z0-9_.-]*"
+_PATH_RE = re.compile(
+    rf"(?<![a-zA-Z0-9_.*:/])"
+    rf"("
+    rf"~/{_PATH_SEGMENT}(?:/{_PATH_SEGMENT})*"
+    rf"|\.\..?/{_PATH_SEGMENT}(?:/{_PATH_SEGMENT})*"
+    rf"|/{_PATH_SEGMENT}(?:/{_PATH_SEGMENT})+"
+    rf"|(?![itdr]/[a-f0-9]{{8}})[a-zA-Z0-9_][a-zA-Z0-9_.-]*(?:/{_PATH_SEGMENT})+"
+    rf")"
+    rf"(?![a-zA-Z0-9_])"
+)
+
+_AGENT_COLORS: list[int] = [
+    60,
+    61,
+    62,
+    66,
+    67,
+    68,
+    72,
+    73,
+    74,
+    96,
+    97,
+    98,
+    102,
+    103,
+    104,
+    108,
+    109,
+    110,
+    132,
+    133,
+    134,
+    138,
+    139,
+    140,
+    144,
+    145,
+    146,
+    168,
+    169,
+    170,
+    174,
+    175,
+    176,
+    180,
+    181,
+    182,
+]
+
+
+def agent_color(identity: str) -> str:
+    lower = identity.lower()
+    idx = crc32(lower.encode()) % len(_AGENT_COLORS)
+    return f"\033[38;5;{_AGENT_COLORS[idx]}m"
+
+
+def mention(name: str) -> str:
+    color = agent_color(name)
+    return f"{_B}{color}@{name}\033[22m{_R}"
+
+
+def highlight_references(text: str, base_color: str | None = None) -> str:
+    base = base_color or _R
+
+    def _color_ref(m: re.Match[str]) -> str:
+        return f"{_B}{ANSI.CYAN}{m.group(1)}/{m.group(2)}\033[22m{base}"
+
+    return _REFERENCE_RE.sub(_color_ref, text)
+
+
+def highlight_path(text: str, base_color: str | None = None) -> str:
+    base = base_color or _R
+
+    def _color_path(m: re.Match[str]) -> str:
+        return f"{ANSI.BLUE}{m.group(1)}{base}"
+
+    result = _PATH_RE.sub(_color_path, text)
+    if base_color:
+        return f"{base_color}{result}"
+    return result

@@ -2,6 +2,7 @@ import subprocess
 import sys
 import threading
 import time
+from datetime import UTC, datetime
 from pathlib import Path
 from queue import Empty, Queue
 from typing import TYPE_CHECKING, Any
@@ -14,6 +15,9 @@ from fncli import cli
 from ..lib.ansi import strip as ansi_strip
 from ..lib.errors import exit_error
 from ..lib.tail import StreamParser, format_entry
+
+_STEWARD_DIR = Path.home() / ".life" / "steward"
+_OFF_SENTINEL = _STEWARD_DIR / "off"
 
 
 def _steward_prompt() -> str:
@@ -52,13 +56,18 @@ def _read_stream_lines(stream_name: str, stream, out_q: Queue[tuple[str, str | N
         out_q.put((stream_name, None))
 
 
+def _latest_spawn_file() -> Path | None:
+    _STEWARD_DIR.mkdir(parents=True, exist_ok=True)
+    files = sorted(_STEWARD_DIR.glob("*.jsonl"), key=lambda p: p.stat().st_mtime, reverse=True)
+    return files[0] if files else None
+
+
 def _run_tail_stream(
     cmd: list[str],
     cwd: Path,
     env: dict[str, str],
     timeout: int,
-    raw: bool,
-    quiet_system: bool,
+    spawn_file: Path | None = None,
 ) -> int:
     parser = StreamParser()
     proc = subprocess.Popen(
@@ -83,6 +92,8 @@ def _run_tail_stream(
     stdout_thread.start()
     stderr_thread.start()
 
+    log_fh = spawn_file.open("a") if spawn_file else None
+
     deadline = time.monotonic() + timeout
     stdout_done = False
     stderr_done = False
@@ -90,45 +101,49 @@ def _run_tail_stream(
     timed_out = False
     last_rendered: str | None = None
 
-    while not (stdout_done and stderr_done):
-        remaining = deadline - time.monotonic()
-        if remaining <= 0:
-            timed_out = True
-            break
-        try:
-            stream_name, line = out_q.get(timeout=min(0.2, remaining))
-        except Empty:
-            if proc.poll() is not None and stdout_done and stderr_done:
+    try:
+        while not (stdout_done and stderr_done):
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                timed_out = True
                 break
-            continue
-
-        if line is None:
-            if stream_name == "stdout":
-                stdout_done = True
-            else:
-                stderr_done = True
-            continue
-
-        text = line.rstrip("\n")
-        if stream_name == "stderr":
-            if text.strip():
-                stderr_lines.append(text.strip())
-            continue
-
-        if raw:
-            print(text)
-            continue
-
-        entries = parser.parse_line(text)
-        for entry in entries:
-            rendered = format_entry(entry, quiet_system=quiet_system)
-            if not rendered:
+            try:
+                stream_name, line = out_q.get(timeout=min(0.2, remaining))
+            except Empty:
+                if proc.poll() is not None and stdout_done and stderr_done:
+                    break
                 continue
-            rendered_plain = ansi_strip(rendered).strip()
-            if rendered == last_rendered and rendered_plain.startswith(("error.", "in=")):
+
+            if line is None:
+                if stream_name == "stdout":
+                    stdout_done = True
+                else:
+                    stderr_done = True
                 continue
-            print(rendered)
-            last_rendered = rendered
+
+            text = line.rstrip("\n")
+            if stream_name == "stderr":
+                if text.strip():
+                    stderr_lines.append(text.strip())
+                continue
+
+            if log_fh:
+                log_fh.write(line if line.endswith("\n") else line + "\n")
+                log_fh.flush()
+
+            entries = parser.parse_line(text)
+            for entry in entries:
+                rendered = format_entry(entry, quiet_system=True)
+                if not rendered:
+                    continue
+                rendered_plain = ansi_strip(rendered).strip()
+                if rendered == last_rendered and rendered_plain.startswith(("error.", "in=")):
+                    continue
+                print(rendered)
+                last_rendered = rendered
+    finally:
+        if log_fh:
+            log_fh.close()
 
     if timed_out:
         proc.terminate()
@@ -137,14 +152,14 @@ def _run_tail_stream(
         except subprocess.TimeoutExpired:
             proc.kill()
             proc.wait()
-        print(f"[tail] timed out after {timeout}s", file=sys.stderr)
+        print(f"[steward] timed out after {timeout}s", file=sys.stderr)
         return 124
 
     rc = proc.wait()
     stdout_thread.join(timeout=0.2)
     stderr_thread.join(timeout=0.2)
     if rc != 0 and stderr_lines:
-        print(f"[tail] stderr: {stderr_lines[-1]}", file=sys.stderr)
+        print(f"[steward] stderr: {stderr_lines[-1]}", file=sys.stderr)
     return rc
 
 
@@ -214,15 +229,17 @@ def _run_autonomous(provider: str = "claude") -> None:
         )
         print(f"steward gate: close real-world loop first -> {required_task.content}")
 
-    print(f"[auto] provider: {provider}")
+    _STEWARD_DIR.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now(UTC).strftime("%Y%m%dT%H%M%S")
+    spawn_file = _STEWARD_DIR / f"{ts}.jsonl"
+
     cmd, env = _build_provider_cmd_env(provider, prompt)
     rc = _run_tail_stream(
         cmd,
         cwd=Path.home() / "life",
         env=env,
         timeout=1200,
-        raw=False,
-        quiet_system=False,
+        spawn_file=spawn_file,
     )
     if rc != 0:
         update_loop_state(
@@ -269,71 +286,87 @@ def _run_autonomous(provider: str = "claude") -> None:
         exit_error("steward gate failed: no real-world task was closed")
 
 
-def cmd_tail(
-    cycles: int = 1,
-    interval_seconds: int = 0,
+@cli("life steward")
+def on(
     provider: str = "claude",
-    dry_run: bool = False,
-    continue_on_error: bool = False,
-    timeout_seconds: int = 1200,
-    retries: int = 2,
-    retry_delay_seconds: int = 2,
-    raw: bool = False,
-    quiet_system: bool = False,
+    glm: bool = False,
+    cycles: int = 1,
+    every: int = 0,
+    timeout: int = 1200,
 ) -> None:
-    if cycles < 1:
-        exit_error("--cycles must be >= 1")
-    if interval_seconds < 0:
-        exit_error("--every must be >= 0")
-    if timeout_seconds < 1:
-        exit_error("--timeout must be >= 1")
-    if retries < 0:
-        exit_error("--retries must be >= 0")
-    if retry_delay_seconds < 0:
-        exit_error("--retry-delay must be >= 0")
-
-    life_dir = Path.home() / "life"
-    prompt = _steward_prompt()
-
+    """start steward (runs one spawn, or loop with --cycles)"""
+    if glm:
+        provider = "glm"
+    if _OFF_SENTINEL.exists():
+        _OFF_SENTINEL.unlink()
     for i in range(1, cycles + 1):
-        print(f"[tail] cycle {i}/{cycles} provider={provider}")
-        cmd, env = _build_provider_cmd_env(provider, prompt)
-        attempts = retries + 1
-        if dry_run:
-            print(" ".join(cmd))
-        else:
-            ok = False
-            last_rc = 1
-            for attempt in range(1, attempts + 1):
-                if attempt > 1:
-                    print(f"[tail] retry {attempt - 1}/{retries} after failure")
-                try:
-                    last_rc = _run_tail_stream(
-                        cmd,
-                        cwd=life_dir,
-                        env=env,
-                        timeout=timeout_seconds,
-                        raw=raw,
-                        quiet_system=quiet_system,
-                    )
-                except Exception as exc:
-                    print(f"[tail] execution error: {exc}", file=sys.stderr)
-                    last_rc = 1
+        if cycles > 1:
+            print(f"[steward] cycle {i}/{cycles}")
+        _run_autonomous(provider=provider)
+        if i < cycles:
+            if _OFF_SENTINEL.exists():
+                print("[steward] off signal received, stopping")
+                _OFF_SENTINEL.unlink()
+                break
+            if every > 0:
+                print(f"[steward] sleeping {every}s")
+                time.sleep(every)
 
-                if last_rc == 0:
-                    ok = True
-                    break
-                if attempt < attempts and retry_delay_seconds > 0:
-                    time.sleep(retry_delay_seconds)
 
-            if not ok:
-                if continue_on_error:
-                    print(f"[tail] cycle {i} failed (exit {last_rc}), continuing")
-                else:
-                    exit_error(f"tail loop failed on cycle {i} (exit {last_rc})")
-        if i < cycles and interval_seconds > 0:
-            print(f"[tail] sleeping {interval_seconds}s")
-            time.sleep(interval_seconds)
+@cli("life steward")
+def off() -> None:
+    """signal steward to stop after current spawn"""
+    _STEWARD_DIR.mkdir(parents=True, exist_ok=True)
+    _OFF_SENTINEL.touch()
+    print("[steward] off signal set — will stop after current spawn")
+
+
+@cli("life steward", flags={"watch": ["-w", "--watch"]})
+def tail(watch: bool = False) -> None:
+    """replay last steward spawn; -w to follow live"""
+    path = _latest_spawn_file()
+    if not path:
+        print("no steward spawns found")
+        return
+
+    parser = StreamParser()
+    last_rendered: str | None = None
+
+    def _replay_path(p: Path, position: int = 0) -> int:
+        nonlocal last_rendered
+        with p.open() as f:
+            f.seek(position)
+            for line in f:
+                line = line.rstrip("\n")
+                if not line:
+                    continue
+                for entry in parser.parse_line(line):
+                    rendered = format_entry(entry, quiet_system=True)
+                    if not rendered:
+                        continue
+                    rendered_plain = ansi_strip(rendered).strip()
+                    if rendered == last_rendered and rendered_plain.startswith(("error.", "in=")):
+                        continue
+                    print(rendered)
+                    last_rendered = rendered
+            return f.tell()
+
+    pos = _replay_path(path)
+
+    if not watch:
+        return
+
+    try:
+        while True:
+            new_path = _latest_spawn_file()
+            if new_path and new_path != path:
+                path = new_path
+                pos = 0
+                parser = StreamParser()
+            pos = _replay_path(path, pos)
+            time.sleep(0.1)
+    except KeyboardInterrupt:
+        pass
 
 
 @cli("life")
@@ -342,43 +375,9 @@ def auto(
     every: int = 0,
     provider: str = "claude",
     glm: bool = False,
-    sonnet: bool = False,
     timeout: int = 1200,
-    retries: int = 2,
-    retry_delay: int = 2,
-    dry_run: bool = False,
-    raw: bool = False,
-    quiet_system: bool = False,
-    continue_on_error: bool = False,
 ) -> None:
-    """Run unattended Steward loop (default: claude, --glm to use GLM)"""
+    """run steward loop (alias for steward on)"""
     if glm:
         provider = "glm"
-    elif sonnet:
-        provider = "claude"
-    cmd_tail(
-        cycles=cycles,
-        interval_seconds=every,
-        provider=provider,
-        timeout_seconds=timeout,
-        retries=retries,
-        retry_delay_seconds=retry_delay,
-        dry_run=dry_run,
-        raw=raw,
-        quiet_system=quiet_system,
-        continue_on_error=continue_on_error,
-    )
-
-
-@cli("life steward", name="run")
-def steward_run(
-    provider: str = "claude",
-    glm: bool = False,
-    sonnet: bool = False,
-) -> None:
-    """Run autonomous steward loop (default: claude, --glm to use GLM)"""
-    if glm:
-        provider = "glm"
-    elif sonnet:
-        provider = "claude"
-    _run_autonomous(provider=provider)
+    on(provider=provider, cycles=cycles, every=every, timeout=timeout)

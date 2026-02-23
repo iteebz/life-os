@@ -5,12 +5,16 @@ from pathlib import Path
 from typing import cast
 
 from .ansi import (
+    ANSI,
+    blue,
     bold,
     coral,
     dim,
     forest,
     gray,
     green,
+    highlight_path,
+    highlight_references,
     lime,
     purple,
     red,
@@ -24,36 +28,37 @@ from .providers import glm
 _HOME = str(Path.home())
 
 _TOOL_DISPLAY = {
-    "MultiEdit": "Edit",
-    "WebFetch": "Fetch",
-    "WebSearch": "Web",
+    "MultiEdit": "edit",
+    "WebFetch": "fetch",
+    "WebSearch": "web",
 }
 
 _TOOL_COLORS = {
-    "Write": lime,
-    "Edit": lime,
-    "Bash": slate,
-    "Git": purple,
-    "Read": teal,
-    "Grep": teal,
-    "Glob": teal,
-    "LS": teal,
-    "Fetch": teal,
-    "Web": teal,
+    "write": lime,
+    "edit": lime,
+    "run": blue,
+    "git": purple,
+    "cd": gray,
+    "read": teal,
+    "grep": teal,
+    "glob": teal,
+    "ls": teal,
+    "fetch": teal,
+    "web": teal,
 }
 
 _BASH_PRIMITIVES: list[tuple[re.Pattern[str], str, str | None]] = [
-    (re.compile(r"^cd\b"), "Cd", r"^cd\s+"),
-    (re.compile(r"^git\b"), "Git", r"^git\s+"),
-    (re.compile(r"^rg\b"), "Grep", r"^rg\s+"),
-    (re.compile(r"^(ls|exa)(?:\s+|$)"), "LS", r"^(ls|exa)(?:\s+|$)"),
-    (re.compile(r"^curl\b"), "Fetch", r"^curl\s+"),
-    (re.compile(r"^uv\s+run\s+"), "Run", r"^uv\s+run\s+"),
-    (re.compile(r"^python[23]?\b"), "Run", r"^python[23]?\s+"),
-    (re.compile(r"^just\b"), "Run", r"^just\s+"),
-    (re.compile(r"^(npm|pnpm|yarn)\s+run\s+"), "Run", r"^(npm|pnpm|yarn)\s+run\s+"),
-    (re.compile(r"^(npm|pnpm|yarn)\b"), "Run", r"^(npm|pnpm|yarn)\s+"),
-    (re.compile(r"^(make|cargo|go)\b"), "Run", r"^(make|cargo|go)\s+"),
+    (re.compile(r"^cd\b"), "cd", r"^cd\s+"),
+    (re.compile(r"^git\b"), "git", r"^git\s+"),
+    (re.compile(r"^rg\b"), "grep", r"^rg\s+"),
+    (re.compile(r"^(ls|exa)(?:\s+|$)"), "ls", r"^(ls|exa)(?:\s+|$)"),
+    (re.compile(r"^curl\b"), "fetch", r"^curl\s+"),
+    (re.compile(r"^uv\s+run\s+"), "run", r"^uv\s+run\s+"),
+    (re.compile(r"^python[23]?\b"), "run", r"^python[23]?\s+"),
+    (re.compile(r"^just\b"), "run", r"^just\s+"),
+    (re.compile(r"^(npm|pnpm|yarn)\s+run\s+"), "run", r"^(npm|pnpm|yarn)\s+run\s+"),
+    (re.compile(r"^(npm|pnpm|yarn)\b"), "run", r"^(npm|pnpm|yarn)\s+"),
+    (re.compile(r"^(make|cargo|go)\b"), "run", r"^(make|cargo|go)\s+"),
 ]
 
 _STRIP_CACHE: dict[str, re.Pattern[str]] = {}
@@ -72,6 +77,9 @@ def _split_chain(cmd: str) -> list[str]:
     return [p.strip() for p in parts if p.strip()]
 
 
+_CWD = str(Path.cwd())
+
+
 def _parse_bash(cmd: str) -> tuple[str, str]:
     cleaned = cmd.strip()
     base_cmd = cleaned
@@ -83,7 +91,7 @@ def _parse_bash(cmd: str) -> tuple[str, str]:
             continue
         arg = _strip_re(strip).sub("", base_cmd).strip() if strip else base_cmd
         return name, arg
-    return "Run", cleaned
+    return "run", cleaned
 
 
 def _short(value: object, limit: int = 120) -> str:
@@ -117,6 +125,25 @@ def _tool_arg(raw_name: str, args: dict[str, object]) -> str:
         return pattern
     items = list(args.items())[:2]
     return ", ".join(f"{k}={_short(v, 40)}" for k, v in items)
+
+
+_RUN_NAMES = {"run", "git"}
+_CLEAN_RUN_RE = re.compile(r"^\./.venv/bin/(?:python[23]?\s+-m\s+)?")
+
+
+def _format_tool_arg(name: str, arg: str) -> str:
+    if name in _RUN_NAMES:
+        cleaned = arg.strip()
+        if " || " in cleaned:
+            cleaned = cleaned.split(" || ")[-1].strip()
+        cleaned = _CLEAN_RUN_RE.sub("", cleaned)
+        cleaned = re.sub(r"\s+2>&1(?=\s|$)", "", cleaned)
+        if cleaned.startswith("just "):
+            cleaned = cleaned[5:].strip()
+        return slate(highlight_references(cleaned, ANSI.SLATE))
+    if "/" in arg or "~" in arg:
+        return highlight_references(highlight_path(arg, ANSI.WHITE), ANSI.WHITE)
+    return white(highlight_references(arg, ANSI.WHITE))
 
 
 def _edit_suffix(raw_name: str, args: dict[str, object]) -> str:
@@ -157,10 +184,10 @@ def _edit_suffix(raw_name: str, args: dict[str, object]) -> str:
 
 
 def _format_tool_call(raw_name: str, args: dict[str, object]) -> str:
-    name = _TOOL_DISPLAY.get(raw_name, raw_name)
+    name = _TOOL_DISPLAY.get(raw_name, raw_name.lower())
     is_bash = raw_name == "Bash"
     arg = _tool_arg(raw_name, args)
-    arg = arg.replace(_HOME, "~")
+    arg = arg.replace(_HOME, "~").replace(_CWD, ".")
 
     if is_bash:
         name, arg = _parse_bash(arg.split("\n")[0])
@@ -171,27 +198,27 @@ def _format_tool_call(raw_name: str, args: dict[str, object]) -> str:
         suffix = _edit_suffix(raw_name, args)
 
     color_fn = _TOOL_COLORS.get(name, gray)
-    label = bold(color_fn(name.lower()))
-    arg_fmt = white(arg[:100].replace(_HOME, "~")) if arg else ""
+    label = bold(color_fn(name))
+    arg_fmt = _format_tool_arg(name, arg[:100]) if arg else ""
     return f"  {label} {arg_fmt}{suffix}"
 
 
 def _format_bash_chain(raw_name: str, args: dict[str, object]) -> list[str] | None:
     if raw_name != "Bash":
         return None
-    cmd = str(args.get("command", "")).split("\n")[0].replace(_HOME, "~")
+    cmd = str(args.get("command", "")).split("\n")[0].replace(_HOME, "~").replace(_CWD, ".")
     subcmds = _split_chain(cmd)
     if len(subcmds) <= 1:
         return None
     lines = []
     for sub in subcmds:
         name, arg = _parse_bash(sub)
-        if name == "Cd":
+        if name == "cd":
             continue
         name = _TOOL_DISPLAY.get(name, name)
         color_fn = _TOOL_COLORS.get(name, gray)
-        label = bold(color_fn(name.lower()))
-        arg_fmt = white(arg[:80]) if arg else ""
+        label = bold(color_fn(name))
+        arg_fmt = _format_tool_arg(name, arg[:80]) if arg else ""
         lines.append(f"  {label} {arg_fmt}")
     return lines if lines else None
 
@@ -222,12 +249,10 @@ def format_entry(entry: dict[str, object], quiet_system: bool = False) -> str | 
     if kind == "assistant_text":
         text = str(entry.get("text", ""))
         text = strip_markdown(text.replace("\n", " "))
-        m = re.search(r"[.?!](?:\s|$)", text)
-        if m:
-            text = text[: m.start() + 1]
-        elif len(text) > 120:
+        if len(text) > 120:
             text = text[:120] + "…"
-        return f"  {bold(green('hm...'))} {forest(text.lower())}"
+        text = highlight_references(text.lower(), ANSI.FOREST)
+        return f"  {bold(green('hm...'))} {forest(text)}"
 
     if kind == "tool_call":
         raw_name = str(entry.get("tool_name") or "unknown")
