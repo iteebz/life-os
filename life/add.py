@@ -4,7 +4,7 @@ from datetime import datetime
 from fncli import cli
 
 from .db import get_db
-from .lib.errors import echo, exit_error
+from .lib.errors import echo
 
 
 @dataclass(frozen=True)
@@ -35,46 +35,16 @@ def get_learnings() -> list[Learning]:
     ]
 
 
-@cli("life add", name="a", flags={"description": ["-d", "--description"], "tags": ["-t", "--tags"]})
-def add_achievement(name: str, description: str | None = None, tags: str | None = None):
+@cli("life log", name="a", flags={"tags": ["-t", "--tags"]})
+def add_achievement(name: str, tags: str | None = None):
     """Log an achievement"""
     from .achievements import add_achievement as _add
 
-    _add(name, description, tags)
+    _add(name, tags)
     echo(f"★ {name}")
 
 
-@cli("life add", name="t", flags={"tag": ["-t", "--tag"], "due": ["-d", "--due"]})
-def add_task(content: list[str], tag: list[str] | None = None, due: str | None = None):
-    """Add a task"""
-    from .lib.dates import parse_due_date
-    from .tasks import add_task as _add
-    from .tasks import format_status
-
-    content_str = " ".join(content) if content else ""
-    if not content_str:
-        exit_error("Usage: life add t <task>")
-    tags = list(tag) if tag else []
-    due_date = parse_due_date(due) if due else None
-    task_id = _add(content_str, tags=tags, scheduled_date=due_date)
-    echo(format_status("□", content_str, task_id))
-
-
-@cli("life add", name="h", flags={"tag": ["-t", "--tag"]})
-def add_habit(content: list[str], tag: list[str] | None = None):
-    """Add a habit"""
-    from .habits import add_habit as _add
-    from .habits import format_status
-
-    content_str = " ".join(content) if content else ""
-    if not content_str:
-        exit_error("Usage: life add h <habit>")
-    tags = list(tag) if tag else []
-    habit_id = _add(content_str, tags=tags)
-    echo(format_status("□", content_str, habit_id))
-
-
-@cli("life add", name="o", flags={"tag": ["-t", "--tag"]})
+@cli("life log", name="o", flags={"tag": ["-t", "--tag"]})
 def add_observation(body: str, tag: str | None = None):
     """Log an observation"""
     from .steward import add_observation as _add
@@ -84,7 +54,7 @@ def add_observation(body: str, tag: str | None = None):
     echo(f"→ {body}{suffix}")
 
 
-@cli("life add", name="p", flags={"tag": ["-t", "--tag"]})
+@cli("life log", name="p", flags={"tag": ["-t", "--tag"]})
 def add_pattern(body: str, tag: str | None = None):
     """Log a pattern"""
     from .patterns import add_pattern as _add
@@ -94,7 +64,7 @@ def add_pattern(body: str, tag: str | None = None):
     echo(f"~ {body}{suffix}")
 
 
-@cli("life add", name="l", flags={"tags": ["-t", "--tags"]})
+@cli("life log", name="l", flags={"tags": ["-t", "--tags"]})
 def add_learning_cmd(body: str, tags: str | None = None):
     """Log a steward learning"""
     add_learning(body, tags)

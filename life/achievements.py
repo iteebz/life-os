@@ -12,16 +12,15 @@ from .lib.errors import echo
 class Achievement:
     id: int
     name: str
-    description: str | None
     tags: str | None
     achieved_at: datetime
 
 
-def add_achievement(name: str, description: str | None = None, tags: str | None = None) -> int:
+def add_achievement(name: str, tags: str | None = None) -> int:
     with get_db() as conn:
         cursor = conn.execute(
-            "INSERT INTO achievements (name, description, tags) VALUES (?, ?, ?)",
-            (name, description, tags),
+            "INSERT INTO achievements (name, tags) VALUES (?, ?)",
+            (name, tags),
         )
         return cursor.lastrowid or 0
 
@@ -29,15 +28,14 @@ def add_achievement(name: str, description: str | None = None, tags: str | None 
 def get_achievements() -> list[Achievement]:
     with get_db() as conn:
         rows = conn.execute(
-            "SELECT id, name, description, tags, achieved_at FROM achievements ORDER BY achieved_at DESC"
+            "SELECT id, name, tags, achieved_at FROM achievements ORDER BY achieved_at DESC"
         ).fetchall()
     return [
         Achievement(
             id=row[0],
             name=row[1],
-            description=row[2],
-            tags=row[3],
-            achieved_at=datetime.fromisoformat(row[4]),
+            tags=row[2],
+            achieved_at=datetime.fromisoformat(row[3]),
         )
         for row in rows
     ]
@@ -46,11 +44,11 @@ def get_achievements() -> list[Achievement]:
 @cli(
     "life achievement",
     name="log",
-    flags={"description": ["-d", "--description"], "tags": ["-t", "--tags"]},
+    flags={"tags": ["-t", "--tags"]},
 )
-def log(name: str, description: str | None = None, tags: str | None = None):
+def log(name: str, tags: str | None = None):
     """Log an achievement"""
-    add_achievement(name, description, tags)
+    add_achievement(name, tags)
     echo(f"★ {name}")
 
 
@@ -66,7 +64,6 @@ def _achievement_tag_colors(entries: list["Achievement"]) -> dict[str, str]:
 def update_achievement(
     id: int,
     name: str | None = None,
-    description: str | None = None,
     tags: str | None = None,
 ) -> None:
     fields = []
@@ -74,9 +71,6 @@ def update_achievement(
     if name is not None:
         fields.append("name = ?")
         values.append(name)
-    if description is not None:
-        fields.append("description = ?")
-        values.append(description)
     if tags is not None:
         fields.append("tags = ?")
         values.append(tags)
@@ -92,15 +86,12 @@ def update_achievement(
     name="update",
     flags={
         "name": ["-n", "--name"],
-        "description": ["-d", "--description"],
         "tags": ["-t", "--tags"],
     },
 )
-def update(
-    id: int, name: str | None = None, description: str | None = None, tags: str | None = None
-):
+def update(id: int, name: str | None = None, tags: str | None = None):
     """Update an achievement"""
-    update_achievement(id, name, description, tags)
+    update_achievement(id, name, tags)
     echo(f"✓ updated {id}")
 
 
@@ -119,7 +110,6 @@ def ls():
         date_str = dim(e.achieved_at.strftime("%d/%m/%y").lower())
         dot = gray("·")
         name_str = bold(e.name)
-        desc_str = f" {dim('—')} {e.description}" if e.description else ""
         if e.tags:
             tag_parts = [
                 f"{tag_colors.get(t.strip(), _grey)}#{t.strip()}{_r}" for t in e.tags.split(",")
@@ -127,4 +117,4 @@ def ls():
             tags_str = "  " + " ".join(tag_parts)
         else:
             tags_str = ""
-        echo(f"  {date_str} {dot} {name_str}{desc_str}{tags_str}")
+        echo(f"  {date_str} {dot} {name_str}{tags_str}")
