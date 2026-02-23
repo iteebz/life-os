@@ -4,6 +4,7 @@ default:
 install: bin
     @uv sync
     @just hooks
+    @uv run life daemon install
 
 hooks:
     @cp scripts/hooks/pre-commit .git/hooks/pre-commit
