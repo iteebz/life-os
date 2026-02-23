@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from fncli import UsageError, cli
 
@@ -116,11 +116,23 @@ def yesterday() -> None:
 
 @cli("life")
 def view(date_str: str) -> None:
-    """Show completed tasks and stats for a given date (YYYY-MM-DD)"""
-    try:
-        target = date.fromisoformat(date_str)
-    except ValueError:
-        raise UsageError(f"invalid date: {date_str!r} — use YYYY-MM-DD") from None
+    """Show completed tasks and stats for a given date (dd-mm, dd-mm-yyyy, or yyyy-mm-dd)"""
+    from .lib.clock import today as _today
+
+    target = None
+    for fmt in ("%d-%m-%Y", "%d-%m", "%Y-%m-%d"):
+        try:
+            parsed = datetime.strptime(date_str, fmt)
+            if fmt == "%d-%m":
+                parsed = parsed.replace(year=_today().year)
+            target = parsed.date()
+            break
+        except ValueError:
+            continue
+    if target is None:
+        raise UsageError(
+            f"invalid date: {date_str!r} — use dd-mm, dd-mm-yyyy, or yyyy-mm-dd"
+        ) from None
     _show_day(target)
 
 
