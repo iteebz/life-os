@@ -157,9 +157,6 @@ def boot():
                     authors[name] = authors.get(name, 0) + 1
 
             total = sum(authors.values())
-            tyson_n = authors.get("tyson", 0)
-            steward_n = authors.get("steward", 0)
-            auto_n = authors.get("steward-auto", 0)
 
             dirty = "~" if dirty_result.stdout.strip() else " "
 
@@ -177,17 +174,9 @@ def boot():
                     age = f"{int(secs // (86400 * 7))}w"
                 last_msg = f"  {age:<4}  {msg[:50]}"
 
-            author_parts = []
-            if tyson_n:
-                author_parts.append(f"tyson {tyson_n}")
-            if steward_n:
-                author_parts.append(f"steward {steward_n}")
-            if auto_n:
-                author_parts.append(f"auto {auto_n}")
-            other = total - tyson_n - steward_n - auto_n
-            if other:
-                author_parts.append(f"other {other}")
-
+            author_parts = [
+                f"{name} {n}" for name, n in sorted(authors.items(), key=lambda x: -x[1])
+            ]
             author_str = "  ".join(author_parts) if author_parts else "no commits"
             echo(f"  {dirty} {label:<12}  {total:>3}c  {author_str:<36}{last_msg}")
         except Exception:
