@@ -31,10 +31,10 @@ lint:
     uv run pyright || true
 
 ci: lint
-    @uv run pytest tests --tb=short
+    @uv run python -m pytest tests --tb=short
 
 test:
-    @uv run pytest tests
+    @uv run python -m pytest tests
 
 build:
     @uv build

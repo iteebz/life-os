@@ -1,5 +1,5 @@
-from atail import StreamParser, format_entry
-from atail.ansi import strip
+from atrace import StreamParser, format_entry
+from atrace.ansi import strip
 
 
 def test_tail_parser_text_block_formats_ai_line():
@@ -46,7 +46,7 @@ def test_tail_usage_zero_is_suppressed():
 
 
 def test_tail_tool_result_structured_content_is_flattened():
-    from atail.normalize import normalize_event
+    from atrace.normalize import normalize_event
 
     tool_map: dict[str, str] = {}
     result = normalize_event(

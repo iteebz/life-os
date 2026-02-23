@@ -10,8 +10,8 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from ..models import Task
 
-from atail import StreamParser, format_entry
-from atail.ansi import strip as ansi_strip
+from atrace import StreamParser, format_entry
+from atrace.ansi import strip as ansi_strip
 from fncli import cli
 
 from ..lib.errors import exit_error

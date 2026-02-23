@@ -22,7 +22,7 @@ dependencies = [
     "requests>=2.31.0",
     "qrcode>=8.2",
     "python-dateutil>=2.9.0.post0",
-    "atail",
+    "atrace",
 ]
 
 [dependency-groups]
@@ -113,4 +113,4 @@ python_files = ["test_*.py", "*_test.py"]
 
 [tool.uv.sources]
 fncli = { path = "/Users/iteebz/space/fncli", editable = true }
-atail = { path = "/Users/iteebz/space/atrace", editable = true }
+atrace = { path = "/Users/iteebz/space/atrace", editable = true }

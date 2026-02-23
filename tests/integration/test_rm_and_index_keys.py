@@ -5,14 +5,15 @@ from tests.conftest import FnCLIRunner
 
 def test_rm_can_delete_completed_task(tmp_life_dir):
     runner = FnCLIRunner()
-    runner.invoke(["add", "test", "done", "flag", "--done"])
+    runner.invoke(["add", "t", "test done flag"])
+    runner.invoke(["done", "test done flag"])
 
-    rm_result = runner.invoke(["rm", "test", "done", "flag"])
+    rm_result = runner.invoke(["rm", "test done flag"])
     assert rm_result.exit_code == 0
 
-    check_result = runner.invoke(["check", "test", "done", "flag"])
-    assert check_result.exit_code != 0
-    assert "No item found" in check_result.stderr
+    show_result = runner.invoke(["show", "test done flag"])
+    assert show_result.exit_code != 0
+    assert "No task found" in show_result.stderr
 
 
 def test_dashboard_shows_index_key_for_task_and_habit(tmp_life_dir):

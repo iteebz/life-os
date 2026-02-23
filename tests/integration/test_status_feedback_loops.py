@@ -6,8 +6,8 @@ from tests.conftest import FnCLIRunner
 
 def test_status_shows_feedback_metrics(tmp_life_dir):
     runner = FnCLIRunner()
-    runner.invoke(["add", "call bank", "--tag", "finance", "--due", "today"])
-    runner.invoke(["add", "wedding vids", "--tag", "janice"])
+    runner.invoke(["add", "t", "call bank", "--tag", "finance", "--due", "today"])
+    runner.invoke(["add", "t", "wedding vids", "--tag", "janice"])
 
     result = runner.invoke(["status"])
 
@@ -19,8 +19,8 @@ def test_status_shows_feedback_metrics(tmp_life_dir):
 
 def test_status_flags_relationship_and_stuck_task(tmp_life_dir):
     runner = FnCLIRunner()
-    runner.invoke(["add", "wedding vids", "--tag", "janice"])
-    runner.invoke(["add", "call bank", "--tag", "finance"])
+    runner.invoke(["add", "t", "wedding vids", "--tag", "janice"])
+    runner.invoke(["add", "t", "call bank", "--tag", "finance"])
 
     today = date.today()
     with db.get_db() as conn:
@@ -40,7 +40,7 @@ def test_status_flags_relationship_and_stuck_task(tmp_life_dir):
 def test_stats_closure_weighted_by_tag(tmp_life_dir):
     runner = FnCLIRunner()
     today = date.today()
-    runner.invoke(["add", "invoice jeff", "--tag", "finance", "--due", "today"])
+    runner.invoke(["add", "t", "invoice jeff", "--tag", "finance", "--due", "today"])
     runner.invoke(["done", "invoice jeff"])
 
     yesterday = datetime.combine(today - timedelta(days=1), datetime.min.time())

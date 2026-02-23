@@ -1,3 +1,4 @@
+from life.tasks import add_task
 from tests.conftest import FnCLIRunner
 
 runner = FnCLIRunner()
@@ -61,7 +62,7 @@ def test_boot_exits_zero_on_empty_db(tmp_life_dir):
 
 
 def test_steward_task_visible_in_boot(tmp_life_dir):
-    runner.invoke(["add", "build mood rm", "--steward", "--source", "tyson", "--tag", "steward"])
+    add_task("build mood rm", steward=True, source="tyson", tags=["steward"])
 
     result = runner.invoke(["steward", "boot"])
     assert result.exit_code == 0
