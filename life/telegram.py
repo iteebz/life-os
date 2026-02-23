@@ -14,9 +14,15 @@ TOKEN_KEY = "bot_token"  # noqa: S105
 API = "https://api.telegram.org/bot{token}"
 PEOPLE_DIR = Path.home() / "life" / "steward" / "people"
 
+_cached_token: str | None = None
+_cached_update_id: int | None = None
+
 
 def _token() -> str | None:
-    return keyring.get_password(SERVICE, TOKEN_KEY)
+    global _cached_token
+    if _cached_token is None:
+        _cached_token = keyring.get_password(SERVICE, TOKEN_KEY)
+    return _cached_token
 
 
 def _api(method: str, token: str, **kwargs: Any) -> dict[str, Any]:
@@ -142,20 +148,27 @@ def _store_incoming(msg: dict[str, Any]) -> None:
 
 
 def _last_update_id() -> int:
-    try:
-        val = keyring.get_password(SERVICE, "last_update_id")
-        return int(val) if val else 0
-    except Exception:
-        return 0
+    global _cached_update_id
+    if _cached_update_id is None:
+        try:
+            val = keyring.get_password(SERVICE, "last_update_id")
+            _cached_update_id = int(val) if val else 0
+        except Exception:
+            _cached_update_id = 0
+    return _cached_update_id
 
 
 def _save_update_id(update_id: int) -> None:
+    global _cached_update_id
+    _cached_update_id = update_id
     with contextlib.suppress(Exception):
         keyring.set_password(SERVICE, "last_update_id", str(update_id))
 
 
 def setup(token: str) -> tuple[bool, str]:
+    global _cached_token
     keyring.set_password(SERVICE, TOKEN_KEY, token)
+    _cached_token = token
     try:
         result = _api("getMe", token)
         if result.get("ok"):
