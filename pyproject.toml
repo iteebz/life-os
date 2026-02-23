@@ -22,6 +22,7 @@ dependencies = [
     "requests>=2.31.0",
     "qrcode>=8.2",
     "python-dateutil>=2.9.0.post0",
+    "atail",
 ]
 
 [dependency-groups]
@@ -111,3 +112,4 @@ python_files = ["test_*.py", "*_test.py"]
 
 [tool.uv.sources]
 fncli = { path = "../../space/fncli", editable = true }
+atail = { path = "../../infra/trace", editable = true }

@@ -10,11 +10,11 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from ..models import Task
 
+from atail import StreamParser, format_entry
+from atail.ansi import strip as ansi_strip
 from fncli import cli
 
-from ..lib.ansi import strip as ansi_strip
 from ..lib.errors import exit_error
-from ..lib.tail import StreamParser, format_entry
 
 _STEWARD_DIR = Path.home() / ".life" / "steward"
 _OFF_SENTINEL = _STEWARD_DIR / "off"
@@ -69,7 +69,7 @@ def _run_tail_stream(
     timeout: int,
     spawn_file: Path | None = None,
 ) -> int:
-    parser = StreamParser()
+    parser = StreamParser(identity="steward")
     proc = subprocess.Popen(
         cmd,
         cwd=cwd,
@@ -333,7 +333,7 @@ def tail(watch: bool = False) -> None:
         print("no steward spawns found")
         return
 
-    parser = StreamParser()
+    parser = StreamParser(identity="steward")
     last_rendered: str | None = None
 
     def _replay_path(p: Path, position: int = 0, final: bool = False) -> int:
@@ -372,7 +372,7 @@ def tail(watch: bool = False) -> None:
             if new_path and new_path != path:
                 path = new_path
                 pos = 0
-                parser = StreamParser()
+                parser = StreamParser(identity="steward")
             pos = _replay_path(path, pos)
             time.sleep(0.1)
     except KeyboardInterrupt:

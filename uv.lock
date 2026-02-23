@@ -7,6 +7,20 @@ resolution-markers = [
 ]
 
 [[package]]
+name = "atail"
+version = "0.1.0"
+source = { editable = "../../infra/trace" }
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pyright", specifier = ">=1.1.408" },
+    { name = "pytest", specifier = ">=8.4.1" },
+    { name = "ruff", specifier = ">=0.13.0" },
+]
+
+[[package]]
 name = "certifi"
 version = "2026.1.4"
 source = { registry = "https://pypi.org/simple" }
@@ -383,6 +397,7 @@ name = "life-cli"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "atail" },
     { name = "fncli" },
     { name = "google-api-python-client" },
     { name = "google-auth" },
@@ -405,6 +420,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "atail", editable = "../../infra/trace" },
     { name = "fncli", editable = "../../space/fncli" },
     { name = "google-api-python-client", specifier = ">=2.0.0" },
     { name = "google-auth", specifier = ">=2.0.0" },
