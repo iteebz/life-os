@@ -37,7 +37,7 @@ def test_status_flags_relationship_and_stuck_task(tmp_life_dir):
     assert "stuck" in result.stdout
 
 
-def test_stats_admin_closure_rate_counts_recent_overdue_closures(tmp_life_dir):
+def test_stats_closure_weighted_by_tag(tmp_life_dir):
     runner = FnCLIRunner()
     today = date.today()
     runner.invoke(["add", "invoice jeff", "--tag", "finance", "--due", "today"])
@@ -59,4 +59,5 @@ def test_stats_admin_closure_rate_counts_recent_overdue_closures(tmp_life_dir):
 
     assert result.exit_code == 0
     assert "STATS (7d):" in result.stdout
-    assert "closure:  100% (1/1)" in result.stdout
+    assert "closure:  100%" in result.stdout
+    assert "pts)" in result.stdout

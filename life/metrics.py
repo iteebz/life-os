@@ -6,11 +6,28 @@ from .models import Habit, Task
 
 DISCOMFORT_TAGS = {"finance", "legal", "janice"}
 
+TAG_WEIGHT: dict[str, int] = {
+    "finance": 3,
+    "legal": 3,
+    "janice": 2,
+    "health": 2,
+    "eam": 2,
+    "home": 1,
+    "admin": 1,
+    "comms": 1,
+    "self": 1,
+    "doggo": 1,
+    "ncat": 2,
+    "income": 2,
+}
+DEFAULT_WEIGHT = 1
+
 
 @dataclass(frozen=True)
 class FeedbackSnapshot:
-    admin_closed: int
-    admin_open: int
+    closure_score: float
+    closure_earned: float
+    closure_possible: float
     janice_done: int
     janice_open: int
     defer_count: int
@@ -26,6 +43,15 @@ def _in_window(ts: datetime | None, start: date, end: date) -> bool:
         return False
     day = ts.date()
     return start <= day <= end
+
+
+def _task_weight(t: Task) -> int:
+    tags = t.tags or []
+    return max((TAG_WEIGHT.get(tag, DEFAULT_WEIGHT) for tag in tags), default=DEFAULT_WEIGHT)
+
+
+def _format_pct(value: float) -> str:
+    return f"{value:.0%}"
 
 
 def _format_ratio(done: int, total: int) -> str:
@@ -69,13 +95,12 @@ def build_feedback_snapshot(
     top_all = [t for t in all_tasks if _is_top_level(t)]
     top_pending = [t for t in pending_tasks if _is_top_level(t)]
 
-    admin_closed = sum(
-        1
-        for t in top_all
-        if set(t.tags or []).intersection(DISCOMFORT_TAGS)
-        and _in_window(t.completed_at, window_start, today)
+    closure_earned = sum(
+        _task_weight(t) for t in top_all if _in_window(t.completed_at, window_start, today)
     )
-    admin_open = sum(1 for t in top_pending if set(t.tags or []).intersection(DISCOMFORT_TAGS))
+    closure_open = sum(_task_weight(t) for t in top_pending)
+    closure_possible = closure_earned + closure_open
+    closure_score = closure_earned / closure_possible if closure_possible else 0.0
 
     janice_done = sum(
         1
@@ -95,7 +120,7 @@ def build_feedback_snapshot(
     janice_total = janice_done + janice_open
     if janice_total and (janice_done / janice_total) < 0.5:
         flags.append("partner_at_risk")
-    if admin_open > 0 and admin_closed == 0:
+    if closure_possible > 0 and closure_score < 0.2:
         flags.append("stuck")
     if defer_count >= 3:
         flags.append("dodging")
@@ -103,8 +128,9 @@ def build_feedback_snapshot(
         flags.append("drifting")
 
     return FeedbackSnapshot(
-        admin_closed=admin_closed,
-        admin_open=admin_open,
+        closure_score=closure_score,
+        closure_earned=closure_earned,
+        closure_possible=closure_possible,
         janice_done=janice_done,
         janice_open=janice_open,
         defer_count=defer_count,
@@ -117,11 +143,10 @@ def build_feedback_snapshot(
 
 
 def render_feedback_snapshot(snapshot: FeedbackSnapshot) -> list[str]:
-    admin_total = snapshot.admin_closed + snapshot.admin_open
     janice_total = snapshot.janice_done + snapshot.janice_open
     lines = [
         "STATS (7d):",
-        f"  closure:  {_format_ratio(snapshot.admin_closed, admin_total)} ({snapshot.admin_closed}/{admin_total})",
+        f"  closure:  {_format_pct(snapshot.closure_score)} ({snapshot.closure_earned:.0f}/{snapshot.closure_possible:.0f} pts)",
         f"  partner:  {_format_ratio(snapshot.janice_done, janice_total)} ({snapshot.janice_done}/{janice_total})",
         f"  rhythm:   {snapshot.habit_rate:.0%} ({snapshot.habit_checked}/{snapshot.habit_possible})",
         f"  dodges:   {snapshot.defer_count}",
@@ -135,11 +160,8 @@ def render_feedback_snapshot(snapshot: FeedbackSnapshot) -> list[str]:
 
 
 def render_feedback_headline(snapshot: FeedbackSnapshot) -> str:
-    admin_total = snapshot.admin_closed + snapshot.admin_open
     janice_total = snapshot.janice_done + snapshot.janice_open
-    parts = []
-    if admin_total:
-        parts.append(f"closure {_format_ratio(snapshot.admin_closed, admin_total)}")
+    parts = [f"closure {_format_pct(snapshot.closure_score)}"]
     if janice_total:
         parts.append(f"partner {_format_ratio(snapshot.janice_done, janice_total)}")
     parts.append(f"rhythm {snapshot.habit_rate:.0%}")
@@ -149,6 +171,7 @@ def render_feedback_headline(snapshot: FeedbackSnapshot) -> str:
 
 
 __all__ = [
+    "TAG_WEIGHT",
     "FeedbackSnapshot",
     "build_feedback_snapshot",
     "render_feedback_headline",
