@@ -58,12 +58,18 @@ def boot():
     ]
     active_tags = {tag for t in tasks for tag in (getattr(t, "tags", None) or [])}
     tagged_obs = []
+    tag_horizon = 86400 * 3
     seen_ids: set[int] = {o.id for o in recent_obs} | {o.id for o in upcoming_obs}
     for tag in active_tags:
         for o in get_observations(limit=5, tag=tag):
-            if o.id not in seen_ids and (not o.about_date or o.about_date >= today_d):
-                tagged_obs.append(o)
-                seen_ids.add(o.id)
+            if o.id in seen_ids:
+                continue
+            if o.about_date and o.about_date < today_d:
+                continue
+            if not o.about_date and (now - o.logged_at).total_seconds() > tag_horizon:
+                continue
+            tagged_obs.append(o)
+            seen_ids.add(o.id)
 
     upcoming_obs_sorted = sorted(upcoming_obs, key=lambda o: o.about_date or today_d)
     all_obs = upcoming_obs_sorted + sorted(
