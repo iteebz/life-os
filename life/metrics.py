@@ -87,13 +87,13 @@ def build_feedback_snapshot(
     flags: list[str] = []
     janice_total = janice_done + janice_open
     if janice_total and (janice_done / janice_total) < 0.5:
-        flags.append("relationship_escalation")
+        flags.append("partner_at_risk")
     if admin_open > 0 and admin_closed == 0:
-        flags.append("admin_stalled")
+        flags.append("stuck")
     if defer_count >= 3:
-        flags.append("avoidance_pattern")
+        flags.append("dodging")
     if habit_rate < 0.3:
-        flags.append("habit_decay")
+        flags.append("drifting")
 
     return FeedbackSnapshot(
         admin_closed=admin_closed,
@@ -114,16 +114,16 @@ def render_feedback_snapshot(snapshot: FeedbackSnapshot) -> list[str]:
     janice_total = snapshot.janice_done + snapshot.janice_open
     lines = [
         "STATS (7d):",
-        f"  admin_closure_rate: {_format_ratio(snapshot.admin_closed, admin_total)} ({snapshot.admin_closed}/{admin_total})",
-        f"  janice_followthrough: {_format_ratio(snapshot.janice_done, janice_total)} ({snapshot.janice_done}/{janice_total})",
-        f"  habit_rate: {snapshot.habit_rate:.0%} ({snapshot.habit_checked}/{snapshot.habit_possible})",
-        f"  defers: {snapshot.defer_count}",
-        f"  overdue_resets: {snapshot.overdue_resets}",
+        f"  closure:  {_format_ratio(snapshot.admin_closed, admin_total)} ({snapshot.admin_closed}/{admin_total})",
+        f"  partner:  {_format_ratio(snapshot.janice_done, janice_total)} ({snapshot.janice_done}/{janice_total})",
+        f"  rhythm:   {snapshot.habit_rate:.0%} ({snapshot.habit_checked}/{snapshot.habit_possible})",
+        f"  dodges:   {snapshot.defer_count}",
+        f"  slips:    {snapshot.overdue_resets}",
     ]
     if snapshot.flags:
-        lines.append("  flags: " + ", ".join(snapshot.flags))
+        lines.append("  flags:  " + ", ".join(snapshot.flags))
     else:
-        lines.append("  flags: none")
+        lines.append("  flags:  none")
     return lines
 
 
