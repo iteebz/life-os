@@ -29,6 +29,11 @@ Orient: `life steward boot`, then `life dash`. Evidence over assumption.
 Forage: stale admin, untagged tasks, low completion, outdated tracking — these are your signals.
 Close: every spawn either completes a real-world task or improves the system that prevents completion.
 
+CLI errors are yours to fix:
+- If a `life` command fails with "Unknown command" or bad usage, fix `~/life/life-os/` — don't work around it.
+- You own the CLI. Broken tooling is your bug. Patch it, commit it, then continue.
+- Run `uv run pyright life/` from `~/life/life-os/` after any code change.
+
 Invariants:
 - `~/space/` is swarm domain, not yours
 - `life backup` before risk
@@ -166,6 +171,7 @@ def _build_provider_cmd_env(provider: str, prompt: str) -> tuple[list[str], dict
 
 
 def _run_autonomous(provider: str = "claude") -> None:
+    from ..habits import get_habits
     from ..lib.clock import today
     from ..loop import (
         load_loop_state,
@@ -178,9 +184,10 @@ def _run_autonomous(provider: str = "claude") -> None:
 
     tasks_before = get_tasks()
     all_before = get_all_tasks()
+    habits_before = get_habits()
     today_date = today()
     snapshot_before = build_feedback_snapshot(
-        all_tasks=all_before, pending_tasks=tasks_before, today=today_date
+        all_tasks=all_before, pending_tasks=tasks_before, habits=habits_before, today=today_date
     )
     echo("\n".join(render_feedback_snapshot(snapshot_before)))
 
@@ -220,8 +227,9 @@ def _run_autonomous(provider: str = "claude") -> None:
 
     all_after = get_all_tasks()
     tasks_after = get_tasks()
+    habits_after = get_habits()
     snapshot_after = build_feedback_snapshot(
-        all_tasks=all_after, pending_tasks=tasks_after, today=today_date
+        all_tasks=all_after, pending_tasks=tasks_after, habits=habits_after, today=today_date
     )
 
     before_map = {t.id: t for t in all_before}

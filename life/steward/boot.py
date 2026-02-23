@@ -14,11 +14,12 @@ STEWARD_BIRTHDAY = datetime(2026, 2, 18)
 @cli("life steward")
 def boot():
     """Load life state and emit sitrep for interactive session start"""
+    from ..habits import get_habits
     from ..improvements import get_improvements
+    from ..lib.clock import today
     from ..metrics import build_feedback_snapshot, render_feedback_snapshot
     from ..mood import get_recent_moods
     from ..tasks import get_all_tasks, get_tasks
-    from ..lib.clock import today
 
     age_days = (datetime.now() - STEWARD_BIRTHDAY).days
     now_local = datetime.now()
@@ -26,6 +27,7 @@ def boot():
 
     tasks = get_tasks()
     all_tasks = get_all_tasks()
+    habits = get_habits()
     steward_tasks = [t for t in get_tasks(include_steward=True) if t.steward]
     if steward_tasks:
         echo("STEWARD TASKS:")
@@ -33,7 +35,9 @@ def boot():
             echo(f"  · {t.content}")
         echo("")
     today_date = today()
-    snapshot = build_feedback_snapshot(all_tasks=all_tasks, pending_tasks=tasks, today=today_date)
+    snapshot = build_feedback_snapshot(
+        all_tasks=all_tasks, pending_tasks=tasks, habits=habits, today=today_date
+    )
     echo("\n".join(render_feedback_snapshot(snapshot)))
 
     sessions = get_sessions(limit=1)
@@ -167,13 +171,18 @@ def boot():
             pending_proposals = list_proposals(status="pending")
             parts = [f"{total_inbox} in inbox"]
             if pending_drafts:
-                parts.append(f"{len(pending_drafts)} draft{'s' if len(pending_drafts) != 1 else ''} pending")
+                parts.append(
+                    f"{len(pending_drafts)} draft{'s' if len(pending_drafts) != 1 else ''} pending"
+                )
             if pending_proposals:
-                parts.append(f"{len(pending_proposals)} proposal{'s' if len(pending_proposals) != 1 else ''} to review")
+                parts.append(
+                    f"{len(pending_proposals)} proposal{'s' if len(pending_proposals) != 1 else ''} to review"
+                )
             echo(f"\nCOMMS: {', '.join(parts)}")
             for line in flagged_lines:
                 echo(line)
     except Exception as e:
         import os
+
         if os.environ.get("LIFE_DEBUG"):
             echo(f"\nCOMMS: boot error — {e}")

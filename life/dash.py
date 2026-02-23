@@ -54,7 +54,9 @@ def status() -> None:
     janice = [t for t in tasks if "janice" in (t.tags or [])]
     focused = [t for t in tasks if t.focus]
 
-    snapshot = build_feedback_snapshot(all_tasks=all_tasks, pending_tasks=tasks, today=today_date)
+    snapshot = build_feedback_snapshot(
+        all_tasks=all_tasks, pending_tasks=tasks, habits=habits, today=today_date
+    )
 
     lc = last_completion()
     last_check_str = _format_elapsed(lc) if lc else "never"
@@ -88,8 +90,11 @@ def stats() -> None:
     """Feedback-loop metrics and escalation signals"""
     tasks = get_tasks()
     all_tasks = get_all_tasks()
+    habits = get_habits()
     today_date = today()
-    snapshot = build_feedback_snapshot(all_tasks=all_tasks, pending_tasks=tasks, today=today_date)
+    snapshot = build_feedback_snapshot(
+        all_tasks=all_tasks, pending_tasks=tasks, habits=habits, today=today_date
+    )
     echo("\n".join(render_feedback_snapshot(snapshot)))
 
 
@@ -97,7 +102,3 @@ def stats() -> None:
 def momentum() -> None:
     """Show momentum and weekly trends"""
     echo(render_momentum(weekly_momentum()))
-
-
-
-

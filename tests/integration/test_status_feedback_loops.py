@@ -34,7 +34,7 @@ def test_status_flags_relationship_and_stuck_task(tmp_life_dir):
     assert result.exit_code == 0
     assert "FLAGS:" in result.stdout
     assert "relationship_escalation" in result.stdout
-    assert "stuck_task_protocol" in result.stdout
+    assert "admin_stalled" in result.stdout
 
 
 def test_stats_admin_closure_rate_counts_recent_overdue_closures(tmp_life_dir):
