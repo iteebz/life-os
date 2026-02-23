@@ -1,4 +1,4 @@
-"""life email — email commands."""
+"""life comms email — email commands."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ def _run_service(fn, *args, **kwargs):
         exit_error(str(exc))
 
 
-@cli("life email", name="inbox")
+@cli("life comms email", name="inbox")
 def inbox(limit: int = 20):
     """Unified inbox"""
     from datetime import datetime
@@ -33,7 +33,7 @@ def inbox(limit: int = 20):
         print(f"{unread} [{ts}] {item.sender[:25]:25} {item.preview}")
 
 
-@cli("life email", name="triage")
+@cli("life comms email", name="triage")
 def triage(limit: int = 20, confidence: float = 0.7, dry_run: bool = False, execute: bool = False):
     """Triage inbox — Claude bulk-proposes actions"""
     from .comms import triage as triage_module
@@ -68,7 +68,7 @@ def triage(limit: int = 20, confidence: float = 0.7, dry_run: bool = False, exec
         print(f"executed: {executed}/{len(results)}")
 
 
-@cli("life email", name="clear")
+@cli("life comms email", name="clear")
 def clear(limit: int = 50, confidence: float = 0.8, dry_run: bool = False):
     """One-command inbox clear: triage → approve → execute"""
     from .comms import proposals as proposals_module
@@ -119,10 +119,10 @@ def clear(limit: int = 50, confidence: float = 0.8, dry_run: bool = False):
     executed = sum(1 for r in results if r.success)
     print(f"\nexecuted: {executed}/{len(results)}")
     if review:
-        print(f"run `life email review` for {len(review)} items needing attention")
+        print(f"run `life comms email review` for {len(review)} items needing attention")
 
 
-@cli("life email", name="threads")
+@cli("life comms email", name="threads")
 def threads(label: str = "inbox"):
     """List threads"""
     from .comms import services
@@ -139,7 +139,7 @@ def threads(label: str = "inbox"):
             print(f"  {t['id'][:8]} | {date_str:16} | {t['snippet'][:50]}")
 
 
-@cli("life email", name="thread")
+@cli("life comms email", name="thread")
 def thread(thread_id: str, email: str | None = None):
     """Fetch and display full thread"""
     from .comms import services
@@ -155,7 +155,7 @@ def thread(thread_id: str, email: str | None = None):
         print("-" * 80)
 
 
-@cli("life email", name="summarize")
+@cli("life comms email", name="summarize")
 def summarize(thread_id: str, email: str | None = None):
     """Summarize thread using Claude"""
     from .comms import claude, services
@@ -166,7 +166,7 @@ def summarize(thread_id: str, email: str | None = None):
     print(f"\n{claude.summarize_thread(messages)}")
 
 
-@cli("life email", name="compose")
+@cli("life comms email", name="compose")
 def compose(
     to: str,
     subject: str | None = None,
@@ -183,10 +183,10 @@ def compose(
         compose_email_draft, to_addr=to, subject=subject, body=body, cc_addr=cc, email=email
     )
     print(f"draft {draft_id[:8]} — from {from_addr} to {to}")
-    print(f"run `life email approve {draft_id[:8]}` to approve")
+    print(f"run `life comms email approve {draft_id[:8]}` to approve")
 
 
-@cli("life email", name="reply")
+@cli("life comms email", name="reply")
 def reply(thread_id: str, body: str | None = None, email: str | None = None, all: bool = False):
     """Reply to thread"""
     if not body:
@@ -197,10 +197,10 @@ def reply(thread_id: str, body: str | None = None, email: str | None = None, all
         reply_to_thread, thread_id=thread_id, body=body, email=email, reply_all=all
     )
     print(f"reply draft {draft_id[:8]} → {to_addr}")
-    print(f"run `life email approve {draft_id[:8]}` to approve")
+    print(f"run `life comms email approve {draft_id[:8]}` to approve")
 
 
-@cli("life email", name="draft-reply")
+@cli("life comms email", name="draft-reply")
 def draft_reply(
     thread_id: str, instructions: str | None = None, email: str | None = None, all: bool = False
 ):
@@ -224,10 +224,10 @@ def draft_reply(
     print(f"\nreasoning: {reasoning}")
     print(f"\ndraft {draft_id[:8]} → {to_addr}  |  {subject}")
     print(f"\n{body}\n")
-    print(f"run `life email approve {draft_id[:8]}` to approve")
+    print(f"run `life comms email approve {draft_id[:8]}` to approve")
 
 
-@cli("life email", name="drafts")
+@cli("life comms email", name="drafts")
 def drafts_list():
     """List pending drafts"""
     from .comms.drafts import list_pending_drafts
@@ -241,7 +241,7 @@ def drafts_list():
         print(f"  {d.id[:8]} | {d.to_addr} | {d.subject or '(no subject)'} | {status}")
 
 
-@cli("life email", name="draft")
+@cli("life comms email", name="draft")
 def draft_show(draft_id: str):
     """Show draft details"""
     from .comms.drafts import get_draft
@@ -258,7 +258,7 @@ def draft_show(draft_id: str):
         print(f"--- reasoning ---\n{d.claude_reasoning}")
 
 
-@cli("life email", name="approve")
+@cli("life comms email", name="approve")
 def approve_draft(draft_id: str):
     """Approve draft for sending"""
     from .comms import drafts as drafts_module
@@ -275,10 +275,10 @@ def approve_draft(draft_id: str):
     if not allowed:
         exit_error(f"cannot approve: {err}")
     drafts_module.approve_draft(full_id)
-    print(f"approved {full_id[:8]} — run `life email send {full_id[:8]}` to send")
+    print(f"approved {full_id[:8]} — run `life comms email send {full_id[:8]}` to send")
 
 
-@cli("life email", name="send")
+@cli("life comms email", name="send")
 def send_draft(draft_id: str):
     """Send approved draft"""
     from .comms import drafts as drafts_module
@@ -292,7 +292,7 @@ def send_draft(draft_id: str):
     print(f"sent → {d.to_addr}  |  {d.subject}")
 
 
-@cli("life email", name="archive")
+@cli("life comms email", name="archive")
 def archive(thread_id: str, email: str | None = None):
     """Archive thread"""
     from .comms import audit, services
@@ -302,7 +302,7 @@ def archive(thread_id: str, email: str | None = None):
     print(f"archived {thread_id}")
 
 
-@cli("life email", name="delete")
+@cli("life comms email", name="delete")
 def delete(thread_id: str, email: str | None = None):
     """Delete thread"""
     from .comms import audit, services
@@ -312,7 +312,7 @@ def delete(thread_id: str, email: str | None = None):
     print(f"deleted {thread_id}")
 
 
-@cli("life email", name="flag")
+@cli("life comms email", name="flag")
 def flag(thread_id: str, email: str | None = None):
     """Flag thread"""
     from .comms import audit, services
@@ -322,7 +322,7 @@ def flag(thread_id: str, email: str | None = None):
     print(f"flagged {thread_id}")
 
 
-@cli("life email", name="snooze")
+@cli("life comms email", name="snooze")
 def snooze(thread_id: str, until: str = "tomorrow", email: str | None = None):
     """Snooze thread"""
     from .comms import services
@@ -335,7 +335,7 @@ def snooze(thread_id: str, until: str = "tomorrow", email: str | None = None):
     print(f"snoozed until {snooze_until.strftime('%Y-%m-%d %H:%M')}")
 
 
-@cli("life email", name="review")
+@cli("life comms email", name="review")
 def review(action: str | None = None):
     """Review proposals"""
     from .comms import proposals as proposals_module
@@ -357,7 +357,7 @@ def review(action: str | None = None):
             print(f"  {p['id'][:8]} | {p['agent_reasoning'] or p['entity_id'][:8]}")
 
 
-@cli("life email", name="approve-proposal")
+@cli("life comms email", name="approve-proposal")
 def approve_proposal(proposal_id: str | None = None, action: str | None = None, all: bool = False):
     """Approve proposal(s)"""
     from .comms import proposals as proposals_module
@@ -377,7 +377,7 @@ def approve_proposal(proposal_id: str | None = None, action: str | None = None, 
         exit_error("not found or already processed")
 
 
-@cli("life email", name="resolve")
+@cli("life comms email", name="resolve")
 def resolve():
     """Execute all approved proposals"""
     from .comms import proposals as proposals_module
@@ -393,7 +393,7 @@ def resolve():
     print(f"executed: {executed}  failed: {failed}")
 
 
-@cli("life email", name="senders")
+@cli("life comms email", name="senders")
 def senders(limit: int = 20):
     """Show sender statistics"""
     from .comms import senders as senders_module
@@ -409,7 +409,7 @@ def senders(limit: int = 20):
         )
 
 
-@cli("life email", name="stats")
+@cli("life comms email", name="stats")
 def stats():
     """Show learning stats"""
     from .comms import learning
@@ -422,7 +422,7 @@ def stats():
         print(f"  {action:12} | {s.total:3} total | {s.accuracy:.0%} accuracy")
 
 
-@cli("life email", name="digest")
+@cli("life comms email", name="digest")
 def digest(days: int = 7):
     """Weekly activity digest"""
     from .comms import digest as digest_module
@@ -430,7 +430,7 @@ def digest(days: int = 7):
     print(digest_module.format_digest(digest_module.get_digest(days=days)))
 
 
-@cli("life email", name="rules")
+@cli("life comms email", name="rules")
 def rules():
     """Show triage rules"""
     from .comms.config import RULES_PATH
@@ -441,7 +441,7 @@ def rules():
     print(RULES_PATH.read_text())
 
 
-@cli("life email", name="contacts")
+@cli("life comms email", name="contacts")
 def contacts():
     """Show contact notes"""
     from .comms.contacts import CONTACTS_PATH, get_all_contacts

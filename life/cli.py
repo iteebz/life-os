@@ -1,41 +1,35 @@
 import sys
 
-from . import accounts as _accounts
 from . import achievements as _achievements
 from . import add as _add
+from . import backup as _backup
 from . import daemon as _daemon
 from . import dash as _dash
 from . import dates as _dates
 from . import db
-from . import email as _email
 from . import habits as _habits
 from . import install as _install
 from . import interventions as _interventions
 from . import items as _items
-from . import messaging as _messaging
 from . import mood as _mood
 from . import patterns as _patterns
-from . import signal as _signal
 from . import steward as _steward
 from . import tag as _tags
 from . import tasks as _tasks
 
 _ = (
+    _backup,
     _daemon,
     _install,
     _steward,
-    _accounts,
     _achievements,
     _add,
     _dash,
     _dates,
-    _email,
     _interventions,
     _items,
     _mood,
     _patterns,
-    _messaging,
-    _signal,
     _tasks,
     _habits,
     _tags,

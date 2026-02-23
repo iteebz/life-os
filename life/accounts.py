@@ -7,7 +7,7 @@ from fncli import cli
 from .lib.errors import exit_error
 
 
-@cli("life accounts", name="ls")
+@cli("life comms accounts", name="ls")
 def accounts_list():
     """List all linked accounts"""
     from .comms import accounts as accts_module
@@ -15,15 +15,15 @@ def accounts_list():
     accts = accts_module.list_accounts()
     if not accts:
         print("no accounts linked")
-        print("  link email:  life accounts link gmail")
-        print("  link signal: life accounts link signal")
+        print("  link email:  life comms accounts link gmail")
+        print("  link signal: life comms accounts link signal")
         return
     for a in accts:
         status = "✓" if a["enabled"] else "✗"
         print(f"  {status} {a['provider']:10} {a['email']}")
 
 
-@cli("life accounts", name="link")
+@cli("life comms accounts", name="link")
 def link(provider: str, client_id: str | None = None, client_secret: str | None = None):
     """Link an account: gmail, outlook, signal"""
     from .comms import accounts as accts_module
@@ -73,7 +73,7 @@ def link(provider: str, client_id: str | None = None, client_secret: str | None 
         exit_error(f"unknown provider: {provider}. use: gmail, outlook, signal")
 
 
-@cli("life accounts", name="unlink")
+@cli("life comms accounts", name="unlink")
 def unlink(account_id: str):
     """Unlink an account by ID or email"""
     from .comms import accounts as accts_module

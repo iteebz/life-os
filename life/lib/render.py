@@ -90,7 +90,7 @@ def _render_subtask_row(
     sub: Task,
     all_pending: list[Task],
     tag_colors: dict[str, str],
-    indent: str = "    └ ",
+    indent: str = "   └ ",
 ) -> str:
     sub_id_str = f" {_GREY}[{sub.id[:8]}]{_R}"
     sub_direct_tags = _get_direct_tags(sub, all_pending)
@@ -370,7 +370,7 @@ def _render_task_row(
 
     rows = [row]
     rows.extend(
-        _render_subtask_row(sub, all_pending, tag_colors, indent=f"{indent}  └ ")
+        _render_subtask_row(sub, all_pending, tag_colors, indent=f"{indent} └ ")
         for sub in sorted(subtasks_by_parent.get(task.id, []), key=_task_sort_key)
     )
     for sub in completed_subs_by_parent.get(task.id, []):

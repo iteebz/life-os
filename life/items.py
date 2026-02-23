@@ -28,7 +28,7 @@ def _animate_uncheck(label: str) -> None:
 
 @cli("life", aliases=["done"])
 def check(ref: list[str], date: str | None = None) -> None:
-    """Toggle task/habit done"""
+    """Toggle done"""
     from .habits import check_habit, get_checks, toggle_check
     from .lib.clock import today
     from .lib.dates import parse_due_date
@@ -85,7 +85,7 @@ def check(ref: list[str], date: str | None = None) -> None:
 
 @cli("life", name="rm")
 def rm(ref: list[str]) -> None:
-    """Delete item or completed task (fuzzy match)"""
+    """Delete item"""
     from .habits import delete_habit
 
     item_ref = " ".join(ref) if ref else ""
@@ -178,7 +178,7 @@ def add(
 
 @cli("life")
 def rename(ref: list[str], to: str) -> None:
-    """Rename an item"""
+    """Rename item"""
     if not to:
         exit_error("Error: 'to' content cannot be empty.")
     item_ref = " ".join(ref) if ref else ""

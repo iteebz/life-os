@@ -16,10 +16,12 @@ bin:
     mkdir -p ~/bin
     REPO=$(pwd)
     UV=$(which uv)
-    SCRIPT=~/bin/life
-    printf '#!/bin/sh\n# managed by space launch\ncd %s || exit 1\nexec %s run "$(basename "$0")" "$@"\n' "$REPO" "$UV" > "$SCRIPT"
-    chmod 755 "$SCRIPT"
-    echo "installed ~/bin/life"
+    for BIN in life comms steward; do
+        SCRIPT=~/bin/$BIN
+        printf '#!/bin/sh\n# managed by space launch\ncd %s || exit 1\nexec %s run "$(basename "$0")" "$@"\n' "$REPO" "$UV" > "$SCRIPT"
+        chmod 755 "$SCRIPT"
+        echo "installed ~/bin/$BIN"
+    done
 
 lint:
     #!/bin/bash

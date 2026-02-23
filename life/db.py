@@ -179,22 +179,11 @@ def db_migrate():
 
 @cli("life db", name="backup")
 def db_backup():
-    """Create database backup"""
-    from .lib.backup import backup as _backup
+    """Create database backup (prefer `life backup`)"""
+    from .backup import _print_result, run_backup
 
-    result = _backup()
-    path = result["path"]
-    rows = result["rows"]
-    delta_total = result["delta_total"]
-    delta_by_table = result["delta_by_table"]
-    delta_str = ""
-    if delta_total is not None and delta_total != 0:
-        delta_str = f" (+{delta_total})" if delta_total > 0 else f" ({delta_total})"
-    print(str(path))
-    print(f"  {rows} rows{delta_str}")
-    for tbl, delta in sorted(delta_by_table.items(), key=lambda x: abs(x[1]), reverse=True):
-        sign = "+" if delta > 0 else ""
-        print(f"    {tbl} {sign}{delta}")
+    result = run_backup()
+    _print_result(result)
 
 
 @cli("life db", name="health")

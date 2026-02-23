@@ -22,7 +22,6 @@ __all__ = [
     "stats",
     "status",
     "view",
-    "yesterday",
 ]
 
 
@@ -52,7 +51,7 @@ def _format_elapsed(dt) -> str:
 
 @cli("life")
 def status() -> None:
-    """Health check — untagged tasks, overdue, habit streaks, janice signal"""
+    """System health check"""
     tasks = get_tasks()
     all_tasks = get_all_tasks()
     habits = get_habits()
@@ -96,7 +95,7 @@ def status() -> None:
 
 @cli("life")
 def stats() -> None:
-    """Feedback-loop metrics and escalation signals"""
+    """Feedback-loop metrics"""
     tasks = get_tasks()
     all_tasks = get_all_tasks()
     habits = get_habits()
@@ -108,17 +107,16 @@ def stats() -> None:
 
 
 @cli("life")
-def yesterday() -> None:
-    """Show yesterday's completed tasks and stats"""
-    target = today() - timedelta(days=1)
-    _show_day(target)
-
-
-@cli("life")
 def view(date_str: str) -> None:
-    """Show completed tasks and stats for a given date (dd-mm, dd-mm-yyyy, or yyyy-mm-dd)"""
+    """Show completed tasks for a date (yesterday, dd-mm, dd-mm-yyyy, yyyy-mm-dd)"""
     from .lib.clock import today as _today
 
+    if date_str.lower() == "yesterday":
+        _show_day(_today() - timedelta(days=1))
+        return
+    if date_str.lower() == "today":
+        _show_day(_today())
+        return
     target = None
     for fmt in ("%d-%m-%Y", "%d-%m", "%Y-%m-%d"):
         try:
@@ -131,7 +129,7 @@ def view(date_str: str) -> None:
             continue
     if target is None:
         raise UsageError(
-            f"invalid date: {date_str!r} — use dd-mm, dd-mm-yyyy, or yyyy-mm-dd"
+            f"invalid date: {date_str!r} — use yesterday, today, dd-mm, dd-mm-yyyy, or yyyy-mm-dd"
         ) from None
     _show_day(target)
 
@@ -159,5 +157,5 @@ def _show_day(target: date) -> None:
 
 @cli("life")
 def momentum() -> None:
-    """Show momentum and weekly trends"""
+    """Momentum and weekly trends"""
     print(render_momentum(weekly_momentum()))

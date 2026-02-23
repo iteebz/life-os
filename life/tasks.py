@@ -583,7 +583,7 @@ def focus(ref: list[str]) -> None:
 
 @cli("life")
 def due(ref: list[str], when: str, remove: bool = False) -> None:
-    """Mark a hard deadline — sets scheduled date/time and flags it as deadline"""
+    """Mark task deadline"""
     from .lib.resolve import resolve_task
 
     args = ref if remove else [when, *ref]
@@ -620,7 +620,7 @@ def set_cmd(
     content: str | None = None,
     desc: str | None = None,
 ) -> None:
-    """Set parent or content on an existing task"""
+    """Set parent, content, or description on task"""
     from .lib.resolve import resolve_task
 
     item_ref = " ".join(ref) if ref else ""
@@ -662,7 +662,7 @@ def set_cmd(
 
 @cli("life")
 def show(ref: list[str]) -> None:
-    """Show full task detail: ID, tags, due, subtasks, links"""
+    """Show full task detail"""
     from .lib.render import render_task_detail
     from .lib.resolve import resolve_task
 
@@ -683,7 +683,7 @@ def show(ref: list[str]) -> None:
 
 @cli("life")
 def block(ref: list[str], by: str) -> None:
-    """Mark a task as blocked by another task"""
+    """Mark task as blocked"""
     from .lib.resolve import resolve_task
 
     t = resolve_task(" ".join(ref))
@@ -696,7 +696,7 @@ def block(ref: list[str], by: str) -> None:
 
 @cli("life")
 def unblock(ref: list[str]) -> None:
-    """Clear blocked_by on a task"""
+    """Clear task block"""
     from .lib.resolve import resolve_task
 
     t = resolve_task(" ".join(ref))
@@ -708,7 +708,7 @@ def unblock(ref: list[str]) -> None:
 
 @cli("life")
 def cancel(ref: list[str], reason: str) -> None:
-    """Cancel a task with a reason"""
+    """Cancel task with reason"""
     from .lib.resolve import resolve_task
 
     t = resolve_task(" ".join(ref))
@@ -718,7 +718,7 @@ def cancel(ref: list[str], reason: str) -> None:
 
 @cli("life")
 def defer(ref: list[str], reason: str) -> None:
-    """Defer a task with a required reason"""
+    """Defer task with reason"""
     from .lib.resolve import resolve_task
 
     t = resolve_task(" ".join(ref))
@@ -744,19 +744,9 @@ def now(ref: list[str]) -> None:
 
 
 @cli("life")
-def today(ref: list[str] | None = None) -> None:
-    """Schedule task for today, or show dashboard"""
-    if ref:
-        _schedule(["today", *ref])
-    else:
-        from .dashboard import get_pending_items, get_today_breakdown, get_today_completed
-        from .habits import get_habits
-        from .lib.render import render_dashboard
-
-        items = get_pending_items() + get_habits()
-        today_items = get_today_completed()
-        today_breakdown = get_today_breakdown()
-        print(render_dashboard(items, today_breakdown, None, None, today_items))
+def today(ref: list[str]) -> None:
+    """Schedule task for today"""
+    _schedule(["today", *ref])
 
 
 @cli("life")
