@@ -1,10 +1,18 @@
-from fncli import cli
+from datetime import date, timedelta
 
-from .dashboard import get_pending_items, get_today_breakdown, get_today_completed
+from fncli import UsageError, cli
+
+from .dashboard import (
+    get_day_breakdown,
+    get_day_completed,
+    get_pending_items,
+    get_today_breakdown,
+    get_today_completed,
+)
 from .habits import get_habits
 from .lib.clock import now, today
 from .lib.errors import echo
-from .lib.render import render_dashboard, render_momentum
+from .lib.render import render_dashboard, render_day_summary, render_momentum
 from .metrics import build_feedback_snapshot, render_feedback_snapshot
 from .momentum import weekly_momentum
 from .tasks import get_all_tasks, get_tasks, last_completion
@@ -14,6 +22,8 @@ __all__ = [
     "momentum",
     "stats",
     "status",
+    "view",
+    "yesterday",
 ]
 
 
@@ -96,6 +106,42 @@ def stats() -> None:
         all_tasks=all_tasks, pending_tasks=tasks, habits=habits, today=today_date
     )
     echo("\n".join(render_feedback_snapshot(snapshot)))
+
+
+@cli("life")
+def yesterday() -> None:
+    """Show yesterday's completed tasks and stats"""
+    target = today() - timedelta(days=1)
+    _show_day(target)
+
+
+@cli("life")
+def view(date_str: str) -> None:
+    """Show completed tasks and stats for a given date (YYYY-MM-DD)"""
+    try:
+        target = date.fromisoformat(date_str)
+    except ValueError:
+        raise UsageError(f"invalid date: {date_str!r} — use YYYY-MM-DD") from None
+    _show_day(target)
+
+
+def _show_day(target: date) -> None:
+    from .db import get_db
+
+    date_str = target.isoformat()
+    completed = get_day_completed(date_str)
+    breakdown = get_day_breakdown(date_str)
+
+    mood = None
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT score, label FROM mood_log WHERE DATE(logged_at) = DATE(?) ORDER BY logged_at DESC LIMIT 1",
+            (date_str,),
+        ).fetchone()
+        if row:
+            mood = (row[0], row[1])
+
+    echo(render_day_summary(target, completed, breakdown, mood))
 
 
 @cli("life")

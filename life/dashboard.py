@@ -7,6 +7,8 @@ from .tags import hydrate_tags, load_tags_for_tasks
 from .tasks import _task_sort_key, get_tasks
 
 __all__ = [
+    "get_day_breakdown",
+    "get_day_completed",
     "get_pending_items",
     "get_today_breakdown",
     "get_today_completed",
@@ -48,6 +50,67 @@ def _get_completed_today() -> list[Task]:
         task_ids = [t.id for t in tasks]
         tags_map = load_tags_for_tasks(task_ids, conn=conn)
         return hydrate_tags(tasks, tags_map)
+
+
+def get_day_completed(date_str: str) -> list[Task | Habit]:
+    """Get tasks and habits completed on a given date (YYYY-MM-DD)."""
+    with db.get_db() as conn:
+        cursor = conn.execute(
+            "SELECT id, content, focus, scheduled_date, created, completed_at, parent_id, scheduled_time, blocked_by, description, steward, source, is_deadline FROM tasks WHERE date(completed_at) = ? AND completed_at IS NOT NULL",
+            (date_str,),
+        )
+        tasks = [row_to_task(row) for row in cursor.fetchall()]
+        task_ids = [t.id for t in tasks]
+        tags_map = load_tags_for_tasks(task_ids, conn=conn)
+        completed_tasks = hydrate_tags(tasks, tags_map)
+
+        cursor = conn.execute(
+            """
+            SELECT DISTINCT h.id, h.content, h.created
+            FROM habits h
+            INNER JOIN checks c ON h.id = c.habit_id
+            WHERE DATE(c.check_date) = DATE(?)
+            """,
+            (date_str,),
+        )
+        completed_habits: list[Habit] = []
+        for row in cursor.fetchall():
+            habit = get_habit(row[0])
+            if habit:
+                completed_habits.append(habit)
+
+    return [*completed_tasks, *completed_habits]
+
+
+def get_day_breakdown(date_str: str) -> tuple[int, int, int, int]:
+    """Get breakdown stats for a given date (YYYY-MM-DD)."""
+    with db.get_db() as conn:
+        habits_done = conn.execute(
+            "SELECT COUNT(DISTINCT habit_id) FROM checks WHERE DATE(check_date) = DATE(?)",
+            (date_str,),
+        ).fetchone()[0]
+
+        tasks_done = conn.execute(
+            "SELECT COUNT(*) FROM tasks WHERE date(completed_at) = ? AND completed_at IS NOT NULL",
+            (date_str,),
+        ).fetchone()[0]
+
+        tasks_added = conn.execute(
+            "SELECT COUNT(*) FROM tasks WHERE DATE(created) = DATE(?)",
+            (date_str,),
+        ).fetchone()[0]
+
+        habits_added = conn.execute(
+            "SELECT COUNT(*) FROM habits WHERE DATE(created) = DATE(?)",
+            (date_str,),
+        ).fetchone()[0]
+
+        tasks_deleted = conn.execute(
+            "SELECT COUNT(*) FROM deleted_tasks WHERE DATE(deleted_at) = DATE(?)",
+            (date_str,),
+        ).fetchone()[0]
+
+    return habits_done, tasks_done, tasks_added + habits_added, tasks_deleted
 
 
 def get_pending_items(asc: bool = True, include_steward: bool = False) -> list[Task]:

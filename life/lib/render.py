@@ -11,6 +11,7 @@ from .format import format_habit, format_task
 
 __all__ = [
     "render_dashboard",
+    "render_day_summary",
     "render_habit_matrix",
     "render_item_list",
     "render_momentum",
@@ -80,14 +81,8 @@ def _render_subtask_row(
     sub_id_str = f" {_GREY}[{sub.id[:8]}]{_R}"
     sub_direct_tags = _get_direct_tags(sub, all_pending)
     sub_tags_str = _fmt_tags(sub_direct_tags, tag_colors)
-    if sub.scheduled_date and sub.scheduled_date == clock.today():
-        now_str = clock.now().strftime("%H:%M")
-        sub_time_str = f"{bold(white(f'TODAY · {now_str}'))} "
-    elif sub.scheduled_time:
-        sub_time_str = f"{_fmt_time(sub.scheduled_time)} "
-    else:
-        sub_time_str = ""
-    return f"{indent}{sub_time_str}{sub.content.lower()}{sub_tags_str}{sub_id_str}{_R}"
+    sub_time_str = f"{_fmt_time(sub.scheduled_time)} " if sub.scheduled_time else ""
+    return f"{indent}□ {sub_time_str}{sub.content.lower()}{sub_tags_str}{sub_id_str}{_R}"
 
 
 def _render_header(
@@ -532,6 +527,69 @@ def render_dashboard(
             all_pending,
         )
     )
+
+    return "\n".join(lines) + "\n"
+
+
+def render_day_summary(
+    target_date: date,
+    completed_items: list[Task | Habit],
+    breakdown: tuple[int, int, int, int],
+    mood: tuple[int, str | None] | None = None,
+) -> str:
+    habits_done, tasks_done, added, deleted = breakdown
+    tag_colors = _build_tag_colors(completed_items)
+
+    lines = [
+        f"\n{bold(white(target_date.strftime('%a') + ' · ' + target_date.strftime('%-d %b %Y')))}"
+    ]
+    lines.append(f"{_GREY}done:{_R} {green(str(tasks_done))}")
+    lines.append(f"{_GREY}habits:{_R} {cyan(str(habits_done))}")
+    if added:
+        lines.append(f"{_GREY}added:{_R} {gold(str(added))}")
+    if deleted:
+        lines.append(f"{_GREY}deleted:{_R} {red(str(deleted))}")
+    if mood:
+        score, label = mood
+        bar = "█" * score + "░" * (5 - score)
+        label_str = f"  {label}" if label else ""
+        lines.append(f"{_GREY}mood:{_R} {bar}  {score}/5{label_str}")
+
+    if not completed_items:
+        lines.append(f"\n  {gray('nothing completed.')}")
+        return "\n".join(lines) + "\n"
+
+    def _sort_key(item):
+        if isinstance(item, Task) and item.completed_at:
+            return item.completed_at
+        from life.models import Habit as _Habit
+
+        if isinstance(item, _Habit) and item.checks:
+            return max(item.checks)
+        return item.created
+
+    sorted_items = sorted(completed_items, key=_sort_key)
+    lines.append(f"\n{bold(green('DONE'))}")
+    for item in sorted_items:
+        tags_str = _fmt_tags(item.tags, tag_colors)
+        content = item.content.lower()
+        id_str = f" {_GREY}[{item.id[:8]}]{_R}"
+        from life.models import Habit as _Habit
+
+        if isinstance(item, _Habit):
+            time_str = ""
+            if item.checks:
+                latest = (
+                    max(c for c in item.checks if c.date() == target_date)
+                    if any(c.date() == target_date for c in item.checks)
+                    else None
+                )
+                if latest:
+                    time_str = latest.strftime("%H:%M")
+            lines.append(f"  {gray('✓')} {_GREY}{time_str}{_R} {content}{tags_str}{id_str}")
+        elif item.completed_at:
+            time_str = item.completed_at.strftime("%H:%M")
+            lines.append(f"  {green('✓')} {_GREY}{time_str}{_R} {content}{tags_str}{id_str}")
 
     return "\n".join(lines) + "\n"
 
