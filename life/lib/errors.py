@@ -1,14 +1,7 @@
 import sys
 from typing import NoReturn
 
-__all__ = ["echo", "exit_error"]
-
-
-def echo(message: str = "", err: bool = False) -> None:
-    if err:
-        sys.stderr.write(message + "\n")
-    else:
-        sys.stdout.write(message + "\n")
+__all__ = ["exit_error"]
 
 
 def exit_error(message: str, code: int = 1) -> NoReturn:

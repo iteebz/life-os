@@ -1,6 +1,6 @@
 from fncli import cli
 
-from ..lib.errors import echo, exit_error
+from ..lib.errors import exit_error
 from . import add_observation, add_session, delete_observation, get_observations
 
 
@@ -8,7 +8,7 @@ from . import add_observation, add_session, delete_observation, get_observations
 def close(summary: str):
     """Write session log and close interactive session"""
     add_session(summary)
-    echo("→ session logged")
+    print("→ session logged")
 
 
 @cli("life steward")
@@ -30,7 +30,7 @@ def observe(
     add_observation(body, tag=tag, about_date=about_date)
     suffix = f" #{tag}" if tag else ""
     about_str = f" (about {about_date})" if about_date else ""
-    echo(f"→ {body}{suffix}{about_str}")
+    print(f"→ {body}{suffix}{about_str}")
 
 
 @cli("life steward")
@@ -53,6 +53,6 @@ def rm(
 
     deleted = delete_observation(target.id)
     if deleted:
-        echo(f"→ removed: {target.body[:80]}")
+        print(f"→ removed: {target.body[:80]}")
     else:
         exit_error("delete failed")

@@ -10,7 +10,7 @@ from . import db
 from .lib import clock
 from .lib.ansi import ANSI
 from .lib.converters import row_to_habit
-from .lib.errors import echo, exit_error
+from .lib.errors import exit_error
 from .lib.format import format_status
 from .lib.fuzzy import find_in_pool, find_in_pool_exact
 from .lib.parsing import validate_content
@@ -282,7 +282,7 @@ def rename_habit(habit: Habit, to_content: str) -> None:
     if habit.content == to_content:
         exit_error(f"Error: Cannot rename '{habit.content}' to itself.")
     update_habit(habit.id, content=to_content)
-    echo(f"\u2192 {to_content}")
+    print(f"\u2192 {to_content}")
 
 
 def check_habit_cmd(habit: Habit) -> None:
@@ -317,7 +317,7 @@ def habit(
     from .lib.resolve import resolve_habit
 
     if log or not content:
-        echo(render_habit_matrix(get_habits()))
+        print(render_habit_matrix(get_habits()))
         return
     content_str = " ".join(content) if content else ""
     try:
@@ -332,7 +332,7 @@ def habit(
         parent_id = parent.id
     tags = list(tag) if tag else []
     habit_id = add_habit(content_str, tags=tags, parent_id=parent_id, private=private)
-    echo(format_status("\u25a1", content_str, habit_id))
+    print(format_status("\u25a1", content_str, habit_id))
 
 
 @cli("life")
@@ -343,17 +343,17 @@ def archive(ref: str | None = None, list_archived: bool = False) -> None:
     if list_archived:
         archived_habits = get_archived_habits()
         if not archived_habits:
-            echo("no archived habits")
+            print("no archived habits")
             return
         for h in archived_habits:
             archived_date = h.archived_at.strftime("%Y-%m-%d") if h.archived_at else "?"
-            echo(f"{ANSI.DIM}{h.content}{ANSI.RESET}  archived {archived_date}")
+            print(f"{ANSI.DIM}{h.content}{ANSI.RESET}  archived {archived_date}")
         return
     if not ref:
         exit_error("Usage: life archive <habit>")
     h = resolve_habit(ref)
     archive_habit(h.id)
-    echo(f"{ANSI.DIM}{h.content}{ANSI.RESET}  archived")
+    print(f"{ANSI.DIM}{h.content}{ANSI.RESET}  archived")
 
 
 @cli("life")
@@ -361,4 +361,4 @@ def habits() -> None:
     """Show habits matrix"""
     from .lib.render import render_habit_matrix
 
-    echo(render_habit_matrix(get_habits()))
+    print(render_habit_matrix(get_habits()))

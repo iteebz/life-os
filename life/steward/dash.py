@@ -2,7 +2,6 @@ from datetime import datetime
 
 from fncli import cli
 
-from ..lib.errors import echo
 from . import _rel, get_observations, get_sessions
 
 
@@ -14,34 +13,34 @@ def dash():
 
     improvements = get_improvements()
     if improvements:
-        echo("IMPROVEMENTS:")
+        print("IMPROVEMENTS:")
         for i in improvements:
-            echo(f"  [{i.id}] {i.body}")
+            print(f"  [{i.id}] {i.body}")
     else:
-        echo("IMPROVEMENTS: none")
+        print("IMPROVEMENTS: none")
 
     patterns = get_patterns(limit=5)
     if patterns:
-        echo("\nRECENT PATTERNS:")
+        print("\nRECENT PATTERNS:")
         now = datetime.now()
         for p in patterns:
             s = (now - p.logged_at).total_seconds()
             rel = _rel(s) if s < 86400 * 7 else p.logged_at.strftime("%Y-%m-%d")
-            echo(f"  {rel:<10}  {p.body}")
+            print(f"  {rel:<10}  {p.body}")
 
     observations = get_observations(limit=10)
     if observations:
-        echo("\nRECENT OBSERVATIONS:")
+        print("\nRECENT OBSERVATIONS:")
         now = datetime.now()
         for o in observations:
             rel = _rel((now - o.logged_at).total_seconds())
             tag_str = f" #{o.tag}" if o.tag else ""
-            echo(f"  {rel:<10}  {o.body}{tag_str}")
+            print(f"  {rel:<10}  {o.body}{tag_str}")
 
     sessions = get_sessions(limit=5)
     if sessions:
-        echo("\nRECENT SESSIONS:")
+        print("\nRECENT SESSIONS:")
         now_dt = datetime.now()
         for s in sessions:
             rel = _rel((now_dt - s.logged_at).total_seconds())
-            echo(f"  {rel:<10}  {s.summary[:90]}")
+            print(f"  {rel:<10}  {s.summary[:90]}")

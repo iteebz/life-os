@@ -11,7 +11,6 @@ from .dashboard import (
 )
 from .habits import get_habits
 from .lib.clock import now, today
-from .lib.errors import echo
 from .lib.render import render_dashboard, render_day_summary, render_momentum
 from .metrics import build_feedback_snapshot, render_feedback_snapshot
 from .momentum import weekly_momentum
@@ -33,7 +32,7 @@ def dashboard(verbose: bool = False) -> None:
     items = get_pending_items() + get_habits()
     today_items = get_today_completed()
     today_breakdown = get_today_breakdown()
-    echo(render_dashboard(items, today_breakdown, None, None, today_items, verbose=verbose))
+    print(render_dashboard(items, today_breakdown, None, None, today_items, verbose=verbose))
 
 
 def _format_elapsed(dt) -> str:
@@ -92,7 +91,7 @@ def status() -> None:
     lines.extend(f"  \u2665 {t.content}" for t in hot_janice)
     if not hot_overdue and not hot_janice:
         lines.append("  none")
-    echo("\n".join(lines))
+    print("\n".join(lines))
 
 
 @cli("life")
@@ -105,7 +104,7 @@ def stats() -> None:
     snapshot = build_feedback_snapshot(
         all_tasks=all_tasks, pending_tasks=tasks, habits=habits, today=today_date
     )
-    echo("\n".join(render_feedback_snapshot(snapshot)))
+    print("\n".join(render_feedback_snapshot(snapshot)))
 
 
 @cli("life")
@@ -141,10 +140,10 @@ def _show_day(target: date) -> None:
         if row:
             mood = (row[0], row[1])
 
-    echo(render_day_summary(target, completed, breakdown, mood))
+    print(render_day_summary(target, completed, breakdown, mood))
 
 
 @cli("life")
 def momentum() -> None:
     """Show momentum and weekly trends"""
-    echo(render_momentum(weekly_momentum()))
+    print(render_momentum(weekly_momentum()))

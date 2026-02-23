@@ -2,7 +2,7 @@ from fncli import cli
 
 from . import signal as _signal
 from . import telegram as _telegram
-from .lib.errors import echo, exit_error
+from .lib.errors import exit_error
 
 
 def _default_channel(name: str) -> str | None:
@@ -54,7 +54,7 @@ def send_cmd(recipient: str, message: str, signal: bool = False, telegram: bool 
         success, result, display = _send_telegram(recipient, message)
 
     if success:
-        echo(f"sent → {display} ({channel})")
+        print(f"sent → {display} ({channel})")
     else:
         exit_error(f"failed: {result}")
 
@@ -69,19 +69,19 @@ def receive_cmd(timeout: int = 5, signal: bool = False, telegram: bool = False):
         msgs = _signal.receive(timeout=timeout)
         for msg in msgs:
             sender = msg.get("from_name") or msg.get("from", "?")
-            echo(f"  [signal] {sender}: {msg['body']}")
+            print(f"  [signal] {sender}: {msg['body']}")
             total += 1
 
     if both or telegram:
         msgs = _telegram.poll(timeout=timeout)
         for msg in msgs:
-            echo(f"  [telegram] {msg['from_name']}: {msg['body']}")
+            print(f"  [telegram] {msg['from_name']}: {msg['body']}")
             total += 1
 
     if total == 0:
-        echo("no new messages")
+        print("no new messages")
     else:
-        echo(f"{total} message(s)")
+        print(f"{total} message(s)")
 
 
 @cli("life telegram", name="setup")
@@ -89,6 +89,6 @@ def telegram_setup_cmd(token: str):
     """Store Telegram bot token"""
     success, result = _telegram.setup(token)
     if success:
-        echo(f"connected — {result}")
+        print(f"connected — {result}")
     else:
-        echo(result)
+        print(result)

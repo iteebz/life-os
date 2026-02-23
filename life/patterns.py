@@ -4,7 +4,7 @@ from datetime import datetime
 from fncli import cli
 
 from .db import get_db
-from .lib.errors import echo, exit_error
+from .lib.errors import exit_error
 
 
 @dataclass(frozen=True)
@@ -50,7 +50,7 @@ def log(limit: int = 20, tag: str | None = None):
     """Review logged patterns"""
     patterns = get_patterns(limit, tag=tag)
     if not patterns:
-        echo("no patterns logged")
+        print("no patterns logged")
         return
     now = datetime.now()
     for p in patterns:
@@ -65,14 +65,14 @@ def log(limit: int = 20, tag: str | None = None):
         else:
             rel = p.logged_at.strftime("%Y-%m-%d")
         tag_suffix = f"  [{p.tag}]" if p.tag else ""
-        echo(f"{rel:<10}  {p.body}{tag_suffix}")
+        print(f"{rel:<10}  {p.body}{tag_suffix}")
 
 
 @cli("life pattern", name="add")
 def add(body: str, tag: str | None = None):
     """Log a new pattern"""
     add_pattern(body, tag=tag)
-    echo(f"→ {body}")
+    print(f"→ {body}")
 
 
 @cli("life pattern", name="rm")
@@ -93,6 +93,6 @@ def rm(ref: str):
         target = matches[0]
     deleted = delete_pattern(target.id)
     if deleted:
-        echo(f"→ removed: {target.body[:80]}")
+        print(f"→ removed: {target.body[:80]}")
     else:
         exit_error("delete failed")

@@ -5,7 +5,7 @@ from fncli import cli
 
 from .habits import add_habit, check_habit_cmd, rename_habit
 from .lib.ansi import ANSI
-from .lib.errors import echo, exit_error
+from .lib.errors import exit_error
 from .lib.format import format_status
 from .lib.parsing import validate_content
 from .lib.resolve import resolve_item, resolve_item_any
@@ -67,10 +67,10 @@ def rm(ref: list[str]) -> None:
     task, habit = resolve_item_any(item_ref)
     if task:
         delete_task(task.id)
-        echo(f"{ANSI.DIM}{task.content}{ANSI.RESET}")
+        print(f"{ANSI.DIM}{task.content}{ANSI.RESET}")
     elif habit:
         delete_habit(habit.id)
-        echo(f"{ANSI.DIM}{habit.content}{ANSI.RESET}")
+        print(f"{ANSI.DIM}{habit.content}{ANSI.RESET}")
 
 
 @cli("life")
@@ -104,7 +104,7 @@ def add(
             parent_id = parent.id
         tags = list(tag) if tag else []
         habit_id = add_habit(content_str, tags=tags, parent_id=parent_id)
-        echo(format_status("\u25a1", content_str, habit_id))
+        print(format_status("\u25a1", content_str, habit_id))
         return
 
     from .lib.resolve import resolve_task
@@ -143,11 +143,11 @@ def add(
         update_task(task_id, **updates)
     if done:
         check_task(task_id)
-        echo(format_status("\u2713", content_str, task_id))
+        print(format_status("\u2713", content_str, task_id))
         return
     symbol = f"{ANSI.BOLD}\u29bf{ANSI.RESET}" if focus else "\u25a1"
     prefix = "  \u2514 " if parent_id else ""
-    echo(f"{prefix}{format_status(symbol, content_str, task_id)}")
+    print(f"{prefix}{format_status(symbol, content_str, task_id)}")
 
 
 @cli("life")

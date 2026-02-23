@@ -13,7 +13,7 @@ from . import db
 from .lib import clock
 from .lib.ansi import ANSI
 from .lib.converters import row_to_task
-from .lib.errors import echo, exit_error
+from .lib.errors import exit_error
 from .lib.format import format_status
 from .lib.fuzzy import find_in_pool, find_in_pool_exact
 from .lib.parsing import parse_due_and_item, validate_content
@@ -443,7 +443,7 @@ def rename_task(task: Task, to_content: str) -> None:
     if task.content == to_content:
         exit_error(f"Error: Cannot rename '{task.content}' to itself.")
     update_task(task.id, content=to_content)
-    echo(f"→ {to_content}")
+    print(f"→ {to_content}")
 
 
 def check_task_cmd(task: Task) -> None:
@@ -482,7 +482,7 @@ def _schedule(args: list[str], remove: bool = False) -> None:
             exit_error(str(e))
         t = resolve_task(item_name)
         update_task(t.id, scheduled_date=None, scheduled_time=None, is_deadline=False)
-        echo(format_status("\u25a1", t.content, t.id))
+        print(format_status("\u25a1", t.content, t.id))
         return
     try:
         date_str, time_str, item_name = parse_due_and_item(list(args))
@@ -501,7 +501,7 @@ def _schedule(args: list[str], remove: bool = False) -> None:
         label = f"{ANSI.GREY}{time_str}{ANSI.RESET}"
     else:
         label = f"{ANSI.GREY}{_fmt_date_label(date_str or '')}{ANSI.RESET}"
-    echo(format_status(label, t.content, t.id))
+    print(format_status(label, t.content, t.id))
 
 
 # ── cli ──────────────────────────────────────────────────────────────────────
@@ -560,11 +560,11 @@ def task(
         update_task(task_id, **updates)
     if done:
         check_task(task_id)
-        echo(format_status("\u2713", content_str, task_id))
+        print(format_status("\u2713", content_str, task_id))
         return
     symbol = f"{ANSI.BOLD}\u29bf{ANSI.RESET}" if focus else "\u25a1"
     prefix = "  \u2514 " if parent_id else ""
-    echo(f"{prefix}{format_status(symbol, content_str, task_id)}")
+    print(f"{prefix}{format_status(symbol, content_str, task_id)}")
 
 
 @cli("life")
@@ -578,7 +578,7 @@ def focus(ref: list[str]) -> None:
     t = resolve_task(item_ref)
     toggle_focus(t.id)
     symbol = f"{ANSI.BOLD}\u29bf{ANSI.RESET}" if not t.focus else "\u25a1"
-    echo(format_status(symbol, t.content, t.id))
+    print(format_status(symbol, t.content, t.id))
 
 
 @cli("life")
@@ -594,7 +594,7 @@ def due(ref: list[str], when: str, remove: bool = False) -> None:
     t = resolve_task(item_name)
     if remove:
         update_task(t.id, scheduled_date=None, scheduled_time=None, is_deadline=False)
-        echo(format_status("\u25a1", t.content, t.id))
+        print(format_status("\u25a1", t.content, t.id))
         return
     if not date_str and not time_str:
         exit_error(
@@ -610,7 +610,7 @@ def due(ref: list[str], when: str, remove: bool = False) -> None:
         label = f"{ANSI.CORAL}{time_str}{ANSI.RESET}"
     else:
         label = f"{ANSI.CORAL}{_fmt_date_label(date_str or '')}{ANSI.RESET}"
-    echo(format_status(label, t.content, t.id))
+    print(format_status(label, t.content, t.id))
 
 
 @cli("life", name="set")
@@ -657,7 +657,7 @@ def set_cmd(
     )
     updated = resolve_task(content or item_ref)
     prefix = "  \u2514 " if updated.parent_id else ""
-    echo(f"{prefix}{format_status('\u25a1', updated.content, updated.id)}")
+    print(f"{prefix}{format_status('\u25a1', updated.content, updated.id)}")
 
 
 @cli("life")
@@ -674,11 +674,11 @@ def show(ref: list[str]) -> None:
         parent = get_task(t.parent_id)
         parent_subtasks = get_subtasks(t.parent_id) if parent else []
         mutations = get_mutations(t.parent_id) if parent else []
-        echo(render_task_detail(t, [], mutations, parent=parent, parent_subtasks=parent_subtasks))
+        print(render_task_detail(t, [], mutations, parent=parent, parent_subtasks=parent_subtasks))
     else:
         subtasks = get_subtasks(t.id)
         mutations = get_mutations(t.id)
-        echo(render_task_detail(t, subtasks, mutations))
+        print(render_task_detail(t, subtasks, mutations))
 
 
 @cli("life")
@@ -691,7 +691,7 @@ def block(ref: list[str], by: str) -> None:
     if blocker.id == t.id:
         exit_error("A task cannot block itself")
     set_blocked_by(t.id, blocker.id)
-    echo(f"\u2298 {t.content.lower()}  \u2190  {blocker.content.lower()}")
+    print(f"\u2298 {t.content.lower()}  \u2190  {blocker.content.lower()}")
 
 
 @cli("life")
@@ -703,7 +703,7 @@ def unblock(ref: list[str]) -> None:
     if not t.blocked_by:
         exit_error(f"'{t.content}' is not blocked")
     set_blocked_by(t.id, None)
-    echo(f"\u25a1 {t.content.lower()}  unblocked")
+    print(f"\u25a1 {t.content.lower()}  unblocked")
 
 
 @cli("life")
@@ -713,7 +713,7 @@ def cancel(ref: list[str], reason: str) -> None:
 
     t = resolve_task(" ".join(ref))
     cancel_task(t.id, reason)
-    echo(f"\u2717 {t.content.lower()} \u2014 {reason}")
+    print(f"\u2717 {t.content.lower()} \u2014 {reason}")
 
 
 @cli("life")
@@ -723,7 +723,7 @@ def defer(ref: list[str], reason: str) -> None:
 
     t = resolve_task(" ".join(ref))
     defer_task(t.id, reason)
-    echo(f"\u2192 {t.content.lower()} deferred: {reason}")
+    print(f"\u2192 {t.content.lower()} deferred: {reason}")
 
 
 @cli("life")
@@ -756,7 +756,7 @@ def today(ref: list[str] | None = None) -> None:
         items = get_pending_items() + get_habits()
         today_items = get_today_completed()
         today_breakdown = get_today_breakdown()
-        echo(render_dashboard(items, today_breakdown, None, None, today_items))
+        print(render_dashboard(items, today_breakdown, None, None, today_items))
 
 
 @cli("life")

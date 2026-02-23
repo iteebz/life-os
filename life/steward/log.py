@@ -2,7 +2,6 @@ from datetime import UTC, datetime
 
 from fncli import cli
 
-from ..lib.errors import echo
 from . import _rel, get_sessions
 
 
@@ -13,9 +12,9 @@ def log(
     """Show recent steward session logs"""
     sessions = get_sessions(limit=limit)
     if not sessions:
-        echo("no sessions logged")
+        print("no sessions logged")
         return
     now = datetime.now(UTC).replace(tzinfo=None)
     for s in sessions:
         rel = _rel((now - s.logged_at).total_seconds())
-        echo(f"{rel:<10}  {s.summary}")
+        print(f"{rel:<10}  {s.summary}")

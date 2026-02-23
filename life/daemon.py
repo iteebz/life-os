@@ -9,7 +9,7 @@ from pathlib import Path
 from fncli import cli
 
 from .config import LIFE_DIR
-from .lib.errors import echo, exit_error
+from .lib.errors import exit_error
 
 DAEMON_DIR = LIFE_DIR
 PID_FILE = DAEMON_DIR / "daemon.pid"
@@ -377,7 +377,7 @@ def daemon_install(
     ok, msg = install(
         tg_interval=tg_interval, signal_interval=signal_interval, auto_every=auto_every
     )
-    echo(msg)
+    print(msg)
     if not ok:
         exit_error("")
 
@@ -386,6 +386,6 @@ def daemon_install(
 def daemon_uninstall() -> None:
     """Uninstall daemon launchd service"""
     ok, msg = uninstall()
-    echo(msg)
+    print(msg)
     if not ok:
         exit_error("")

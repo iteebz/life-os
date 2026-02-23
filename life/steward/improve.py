@@ -2,7 +2,7 @@ from datetime import datetime
 
 from fncli import cli
 
-from ..lib.errors import echo, exit_error
+from ..lib.errors import exit_error
 from . import _rel
 
 
@@ -18,7 +18,7 @@ def improve(
     if done is not None:
         target = mark_improvement_done(done)
         if target:
-            echo(f"✓ {target.body}")
+            print(f"✓ {target.body}")
         else:
             exit_error(f"no open improvement matching '{done}'")
         return
@@ -26,13 +26,13 @@ def improve(
     if log or not body:
         improvements = get_improvements()
         if not improvements:
-            echo("no open improvements")
+            print("no open improvements")
             return
         now = datetime.now()
         for i in improvements:
             rel = _rel((now - i.logged_at).total_seconds())
-            echo(f"  {i.id:<4} {rel:<10}  {i.body}")
+            print(f"  {i.id:<4} {rel:<10}  {i.body}")
         return
 
     add_improvement(body)
-    echo(f"→ {body}")
+    print(f"→ {body}")

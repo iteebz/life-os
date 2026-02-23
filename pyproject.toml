@@ -71,7 +71,6 @@ select = [
     "RUF",    # ruff-specific
     "TID",    # tidy imports
     "PIE",    # misc lints
-    "T20",    # flake8-print
     "FLY",    # flynt (f-strings)
     "FURB",   # refurb (modern python)
     "PLC",    # pylint conventions

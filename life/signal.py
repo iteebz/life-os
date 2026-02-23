@@ -8,7 +8,7 @@ from typing import Any
 import yaml
 from fncli import cli
 
-from .lib.errors import echo, exit_error
+from .lib.errors import exit_error
 
 SIGNAL_CLI = "signal-cli"
 PEOPLE_DIR = Path.home() / "life" / "steward" / "people"
@@ -327,7 +327,7 @@ def link_device(device_name: str = "life-cli") -> tuple[bool, str]:
     qr.make()
     f = io.StringIO()
     qr.print_ascii(out=f, invert=True)
-    print(f.getvalue())  # noqa: T201
+    print(f.getvalue())
 
     try:
         process.wait(timeout=120)
@@ -374,7 +374,7 @@ def send_cmd(
     success, result = send(number, message, attachment=attachment)
     if success:
         display = recipient if number == recipient else f"{recipient} ({number})"
-        echo(f"sent → {display}")
+        print(f"sent → {display}")
     else:
         exit_error(f"failed: {result}")
 
@@ -384,11 +384,11 @@ def check(timeout: int = 5):
     """Pull and display recent Signal messages"""
     messages = receive(timeout=timeout)
     if not messages:
-        echo("no new messages")
+        print("no new messages")
         return
     for msg in messages:
         sender = msg.get("from_name") or msg.get("from", "?")
-        echo(f"{sender}: {msg['body']}")
+        print(f"{sender}: {msg['body']}")
 
 
 @cli("life signal", name="receive")
@@ -399,12 +399,12 @@ def receive_cmd(timeout: int = 5):
         exit_error("no Signal account registered")
     msgs = receive(timeout=timeout, phone=phone, store=True)
     if not msgs:
-        echo("no new messages")
+        print("no new messages")
         return
-    echo(f"received {len(msgs)} message(s)")
+    print(f"received {len(msgs)} message(s)")
     for msg in msgs:
         sender = msg.get("from_name") or msg.get("from", "?")
-        echo(f"  {sender}: {msg['body']}")
+        print(f"  {sender}: {msg['body']}")
 
 
 @cli("life signal", name="inbox")
@@ -415,12 +415,12 @@ def signal_inbox():
         exit_error("no Signal account registered")
     conversations = get_conversations(phone)
     if not conversations:
-        echo("no conversations — run `life signal receive` first")
+        print("no conversations — run `life signal receive` first")
         return
     for c in conversations:
         name = c["sender_name"] or c["sender_phone"]
         unread = f" ({c['unread_count']} unread)" if c["unread_count"] else ""
-        echo(f"  {c['sender_phone']:16} | {name:20} | {c['message_count']} msgs{unread}")
+        print(f"  {c['sender_phone']:16} | {name:20} | {c['message_count']} msgs{unread}")
 
 
 @cli("life signal", name="history")
@@ -431,13 +431,13 @@ def signal_history(contact: str, limit: int = 20):
         exit_error("no Signal account registered")
     msgs = get_messages(phone=phone, sender=contact, limit=limit)
     if not msgs:
-        echo(f"no messages from {contact}")
+        print(f"no messages from {contact}")
         return
     for msg in reversed(msgs):
         sender = msg["sender_name"] or msg["sender_phone"]
         ts = datetime.fromtimestamp(msg["timestamp"] / 1000).strftime("%m-%d %H:%M")
         mid = msg["id"][:8] if msg.get("id") else ""
-        echo(f"{mid} [{ts}] {sender}: {msg['body']}")
+        print(f"{mid} [{ts}] {sender}: {msg['body']}")
 
 
 @cli("life signal", name="reply")
@@ -449,7 +449,7 @@ def reply_cmd(message_id: str, message: str):
     success, err, original = reply_to(phone, message_id, message)
     if success and original:
         sender = original["sender_name"] or original["sender_phone"]
-        echo(f"replied to {sender}")
+        print(f"replied to {sender}")
     else:
         exit_error(f"failed: {err}")
 
@@ -459,10 +459,10 @@ def status():
     """Show registered Signal accounts"""
     accounts = list_accounts()
     if not accounts:
-        echo("no Signal accounts — run: signal-cli link")
+        print("no Signal accounts — run: signal-cli link")
         return
     for account in accounts:
-        echo(account)
+        print(account)
 
 
 @cli("life signal", name="contacts")
@@ -473,10 +473,10 @@ def contacts_cmd():
         exit_error("no Signal account registered")
     contacts = list_contacts_for(phone)
     if not contacts:
-        echo("no contacts")
+        print("no contacts")
         return
     for c in contacts:
-        echo(f"  {c['number']:20} {c.get('name', '')}")
+        print(f"  {c['number']:20} {c.get('name', '')}")
 
 
 @cli("life signal", name="groups")
@@ -487,7 +487,7 @@ def groups_cmd():
         exit_error("no Signal account registered")
     groups = list_groups(phone)
     if not groups:
-        echo("no groups")
+        print("no groups")
         return
     for g in groups:
-        echo(f"  {g['id'][:16]} | {g['name']}")
+        print(f"  {g['id'][:16]} | {g['name']}")

@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 from fncli import cli
 
 from .db import get_db
-from .lib.errors import echo, exit_error
+from .lib.errors import exit_error
 
 
 @dataclass(frozen=True)
@@ -75,7 +75,7 @@ def log(score: int, label: str | None = None):
     add_mood(score, label)
     bar = "█" * score + "░" * (5 - score)
     label_str = f"  {label}" if label else ""
-    echo(f"→ {bar}  {score}/5{label_str}")
+    print(f"→ {bar}  {score}/5{label_str}")
 
 
 @cli("life mood", name="show")
@@ -83,7 +83,7 @@ def show():
     """View rolling 24h mood window"""
     entries = get_recent_moods(hours=24)
     if not entries:
-        echo("no mood logged in the last 24h")
+        print("no mood logged in the last 24h")
         return
     now_dt = datetime.now()
     for e in entries:
@@ -97,7 +97,7 @@ def show():
             rel = f"{int(secs // 86400)}d ago"
         bar = "█" * e.score + "░" * (5 - e.score)
         label_str = f"  {e.label}" if e.label else ""
-        echo(f"  {rel:<10}  {bar}  {e.score}/5{label_str}")
+        print(f"  {rel:<10}  {bar}  {e.score}/5{label_str}")
 
 
 @cli("life mood", name="rm")
@@ -109,4 +109,4 @@ def rm():
         return
     bar = "█" * entry.score + "░" * (5 - entry.score)
     label_str = f"  {entry.label}" if entry.label else ""
-    echo(f"✗ {bar}  {entry.score}/5{label_str}")
+    print(f"✗ {bar}  {entry.score}/5{label_str}")

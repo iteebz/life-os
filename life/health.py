@@ -5,7 +5,6 @@ from typing import Any
 
 from life import config
 from life.db import get_db, load_migrations
-from life.lib.errors import echo
 
 __all__ = ["cli", "score"]
 
@@ -141,23 +140,23 @@ def score() -> dict[str, Any]:
 def cli() -> None:
     result = score()
     status = "✓" if result["ok"] else "✗"
-    echo(f"db: {status} {result['detail']}")
+    print(f"db: {status} {result['detail']}")
 
     if result.get("table_counts"):
         total = sum(result["table_counts"].values())
-        echo(f"rows: {total} across {len(result['table_counts'])} tables")
+        print(f"rows: {total} across {len(result['table_counts'])} tables")
         for table, count in sorted(result["table_counts"].items(), key=lambda x: -x[1]):
-            echo(f"  {table}: {count}")
+            print(f"  {table}: {count}")
 
     if result.get("fk_violations"):
-        echo("\nFK violations:")
+        print("\nFK violations:")
         for rel, count in result["fk_violations"].items():
-            echo(f"  {rel}: {count}")
+            print(f"  {rel}: {count}")
 
     if result.get("schema_drift"):
-        echo("\nSchema drift:")
+        print("\nSchema drift:")
         for item in result["schema_drift"]:
-            echo(f"  {item}")
+            print(f"  {item}")
 
     if not result["ok"]:
         raise SystemExit(1)

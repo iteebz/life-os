@@ -1,4 +1,5 @@
 import subprocess
+import sys
 import threading
 import time
 from pathlib import Path
@@ -11,7 +12,7 @@ if TYPE_CHECKING:
 from fncli import cli
 
 from ..lib.ansi import strip as ansi_strip
-from ..lib.errors import echo, exit_error
+from ..lib.errors import exit_error
 from ..lib.tail import StreamParser, format_entry
 
 
@@ -115,7 +116,7 @@ def _run_tail_stream(
             continue
 
         if raw:
-            echo(text)
+            print(text)
             continue
 
         entries = parser.parse_line(text)
@@ -126,7 +127,7 @@ def _run_tail_stream(
             rendered_plain = ansi_strip(rendered).strip()
             if rendered == last_rendered and rendered_plain.startswith(("error.", "in=")):
                 continue
-            echo(rendered)
+            print(rendered)
             last_rendered = rendered
 
     if timed_out:
@@ -136,14 +137,14 @@ def _run_tail_stream(
         except subprocess.TimeoutExpired:
             proc.kill()
             proc.wait()
-        echo(f"[tail] timed out after {timeout}s", err=True)
+        print(f"[tail] timed out after {timeout}s", file=sys.stderr)
         return 124
 
     rc = proc.wait()
     stdout_thread.join(timeout=0.2)
     stderr_thread.join(timeout=0.2)
     if rc != 0 and stderr_lines:
-        echo(f"[tail] stderr: {stderr_lines[-1]}", err=True)
+        print(f"[tail] stderr: {stderr_lines[-1]}", file=sys.stderr)
     return rc
 
 
@@ -199,7 +200,7 @@ def _run_autonomous(provider: str = "claude") -> None:
     snapshot_before = build_feedback_snapshot(
         all_tasks=all_before, pending_tasks=tasks_before, habits=habits_before, today=today_date
     )
-    echo("\n".join(render_feedback_snapshot(snapshot_before)))
+    print("\n".join(render_feedback_snapshot(snapshot_before)))
 
     state = load_loop_state()
     gate_required = require_real_world_closure(state)
@@ -211,9 +212,9 @@ def _run_autonomous(provider: str = "claude") -> None:
             "\n\nHARD GATE: Before any meta/refactor work, close this real-world task in this run: "
             f"{required_task.content} ({required_task.id})."
         )
-        echo(f"steward gate: close real-world loop first -> {required_task.content}")
+        print(f"steward gate: close real-world loop first -> {required_task.content}")
 
-    echo(f"[auto] provider: {provider}")
+    print(f"[auto] provider: {provider}")
     cmd, env = _build_provider_cmd_env(provider, prompt)
     rc = _run_tail_stream(
         cmd,
@@ -263,7 +264,7 @@ def _run_autonomous(provider: str = "claude") -> None:
     )
     save_loop_state(state)
 
-    echo("\n".join(render_feedback_snapshot(snapshot_after)))
+    print("\n".join(render_feedback_snapshot(snapshot_after)))
     if gate_required and not shipped_life:
         exit_error("steward gate failed: no real-world task was closed")
 
@@ -295,17 +296,17 @@ def cmd_tail(
     prompt = _steward_prompt()
 
     for i in range(1, cycles + 1):
-        echo(f"[tail] cycle {i}/{cycles} provider={provider}")
+        print(f"[tail] cycle {i}/{cycles} provider={provider}")
         cmd, env = _build_provider_cmd_env(provider, prompt)
         attempts = retries + 1
         if dry_run:
-            echo(" ".join(cmd))
+            print(" ".join(cmd))
         else:
             ok = False
             last_rc = 1
             for attempt in range(1, attempts + 1):
                 if attempt > 1:
-                    echo(f"[tail] retry {attempt - 1}/{retries} after failure")
+                    print(f"[tail] retry {attempt - 1}/{retries} after failure")
                 try:
                     last_rc = _run_tail_stream(
                         cmd,
@@ -316,7 +317,7 @@ def cmd_tail(
                         quiet_system=quiet_system,
                     )
                 except Exception as exc:
-                    echo(f"[tail] execution error: {exc}", err=True)
+                    print(f"[tail] execution error: {exc}", file=sys.stderr)
                     last_rc = 1
 
                 if last_rc == 0:
@@ -327,11 +328,11 @@ def cmd_tail(
 
             if not ok:
                 if continue_on_error:
-                    echo(f"[tail] cycle {i} failed (exit {last_rc}), continuing")
+                    print(f"[tail] cycle {i} failed (exit {last_rc}), continuing")
                 else:
                     exit_error(f"tail loop failed on cycle {i} (exit {last_rc})")
         if i < cycles and interval_seconds > 0:
-            echo(f"[tail] sleeping {interval_seconds}s")
+            print(f"[tail] sleeping {interval_seconds}s")
             time.sleep(interval_seconds)
 
 

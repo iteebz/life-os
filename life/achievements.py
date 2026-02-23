@@ -5,7 +5,6 @@ from fncli import cli
 
 from .db import get_db
 from .lib.ansi import ANSI, bold, dim, gray, white
-from .lib.errors import echo
 
 
 @dataclass(frozen=True)
@@ -49,7 +48,7 @@ def get_achievements() -> list[Achievement]:
 def log(name: str, tags: str | None = None):
     """Log an achievement"""
     add_achievement(name, tags)
-    echo(f"★ {name}")
+    print(f"★ {name}")
 
 
 def _achievement_tag_colors(entries: list["Achievement"]) -> dict[str, str]:
@@ -92,7 +91,7 @@ def update_achievement(
 def update(id: int, name: str | None = None, tags: str | None = None):
     """Update an achievement"""
     update_achievement(id, name, tags)
-    echo(f"✓ updated {id}")
+    print(f"✓ updated {id}")
 
 
 @cli("life achievement", name="ls")
@@ -100,12 +99,12 @@ def ls():
     """List all achievements"""
     entries = get_achievements()
     if not entries:
-        echo("no achievements yet")
+        print("no achievements yet")
         return
     _r = ANSI.RESET
     _grey = ANSI.MUTED
     tag_colors = _achievement_tag_colors(entries)
-    echo(bold(white("ACHIEVEMENTS:")))
+    print(bold(white("ACHIEVEMENTS:")))
     for e in entries:
         date_str = dim(e.achieved_at.strftime("%d/%m/%y").lower())
         dot = gray("·")
@@ -117,4 +116,4 @@ def ls():
             tags_str = "  " + " ".join(tag_parts)
         else:
             tags_str = ""
-        echo(f"  {date_str} {dot} {name_str}{tags_str}")
+        print(f"  {date_str} {dot} {name_str}{tags_str}")

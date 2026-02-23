@@ -4,7 +4,6 @@ from datetime import datetime
 from fncli import cli
 
 from .db import get_db
-from .lib.errors import echo
 
 
 @dataclass(frozen=True)
@@ -41,7 +40,7 @@ def add_achievement(name: str, tags: str | None = None):
     from .achievements import add_achievement as _add
 
     _add(name, tags)
-    echo(f"★ {name}")
+    print(f"★ {name}")
 
 
 @cli("life log", name="o", flags={"tag": ["-t", "--tag"]})
@@ -51,7 +50,7 @@ def add_observation(body: str, tag: str | None = None):
 
     _add(body, tag=tag)
     suffix = f" #{tag}" if tag else ""
-    echo(f"→ {body}{suffix}")
+    print(f"→ {body}{suffix}")
 
 
 @cli("life log", name="p", flags={"tag": ["-t", "--tag"]})
@@ -61,7 +60,7 @@ def add_pattern(body: str, tag: str | None = None):
 
     _add(body, tag=tag)
     suffix = f" #{tag}" if tag else ""
-    echo(f"~ {body}{suffix}")
+    print(f"~ {body}{suffix}")
 
 
 @cli("life log", name="l", flags={"tags": ["-t", "--tags"]})
@@ -69,4 +68,4 @@ def add_learning_cmd(body: str, tags: str | None = None):
     """Log a steward learning"""
     add_learning(body, tags)
     suffix = f" [{tags}]" if tags else ""
-    echo(f"◆ {body}{suffix}")
+    print(f"◆ {body}{suffix}")

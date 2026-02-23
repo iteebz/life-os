@@ -6,7 +6,6 @@ from pathlib import Path
 from fncli import cli
 
 from ..db import init
-from ..lib.errors import echo
 from . import _rel, get_observations, get_sessions
 
 STEWARD_BIRTHDAY = datetime(2026, 2, 18)
@@ -24,22 +23,22 @@ def boot():
 
     age_days = (datetime.now() - STEWARD_BIRTHDAY).days
     now_local = datetime.now()
-    echo(f"STEWARD — day {age_days}  |  {now_local.strftime('%a %d %b %Y  %I:%M%p').lower()}\n")
+    print(f"STEWARD — day {age_days}  |  {now_local.strftime('%a %d %b %Y  %I:%M%p').lower()}\n")
 
     tasks = get_tasks()
     all_tasks = get_all_tasks()
     habits = get_habits()
     steward_tasks = [t for t in get_tasks(include_steward=True) if t.steward]
     if steward_tasks:
-        echo("STEWARD TASKS:")
+        print("STEWARD TASKS:")
         for t in steward_tasks:
-            echo(f"  · {t.content}")
-        echo("")
+            print(f"  · {t.content}")
+        print()
     today_date = today()
     snapshot = build_feedback_snapshot(
         all_tasks=all_tasks, pending_tasks=tasks, habits=habits, today=today_date
     )
-    echo(render_feedback_headline(snapshot))
+    print(render_feedback_headline(snapshot))
 
     sessions = get_sessions(limit=1)
     if sessions:
@@ -47,7 +46,7 @@ def boot():
         now = datetime.now()
         secs = (now - s.logged_at).total_seconds()
         rel = _rel(secs)
-        echo(f"\nLAST SESSION ({rel}): {s.summary}")
+        print(f"\nLAST SESSION ({rel}): {s.summary}")
 
     now = datetime.now()
     today_d = date.today()
@@ -78,7 +77,7 @@ def boot():
     )
 
     if all_obs:
-        echo("\nOBSERVATIONS:")
+        print("\nOBSERVATIONS:")
         for o in all_obs:
             if o.about_date:
                 days_until = (o.about_date - today_d).days
@@ -91,13 +90,13 @@ def boot():
             else:
                 rel = _rel((now - o.logged_at).total_seconds())
             tag_str = f" #{o.tag}" if o.tag else ""
-            echo(f"  {rel:<10}  {o.body}{tag_str}")
+            print(f"  {rel:<10}  {o.body}{tag_str}")
 
     open_improvements = get_improvements()
     if open_improvements:
-        echo("\nIMPROVEMENTS:")
+        print("\nIMPROVEMENTS:")
         for i in open_improvements[:5]:
-            echo(f"  [{i.id}] {i.body}")
+            print(f"  [{i.id}] {i.body}")
 
     recent_moods = get_recent_moods(hours=24)
     if recent_moods:
@@ -106,11 +105,11 @@ def boot():
         rel = _rel(secs)
         bar = "█" * latest.score + "░" * (5 - latest.score)
         label_str = f"  {latest.label}" if latest.label else ""
-        echo(f"\nMOOD ({rel}): {bar}  {latest.score}/5{label_str}")
+        print(f"\nMOOD ({rel}): {bar}  {latest.score}/5{label_str}")
         if len(recent_moods) > 1:
-            echo(f"  ({len(recent_moods)} entries last 24h)")
+            print(f"  ({len(recent_moods)} entries last 24h)")
     else:
-        echo("\nMOOD: none logged — consider asking")
+        print("\nMOOD: none logged — consider asking")
 
     life_root = Path.home() / "life"
     tracked_repos: list[tuple[str, Path]] = [
@@ -124,7 +123,7 @@ def boot():
             (p.name, p) for p in sorted(repos_dir.iterdir()) if p.is_dir() and (p / ".git").exists()
         )
 
-    echo("\nCOMMIT STATS (7d):")
+    print("\nCOMMIT STATS (7d):")
     now_ts = time.time()
     since_arg = "--since=7 days ago"
     for label, repo in tracked_repos:
@@ -178,9 +177,9 @@ def boot():
                 f"{name} {n}" for name, n in sorted(authors.items(), key=lambda x: -x[1])
             ]
             author_str = "  ".join(author_parts) if author_parts else "no commits"
-            echo(f"  {dirty} {label:<12}  {total:>3}c  {author_str:<36}{last_msg}")
+            print(f"  {dirty} {label:<12}  {total:>3}c  {author_str:<36}{last_msg}")
         except Exception:
-            echo(f"    {label:<12}  (error)")
+            print(f"    {label:<12}  (error)")
 
     try:
         from ..comms.accounts import list_accounts
@@ -217,14 +216,14 @@ def boot():
                 parts.append(
                     f"{len(pending_proposals)} proposal{'s' if len(pending_proposals) != 1 else ''} to review"
                 )
-            echo(f"\nCOMMS: {', '.join(parts)}")
+            print(f"\nCOMMS: {', '.join(parts)}")
             for line in flagged_lines:
-                echo(line)
+                print(line)
     except Exception as e:
         import os
 
         if os.environ.get("LIFE_DEBUG"):
-            echo(f"\nCOMMS: boot error — {e}")
+            print(f"\nCOMMS: boot error — {e}")
 
 
 def main():

@@ -7,7 +7,6 @@ from fncli import cli
 from . import db
 from .lib.ansi import ANSI
 from .lib.converters import hydrate_tags_onto, row_to_habit, row_to_task
-from .lib.errors import echo
 from .models import Habit, Task
 
 T = TypeVar("T", Task, Habit)
@@ -167,10 +166,10 @@ def tag_add(ref: str, tag_name: str) -> None:
     task, habit = resolve_item_exact(ref)
     if task:
         add_tag(task.id, None, tag_name)
-        echo(f"{task.content} {ANSI.GREY}#{tag_name}{ANSI.RESET}")
+        print(f"{task.content} {ANSI.GREY}#{tag_name}{ANSI.RESET}")
     elif habit:
         add_tag(None, habit.id, tag_name)
-        echo(f"{habit.content} {ANSI.GREY}#{tag_name}{ANSI.RESET}")
+        print(f"{habit.content} {ANSI.GREY}#{tag_name}{ANSI.RESET}")
 
 
 @cli("life tag", name="rm")
@@ -181,10 +180,10 @@ def tag_rm(ref: str, tag_name: str) -> None:
     task, habit = resolve_item_exact(ref)
     if task:
         remove_tag(task.id, None, tag_name)
-        echo(f"{task.content} \u2190 {ANSI.GREY}#{tag_name}{ANSI.RESET}")
+        print(f"{task.content} \u2190 {ANSI.GREY}#{tag_name}{ANSI.RESET}")
     elif habit:
         remove_tag(None, habit.id, tag_name)
-        echo(f"{habit.content} \u2190 {ANSI.GREY}#{tag_name}{ANSI.RESET}")
+        print(f"{habit.content} \u2190 {ANSI.GREY}#{tag_name}{ANSI.RESET}")
 
 
 def hydrate_tags[T: (Task, Habit)](items: list[T], tag_map: dict[str, list[str]]) -> list[T]:
