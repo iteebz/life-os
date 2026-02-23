@@ -3,7 +3,7 @@ from pathlib import Path
 
 from life.lib.ansi import strip
 from life.lib.tail import StreamParser, format_entry
-from life.steward import cmd_tail
+from life.steward.auto import cmd_tail
 
 
 class _FakePopen:
@@ -131,7 +131,7 @@ def test_cmd_tail_streams_pretty_output(monkeypatch, tmp_path):
     life_dir.mkdir()
     monkeypatch.setenv("ZAI_API_KEY", "test-key")
     monkeypatch.setattr(Path, "home", lambda: home)
-    monkeypatch.setattr("life.steward.time.sleep", lambda _seconds: None)
+    monkeypatch.setattr("life.steward.auto.time.sleep", lambda _seconds: None)
 
     calls: list[tuple[list[str], Path, dict | None, int | None]] = []
     outputs: list[str] = []
@@ -150,10 +150,10 @@ def test_cmd_tail_streams_pretty_output(monkeypatch, tmp_path):
     cmd_tail(cycles=1, interval_seconds=0, dry_run=False)
 
     assert len(calls) == 1
-    assert calls[0][0][0:5] == ["claude", "--print", "--verbose", "--output-format", "stream-json"]
+    assert calls[0][0][0:5] == ["claude", "--print", "--output-format", "stream-json", "--verbose"]
     assert calls[0][1] == life_dir
     assert calls[0][2] is not None
-    assert calls[0][2]["ANTHROPIC_AUTH_TOKEN"] == "test-key"
+    assert "ANTHROPIC_AUTH_TOKEN" not in calls[0][2]
     plain_outputs = [strip(o) for o in outputs]
     assert any("hm..." in o and "hi" in o for o in plain_outputs)
 
@@ -183,7 +183,7 @@ def test_cmd_tail_retries_then_succeeds(monkeypatch, tmp_path):
     life_dir.mkdir()
     monkeypatch.setenv("ZAI_API_KEY", "test-key")
     monkeypatch.setattr(Path, "home", lambda: home)
-    monkeypatch.setattr("life.steward.time.sleep", lambda _seconds: None)
+    monkeypatch.setattr("life.steward.auto.time.sleep", lambda _seconds: None)
 
     calls = {"n": 0}
 
