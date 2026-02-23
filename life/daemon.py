@@ -5,7 +5,6 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import Any
 
 from fncli import cli
 
@@ -250,7 +249,6 @@ def run(
         f"daemon started (PID {os.getpid()}) tg_interval={tg_interval}s "
         f"signal_interval={signal_interval}s auto_every={auto_every}s"
     )
-    sys.stdout.write(f"life daemon started (PID {os.getpid()})\n")
 
     stop.wait()
 
@@ -259,108 +257,6 @@ def run(
 
     PID_FILE.unlink(missing_ok=True)
     _log("daemon stopped")
-
-
-def start(
-    tg_interval: int = 10,
-    signal_interval: int = 5,
-    auto_every: int = 0,
-    auto_provider: str = "claude",
-    foreground: bool = False,
-) -> tuple[bool, str]:
-    if is_running():
-        return False, f"already running (PID {get_pid()})"
-
-    if foreground:
-        run(
-            tg_interval=tg_interval,
-            signal_interval=signal_interval,
-            auto_every=auto_every,
-            auto_provider=auto_provider,
-        )
-        return True, "stopped"
-
-    pid = os.fork()
-    if pid > 0:
-        time.sleep(0.5)
-        if is_running():
-            return True, f"started (PID {pid})"
-        return False, "failed to start"
-
-    os.setsid()
-    os.umask(0)
-
-    devnull = Path(os.devnull)
-    sys.stdin = devnull.open()
-    sys.stdout = devnull.open("w")
-    sys.stderr = devnull.open("w")
-
-    run(
-        tg_interval=tg_interval,
-        signal_interval=signal_interval,
-        auto_every=auto_every,
-        auto_provider=auto_provider,
-    )
-    sys.exit(0)
-
-
-def stop() -> tuple[bool, str]:
-    pid = get_pid()
-    if not pid:
-        return False, "not running"
-
-    try:
-        os.kill(pid, signal.SIGTERM)
-        for _ in range(10):
-            time.sleep(0.5)
-            if not is_running():
-                return True, "stopped"
-        os.kill(pid, signal.SIGKILL)
-        PID_FILE.unlink(missing_ok=True)
-        return True, "killed"
-    except ProcessLookupError:
-        PID_FILE.unlink(missing_ok=True)
-        return True, "was not running"
-
-
-def get_pid() -> int | None:
-    if not PID_FILE.exists():
-        return None
-    try:
-        return int(PID_FILE.read_text().strip())
-    except (ValueError, FileNotFoundError):
-        return None
-
-
-def is_running() -> bool:
-    pid = get_pid()
-    if not pid:
-        return False
-    try:
-        os.kill(pid, 0)
-        return True
-    except ProcessLookupError:
-        PID_FILE.unlink(missing_ok=True)
-        return False
-
-
-def status() -> dict[str, Any]:
-    pid = get_pid()
-    running = is_running()
-
-    result: dict[str, Any] = {
-        "running": running,
-        "pid": pid if running else None,
-        "allowed_tg_chats": len(_load_allowed_tg_chats()),
-        "signal_phones": _get_signal_phones(),
-        "log_file": str(LOG_FILE),
-    }
-
-    if LOG_FILE.exists():
-        lines = LOG_FILE.read_text().strip().split("\n")
-        result["last_log"] = lines[-10:] if len(lines) > 10 else lines
-
-    return result
 
 
 PLIST_NAME = "com.life.daemon.plist"
@@ -382,8 +278,7 @@ def _generate_plist(tg_interval: int = 10, signal_interval: int = 5, auto_every:
     args = [
         f"<string>{life_path}</string>",
         "<string>daemon</string>",
-        "<string>start</string>",
-        "<string>--foreground</string>",
+        "<string>run</string>",
         f"<string>--tg-interval</string><string>{tg_interval}</string>",
         f"<string>--signal-interval</string><string>{signal_interval}</string>",
     ]
@@ -407,9 +302,9 @@ def _generate_plist(tg_interval: int = 10, signal_interval: int = 5, auto_every:
     <key>KeepAlive</key>
     <true/>
     <key>StandardOutPath</key>
-    <string>{DAEMON_DIR}/launchd.stdout.log</string>
+    <string>{DAEMON_DIR}/daemon.log</string>
     <key>StandardErrorPath</key>
-    <string>{DAEMON_DIR}/launchd.stderr.log</string>
+    <string>{DAEMON_DIR}/daemon.log</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
@@ -456,50 +351,20 @@ def uninstall() -> tuple[bool, str]:
     return True, "uninstalled"
 
 
-@cli("life daemon", name="start")
-def daemon_start(
-    foreground: bool = False,
+@cli("life daemon", name="run")
+def daemon_run(
     tg_interval: int = 10,
     signal_interval: int = 5,
     auto_every: int = 0,
     auto_provider: str = "claude",
 ) -> None:
-    """Start life daemon (Telegram + Signal + optional auto loop)"""
-    ok, msg = start(
+    """Run the daemon (called by launchd — do not invoke directly)"""
+    run(
         tg_interval=tg_interval,
         signal_interval=signal_interval,
         auto_every=auto_every,
         auto_provider=auto_provider,
-        foreground=foreground,
     )
-    echo(msg)
-    if not ok:
-        exit_error("")
-
-
-@cli("life daemon", name="stop")
-def daemon_stop() -> None:
-    """Stop life daemon"""
-    ok, msg = stop()
-    echo(msg)
-    if not ok:
-        exit_error("")
-
-
-@cli("life daemon", name="status")
-def daemon_status() -> None:
-    """Show life daemon status"""
-    info = status()
-    if info["running"]:
-        echo(f"running (PID {info['pid']})")
-    else:
-        echo("not running")
-    echo(f"allowed telegram chats: {info['allowed_tg_chats']}")
-    echo(f"signal phones: {', '.join(info['signal_phones']) or 'none'}")
-    if info.get("last_log"):
-        echo("\nrecent log:")
-        for line in info["last_log"]:
-            echo(f"  {line}")
 
 
 @cli("life daemon", name="install")
@@ -508,7 +373,7 @@ def daemon_install(
     signal_interval: int = 5,
     auto_every: int = 0,
 ) -> None:
-    """Install life daemon as launchd service (auto-start on boot)"""
+    """Install daemon as launchd service"""
     ok, msg = install(
         tg_interval=tg_interval, signal_interval=signal_interval, auto_every=auto_every
     )
@@ -519,7 +384,7 @@ def daemon_install(
 
 @cli("life daemon", name="uninstall")
 def daemon_uninstall() -> None:
-    """Uninstall life daemon launchd service"""
+    """Uninstall daemon launchd service"""
     ok, msg = uninstall()
     echo(msg)
     if not ok:
