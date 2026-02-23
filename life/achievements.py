@@ -4,6 +4,7 @@ from datetime import datetime
 from fncli import cli
 
 from .db import get_db
+from .lib.ansi import ANSI, bold, dim, gray, white
 from .lib.errors import echo
 
 
@@ -53,6 +54,15 @@ def log(name: str, description: str | None = None, tags: str | None = None):
     echo(f"★ {name}")
 
 
+def _achievement_tag_colors(entries: list["Achievement"]) -> dict[str, str]:
+    all_tags: list[str] = []
+    for e in entries:
+        if e.tags:
+            all_tags.extend(t.strip() for t in e.tags.split(","))
+    unique = sorted(set(all_tags))
+    return {tag: ANSI.POOL[i % len(ANSI.POOL)] for i, tag in enumerate(unique)}
+
+
 @cli("life achievement", name="ls")
 def ls():
     """List all achievements"""
@@ -60,8 +70,20 @@ def ls():
     if not entries:
         echo("no achievements yet")
         return
+    _r = ANSI.RESET
+    _grey = ANSI.MUTED
+    tag_colors = _achievement_tag_colors(entries)
+    echo(bold(white("ACHIEVEMENTS:")))
     for e in entries:
-        date_str = e.achieved_at.strftime("%d/%m/%y")
-        desc_str = f"  — {e.description}" if e.description else ""
-        tags_str = f"  [{e.tags}]" if e.tags else ""
-        echo(f"  {date_str}  {e.name}{desc_str}{tags_str}")
+        date_str = dim(e.achieved_at.strftime("%d/%m/%y").lower())
+        dot = gray("·")
+        name_str = bold(e.name)
+        desc_str = f" {dim('—')} {e.description}" if e.description else ""
+        if e.tags:
+            tag_parts = [
+                f"{tag_colors.get(t.strip(), _grey)}#{t.strip()}{_r}" for t in e.tags.split(",")
+            ]
+            tags_str = "  " + " ".join(tag_parts)
+        else:
+            tags_str = ""
+        echo(f"  {date_str} {dot} {name_str}{desc_str}{tags_str}")
