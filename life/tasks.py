@@ -48,6 +48,7 @@ __all__ = [
 
 # ── domain ───────────────────────────────────────────────────────────────────
 
+
 def _task_sort_key(task: Task) -> tuple[bool, bool, object, object]:
     return (
         not task.focus,
@@ -506,6 +507,7 @@ def _schedule(args: list[str], remove: bool = False) -> None:
 
 # ── cli ──────────────────────────────────────────────────────────────────────
 
+
 def task(
     content: list[str],
     focus: bool = False,
@@ -749,12 +751,12 @@ def defer(ref: list[str], reason: str) -> None:
 
 
 @cli("life")
-def schedule(ref: list[str], when: str | None = None, remove: bool = False) -> None:
+def schedule(ref: list[str], remove: bool = False) -> None:
     """Soft-schedule a task"""
     if remove:
         _schedule(ref, remove=True)
-    elif when:
-        _schedule([when, *ref])
+    elif ref:
+        _schedule(ref)
     else:
         raise UsageError("Usage: life schedule <ref> <when>  or  --remove")
 

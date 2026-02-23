@@ -70,6 +70,25 @@ def parse_due_and_item(args: list[str], remove: bool = False) -> tuple[str | Non
                     date_str = _clock.today().isoformat()
                     item_args = item_args[1:]
 
+        if not date_str and not time_str and len(item_args) > 1:
+            last = item_args[-1]
+            if last.lower() == "now":
+                _now = _clock.now()
+                date_str = _clock.today().isoformat()
+                time_str = _now.strftime("%H:%M")
+                item_args = item_args[:-1]
+            else:
+                parsed_date = parse_due_date(last)
+                if parsed_date:
+                    date_str = parsed_date
+                    item_args = item_args[:-1]
+                else:
+                    parsed_time = _try_parse_time(last)
+                    if parsed_time:
+                        time_str = parsed_time
+                        date_str = _clock.today().isoformat()
+                        item_args = item_args[:-1]
+
     if not item_args:
         raise ValueError("Item name required")
 
