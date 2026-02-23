@@ -5,6 +5,7 @@ from pathlib import Path
 
 from fncli import cli
 
+from ..db import init
 from ..lib.errors import echo
 from . import _rel, get_observations, get_sessions
 
@@ -111,43 +112,86 @@ def boot():
     else:
         echo("\nMOOD: none logged — consider asking")
 
-    repos_dir = Path.home() / "life" / "repos"
+    life_root = Path.home() / "life"
+    tracked_repos: list[tuple[str, Path]] = [
+        ("life", life_root),
+        ("life-os", life_root / "life-os"),
+        ("taxing", life_root / "taxing"),
+    ]
+    repos_dir = life_root / "repos"
     if repos_dir.exists():
-        subrepos = sorted(p for p in repos_dir.iterdir() if p.is_dir() and (p / ".git").exists())
-        if subrepos:
-            echo("\nSUBREPOS:")
-            now_ts = time.time()
-            for repo in subrepos:
-                try:
-                    result = subprocess.run(
-                        ["git", "log", "-1", "--format=%ct %s"],
-                        cwd=repo,
-                        capture_output=True,
-                        text=True,
-                    )
-                    dirty_result = subprocess.run(
-                        ["git", "status", "--porcelain"],
-                        cwd=repo,
-                        capture_output=True,
-                        text=True,
-                    )
-                    dirty = "~" if dirty_result.stdout.strip() else " "
-                    if result.returncode == 0 and result.stdout.strip():
-                        ct_str, _, msg = result.stdout.strip().partition(" ")
-                        secs = now_ts - int(ct_str)
-                        if secs < 3600:
-                            rel = f"{int(secs // 60)}m ago"
-                        elif secs < 86400:
-                            rel = f"{int(secs // 3600)}h ago"
-                        elif secs < 86400 * 7:
-                            rel = f"{int(secs // 86400)}d ago"
-                        else:
-                            rel = f"{int(secs // (86400 * 7))}w ago"
-                        echo(f"  {dirty} {repo.name:<16}  {rel:<10}  {msg}")
-                    else:
-                        echo(f"  {dirty} {repo.name:<16}  (no commits)")
-                except Exception:
-                    echo(f"    {repo.name:<16}  (error)")
+        tracked_repos.extend(
+            (p.name, p) for p in sorted(repos_dir.iterdir()) if p.is_dir() and (p / ".git").exists()
+        )
+
+    echo("\nCOMMIT STATS (7d):")
+    now_ts = time.time()
+    since_arg = "--since=7 days ago"
+    for label, repo in tracked_repos:
+        if not (repo / ".git").exists():
+            continue
+        try:
+            log_result = subprocess.run(
+                ["git", "log", since_arg, "--format=%an"],
+                cwd=repo,
+                capture_output=True,
+                text=True,
+            )
+            last_result = subprocess.run(
+                ["git", "log", "-1", "--format=%ct %s"],
+                cwd=repo,
+                capture_output=True,
+                text=True,
+            )
+            dirty_result = subprocess.run(
+                ["git", "status", "--porcelain"],
+                cwd=repo,
+                capture_output=True,
+                text=True,
+            )
+
+            authors: dict[str, int] = {}
+            for line in log_result.stdout.splitlines():
+                name = line.strip()
+                if name:
+                    authors[name] = authors.get(name, 0) + 1
+
+            total = sum(authors.values())
+            tyson_n = authors.get("tyson", 0)
+            steward_n = authors.get("steward", 0)
+            auto_n = authors.get("steward-auto", 0)
+
+            dirty = "~" if dirty_result.stdout.strip() else " "
+
+            last_msg = ""
+            if last_result.returncode == 0 and last_result.stdout.strip():
+                ct_str, _, msg = last_result.stdout.strip().partition(" ")
+                secs = now_ts - int(ct_str)
+                if secs < 3600:
+                    age = f"{int(secs // 60)}m"
+                elif secs < 86400:
+                    age = f"{int(secs // 3600)}h"
+                elif secs < 86400 * 7:
+                    age = f"{int(secs // 86400)}d"
+                else:
+                    age = f"{int(secs // (86400 * 7))}w"
+                last_msg = f"  {age:<4}  {msg[:50]}"
+
+            author_parts = []
+            if tyson_n:
+                author_parts.append(f"tyson {tyson_n}")
+            if steward_n:
+                author_parts.append(f"steward {steward_n}")
+            if auto_n:
+                author_parts.append(f"auto {auto_n}")
+            other = total - tyson_n - steward_n - auto_n
+            if other:
+                author_parts.append(f"other {other}")
+
+            author_str = "  ".join(author_parts) if author_parts else "no commits"
+            echo(f"  {dirty} {label:<12}  {total:>3}c  {author_str:<36}{last_msg}")
+        except Exception:
+            echo(f"    {label:<12}  (error)")
 
     try:
         from ..comms.accounts import list_accounts
@@ -192,3 +236,12 @@ def boot():
 
         if os.environ.get("LIFE_DEBUG"):
             echo(f"\nCOMMS: boot error — {e}")
+
+
+def main():
+    import sys
+
+    from fncli import dispatch
+
+    init()
+    sys.exit(dispatch(["life", "steward", "boot", *sys.argv[1:]]))
