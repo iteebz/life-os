@@ -569,7 +569,7 @@ def task(
 
 @cli("life")
 def focus(ref: list[str]) -> None:
-    """Toggle focus on task"""
+    """Pin task"""
     from .lib.resolve import resolve_task
 
     item_ref = " ".join(ref) if ref else ""
@@ -728,7 +728,7 @@ def defer(ref: list[str], reason: str) -> None:
 
 @cli("life")
 def schedule(ref: list[str], remove: bool = False) -> None:
-    """Soft-schedule a task"""
+    """Schedule task"""
     if remove:
         _schedule(ref, remove=True)
     elif ref:

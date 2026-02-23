@@ -343,7 +343,7 @@ def habit(
 
 @cli("life")
 def archive(ref: str | None = None, list_archived: bool = False) -> None:
-    """Archive a habit (keeps history, hides from daily view)"""
+    """Archive habit"""
     from .lib.resolve import resolve_habit
 
     if list_archived:
