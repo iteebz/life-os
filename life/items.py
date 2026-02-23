@@ -47,12 +47,19 @@ def check(ref: list[str], date: str | None = None) -> None:
         task, habit = resolve_item_any(item_ref)
         if not habit:
             exit_error("--date only applies to habits")
-        check_habit(habit.id, check_on=check_on)
+        from .habits import uncheck_habit
         from .lib.ansi import ANSI
 
-        sys.stdout.write(
-            f"  {ANSI.GREEN}\u2713{ANSI.RESET} {ANSI.GREY}{habit.content.lower()} ({parsed}){ANSI.RESET}\n"
-        )
+        checks = get_checks(habit.id)
+        already_checked = any(c.date() == check_on for c in checks)
+        if already_checked:
+            uncheck_habit(habit.id, check_on=check_on)
+            _animate_uncheck(f"{habit.content.lower()} ({parsed})")
+        else:
+            check_habit(habit.id, check_on=check_on)
+            sys.stdout.write(
+                f"  {ANSI.GREEN}\u2713{ANSI.RESET} {ANSI.GREY}{habit.content.lower()} ({parsed}){ANSI.RESET}\n"
+            )
         return
 
     task, habit = resolve_item_any(item_ref)

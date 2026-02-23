@@ -257,14 +257,15 @@ def check_habit(habit_id: str, check_on: date | None = None) -> Habit | None:
     return get_habit(habit_id)
 
 
-def uncheck_habit(habit_id: str) -> Habit | None:
+def uncheck_habit(habit_id: str, check_on: date | None = None) -> Habit | None:
     habit = get_habit(habit_id)
     if not habit:
         return None
+    check_date = check_on.isoformat() if check_on is not None else clock.today().isoformat()
     with db.get_db() as conn:
         conn.execute(
             "DELETE FROM checks WHERE habit_id = ? AND check_date = ?",
-            (habit_id, clock.today().isoformat()),
+            (habit_id, check_date),
         )
     return get_habit(habit_id)
 
