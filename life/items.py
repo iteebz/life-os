@@ -10,7 +10,15 @@ from .lib.format import format_status
 from .lib.parsing import validate_content
 from .lib.resolve import resolve_item, resolve_item_any
 from .models import Task
-from .tasks import add_task, check_task, check_task_cmd, delete_task, rename_task, update_task
+from .tasks import (
+    add_task,
+    check_task,
+    check_task_cmd,
+    delete_task,
+    rename_task,
+    uncheck_task,
+    update_task,
+)
 
 
 def _animate_uncheck(label: str) -> None:
@@ -18,59 +26,34 @@ def _animate_uncheck(label: str) -> None:
     sys.stdout.flush()
 
 
-@cli("life")
+@cli("life", aliases=["done"])
 def check(ref: list[str]) -> None:
-    """Mark task/habit as done"""
+    """Toggle task/habit done"""
+    from .habits import get_checks, toggle_check
+    from .lib.clock import today
+
     item_ref = " ".join(ref) if ref else ""
     if not item_ref:
         exit_error("Usage: life check <item>")
     task, habit = resolve_item_any(item_ref)
     if habit:
-        check_habit_cmd(habit)
-    elif task:
-        check_task_cmd(task)
-
-
-@cli("life")
-def done(ref: list[str]) -> None:
-    """Alias for check"""
-    item_ref = " ".join(ref) if ref else ""
-    if not item_ref:
-        exit_error("Usage: life done <item>")
-    task, habit = resolve_item_any(item_ref)
-    if habit:
-        check_habit_cmd(habit)
-    elif task:
-        check_task_cmd(task)
-
-
-@cli("life")
-def uncheck(ref: list[str]) -> None:
-    """Unmark task/habit as done"""
-    from .habits import get_checks, toggle_check
-    from .lib.clock import today
-    from .tasks import uncheck_task
-
-    item_ref = " ".join(ref) if ref else ""
-    if not item_ref:
-        exit_error("Usage: life uncheck <item>")
-    task, habit = resolve_item_any(item_ref)
-    if habit:
         today_date = today()
         checks = get_checks(habit.id)
         checked_today = any(c.date() == today_date for c in checks)
-        if not checked_today:
-            exit_error(f"'{habit.content}' is not checked today")
-        updated = toggle_check(habit.id)
-        if updated:
-            checked_today = any(c.date() == today() for c in updated.checks)
-            if not checked_today:
-                _animate_uncheck(habit.content.lower())
+        if checked_today:
+            updated = toggle_check(habit.id)
+            if updated:
+                checked_today = any(c.date() == today() for c in updated.checks)
+                if not checked_today:
+                    _animate_uncheck(habit.content.lower())
+        else:
+            check_habit_cmd(habit)
     elif task:
-        if not task.completed_at:
-            exit_error(f"'{task.content}' is not done")
-        uncheck_task(task.id)
-        _animate_uncheck(task.content.lower())
+        if task.completed_at:
+            uncheck_task(task.id)
+            _animate_uncheck(task.content.lower())
+        else:
+            check_task_cmd(task)
 
 
 @cli("life", name="rm")

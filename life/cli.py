@@ -15,7 +15,7 @@ from . import mood as _mood
 from . import patterns as _patterns
 from . import signal as _signal
 from . import steward as _steward
-from . import tags as _tags
+from . import tag as _tags
 from . import tasks as _tasks
 
 _ = (

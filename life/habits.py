@@ -15,7 +15,7 @@ from .lib.format import format_status
 from .lib.fuzzy import find_in_pool, find_in_pool_exact
 from .lib.parsing import validate_content
 from .models import Habit
-from .tags import get_tags_for_habit, load_tags_for_habits
+from .tag import get_tags_for_habit, load_tags_for_habits
 
 __all__ = [
     "add_habit",
@@ -38,6 +38,7 @@ __all__ = [
 
 
 # ── domain ───────────────────────────────────────────────────────────────────
+
 
 def _hydrate_habit(habit: Habit, checks: list[datetime], tags: list[str]) -> Habit:
     return dataclasses.replace(habit, checks=checks, tags=tags)
@@ -302,6 +303,7 @@ def _animate_check(label: str) -> None:
 
 
 # ── cli ──────────────────────────────────────────────────────────────────────
+
 
 def habit(
     content: list[str] | None = None,

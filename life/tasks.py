@@ -18,7 +18,7 @@ from .lib.format import format_status
 from .lib.fuzzy import find_in_pool, find_in_pool_exact
 from .lib.parsing import parse_due_and_item, validate_content
 from .models import Task, TaskMutation
-from .tags import add_tag, hydrate_tags, load_tags_for_tasks
+from .tag import add_tag, hydrate_tags, load_tags_for_tasks
 
 __all__ = [
     "add_task",
@@ -568,38 +568,17 @@ def task(
 
 
 @cli("life")
-def focus(ref: list[str], off: bool = False) -> None:
-    """Toggle focus on task; --off to remove"""
+def focus(ref: list[str]) -> None:
+    """Toggle focus on task"""
     from .lib.resolve import resolve_task
 
     item_ref = " ".join(ref) if ref else ""
     if not item_ref:
         exit_error("Usage: life focus <item>")
     t = resolve_task(item_ref)
-    if off:
-        if not t.focus:
-            exit_error(f"'{t.content}' is not focused")
-        toggle_focus(t.id)
-        echo(format_status("\u25a1", t.content, t.id))
-    else:
-        toggle_focus(t.id)
-        symbol = f"{ANSI.BOLD}\u29bf{ANSI.RESET}" if not t.focus else "\u25a1"
-        echo(format_status(symbol, t.content, t.id))
-
-
-@cli("life")
-def unfocus(ref: list[str]) -> None:
-    """Remove focus from task"""
-    from .lib.resolve import resolve_task
-
-    item_ref = " ".join(ref) if ref else ""
-    if not item_ref:
-        exit_error("Usage: life unfocus <item>")
-    t = resolve_task(item_ref)
-    if not t.focus:
-        exit_error(f"'{t.content}' is not focused")
     toggle_focus(t.id)
-    echo(format_status("\u25a1", t.content, t.id))
+    symbol = f"{ANSI.BOLD}\u29bf{ANSI.RESET}" if not t.focus else "\u25a1"
+    echo(format_status(symbol, t.content, t.id))
 
 
 @cli("life")
