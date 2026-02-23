@@ -93,9 +93,7 @@ def _render_subtask_row(
 def _render_header(
     today: date, tasks_done: int, habits_done: int, total_habits: int, added: int, deleted: int
 ) -> list[str]:
-    now = clock.now()
-    day_str = f"{today.strftime('%a')} · {today.strftime('%-d %b %Y')} · {now.strftime('%H:%M')}"
-    lines = [f"\n{bold(white(day_str))}"]
+    lines = [f"\n{bold(white(today.strftime('%a') + ' · ' + today.strftime('%-d %b %Y')))}"]
     lines.append(f"{_GREY}done:{_R} {green(str(tasks_done))}")
     lines.append(f"{_GREY}habits:{_R} {cyan(str(habits_done))}{_GREY}/{total_habits}{_R}")
     if added:
@@ -174,7 +172,8 @@ def _render_today_tasks(
     subtasks_by_parent: dict[str, list[Task]],
     all_pending: list[Task],
 ) -> tuple[list[str], set[str]]:
-    lines = [f"\n{bold(white('TODAY'))}"]
+    now = clock.now()
+    lines = [f"\n{bold(white('TODAY · ' + now.strftime('%H:%M')))}"]
     scheduled_ids: set[str] = set()
 
     if not due_today:
@@ -315,7 +314,9 @@ def _render_overdue(
         tags_str = _fmt_tags(task.tags, tag_colors)
         id_str = f" {_GREY}[{task.id[:8]}]{_R}"
         fire = f" {ANSI.BOLD}🔥{_R}" if task.focus else ""
-        label = _fmt_rel_date(task.scheduled_date or today, today, task.scheduled_time, task.is_deadline)
+        label = _fmt_rel_date(
+            task.scheduled_date or today, today, task.scheduled_time, task.is_deadline
+        )
         lines.append(f"  □ {label} {task.content.lower()}{tags_str}{fire}{id_str}")
         for sub in sorted(subtasks_by_parent.get(task.id, []), key=_task_sort_key):
             scheduled_ids.add(sub.id)
@@ -340,7 +341,9 @@ def _render_task_row(
 
     date_str = ""
     if task.scheduled_date and task.scheduled_date.isoformat() not in (today_str, tomorrow_str):
-        label = _fmt_rel_date(task.scheduled_date or today, today, task.scheduled_time, task.is_deadline)
+        label = _fmt_rel_date(
+            task.scheduled_date or today, today, task.scheduled_time, task.is_deadline
+        )
         date_str = f"{label} "
 
     if task.blocked_by:
