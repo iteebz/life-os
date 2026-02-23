@@ -126,10 +126,12 @@ def view(date_str: str) -> None:
 
 def _show_day(target: date) -> None:
     from .db import get_db
+    from .habits import get_habits
 
     date_str = target.isoformat()
     completed = get_day_completed(date_str)
     breakdown = get_day_breakdown(date_str)
+    total_habits = len([h for h in get_habits() if not h.parent_id and not h.private])
 
     mood = None
     with get_db() as conn:
@@ -140,7 +142,7 @@ def _show_day(target: date) -> None:
         if row:
             mood = (row[0], row[1])
 
-    print(render_day_summary(target, completed, breakdown, mood))
+    print(render_day_summary(target, completed, breakdown, mood, total_habits))
 
 
 @cli("life")

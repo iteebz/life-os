@@ -564,15 +564,20 @@ def render_day_summary(
     completed_items: list[Task | Habit],
     breakdown: tuple[int, int, int, int],
     mood: tuple[int, str | None] | None = None,
+    total_habits: int = 0,
 ) -> str:
     habits_done, tasks_done, added, deleted = breakdown
     tag_colors = _build_tag_colors(completed_items)
+
+    completed_tasks = [i for i in completed_items if isinstance(i, Task)]
+    completed_habits = [i for i in completed_items if isinstance(i, Habit)]
 
     lines = [
         f"\n{bold(white(target_date.strftime('%a') + ' · ' + target_date.strftime('%-d %b %Y')))}"
     ]
     lines.append(f"{_GREY}done:{_R} {green(str(tasks_done))}")
-    lines.append(f"{_GREY}habits:{_R} {cyan(str(habits_done))}")
+    habits_total_str = f"{_GREY}/{total_habits}{_R}" if total_habits else ""
+    lines.append(f"{_GREY}habits:{_R} {cyan(str(habits_done))}{habits_total_str}")
     if added:
         lines.append(f"{_GREY}added:{_R} {gold(str(added))}")
     if deleted:
@@ -583,41 +588,39 @@ def render_day_summary(
         label_str = f"  {label}" if label else ""
         lines.append(f"{_GREY}mood:{_R} {bar}  {score}/5{label_str}")
 
-    if not completed_items:
+    if not completed_tasks and not completed_habits:
         lines.append(f"\n  {gray('nothing completed.')}")
         return "\n".join(lines) + "\n"
 
-    def _sort_key(item):
-        if isinstance(item, Task) and item.completed_at:
-            return item.completed_at
-        from life.models import Habit as _Habit
+    if completed_tasks:
+        sorted_tasks = sorted(completed_tasks, key=lambda t: t.completed_at or t.created)
+        lines.append(f"\n{bold(green('DONE'))}")
+        for task in sorted_tasks:
+            tags_str = _fmt_tags(task.tags, tag_colors)
+            content = task.content.lower()
+            id_str = f" {_GREY}[{task.id[:8]}]{_R}"
+            time_str = task.completed_at.strftime("%H:%M") if task.completed_at else ""
+            lines.append(f"  {green('✓')} {_GREY}{time_str}{_R} {content}{tags_str}{id_str}")
 
-        if isinstance(item, _Habit) and item.checks:
-            return max(item.checks)
-        return item.created
-
-    sorted_items = sorted(completed_items, key=_sort_key)
-    lines.append(f"\n{bold(green('DONE'))}")
-    for item in sorted_items:
-        tags_str = _fmt_tags(item.tags, tag_colors)
-        content = item.content.lower()
-        id_str = f" {_GREY}[{item.id[:8]}]{_R}"
-        from life.models import Habit as _Habit
-
-        if isinstance(item, _Habit):
+    if completed_habits:
+        checked_count = len(completed_habits)
+        total_str = f"/{total_habits}" if total_habits else ""
+        lines.append(f"\n{bold(white(f'HABITS ({checked_count}{total_str})'))}")
+        sorted_habits = sorted(completed_habits, key=lambda h: h.content.lower())
+        for habit in sorted_habits:
+            tags_str = _fmt_tags(habit.tags, tag_colors)
+            content = habit.content.lower()
+            id_str = f" {_GREY}[{habit.id[:8]}]{_R}"
             time_str = ""
-            if item.checks:
+            if habit.checks:
                 latest = (
-                    max(c for c in item.checks if c.date() == target_date)
-                    if any(c.date() == target_date for c in item.checks)
+                    max(c for c in habit.checks if c.date() == target_date)
+                    if any(c.date() == target_date for c in habit.checks)
                     else None
                 )
                 if latest:
                     time_str = latest.strftime("%H:%M")
             lines.append(f"  {gray('✓')} {_GREY}{time_str}{_R} {content}{tags_str}{id_str}")
-        elif item.completed_at:
-            time_str = item.completed_at.strftime("%H:%M")
-            lines.append(f"  {green('✓')} {_GREY}{time_str}{_R} {content}{tags_str}{id_str}")
 
     return "\n".join(lines) + "\n"
 
