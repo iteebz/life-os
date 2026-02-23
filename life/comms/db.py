@@ -79,10 +79,11 @@ def init(db_path: Path | None = None):
         conn.execute(create_migrations_table_sql)
 
         applied_migrations = {
-            row[0] for row in conn.execute(f"SELECT name FROM {MIGRATIONS_TABLE}").fetchall()
+            row[0]
+            for row in conn.execute(f"SELECT name FROM {MIGRATIONS_TABLE}").fetchall()  # noqa: S608
         }
 
         for name, sql_content in load_migrations():
             if name not in applied_migrations:
                 conn.executescript(sql_content)
-                conn.execute(f"INSERT INTO {MIGRATIONS_TABLE} (name) VALUES (?)", (name,))
+                conn.execute(f"INSERT INTO {MIGRATIONS_TABLE} (name) VALUES (?)", (name,))  # noqa: S608
