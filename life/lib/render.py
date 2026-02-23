@@ -418,7 +418,7 @@ def _render_tasks(
         header_color = tag_colors.get(tag, ANSI.WHITE) if tag else ANSI.WHITE
         lines_out.append(f"\n{ANSI.BOLD}{header_color}{label} ({len(tasks)}){ANSI.RESET}")
         for task in tasks:
-            secondary_tags = [t for t in task.tags if t != tag] if tag else task.tags
+            secondary_tags = task.tags
             task_for_render = task
             lines_out.extend(
                 _render_task_row(
