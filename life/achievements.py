@@ -1,0 +1,67 @@
+from dataclasses import dataclass
+from datetime import datetime
+
+from fncli import cli
+
+from .db import get_db
+from .lib.errors import echo
+
+
+@dataclass(frozen=True)
+class Achievement:
+    id: int
+    name: str
+    description: str | None
+    tags: str | None
+    achieved_at: datetime
+
+
+def add_achievement(name: str, description: str | None = None, tags: str | None = None) -> int:
+    with get_db() as conn:
+        cursor = conn.execute(
+            "INSERT INTO achievements (name, description, tags) VALUES (?, ?, ?)",
+            (name, description, tags),
+        )
+        return cursor.lastrowid or 0
+
+
+def get_achievements() -> list[Achievement]:
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT id, name, description, tags, achieved_at FROM achievements ORDER BY achieved_at DESC"
+        ).fetchall()
+    return [
+        Achievement(
+            id=row[0],
+            name=row[1],
+            description=row[2],
+            tags=row[3],
+            achieved_at=datetime.fromisoformat(row[4]),
+        )
+        for row in rows
+    ]
+
+
+@cli(
+    "life achievement",
+    name="log",
+    flags={"description": ["-d", "--description"], "tags": ["-t", "--tags"]},
+)
+def log(name: str, description: str | None = None, tags: str | None = None):
+    """Log an achievement"""
+    add_achievement(name, description, tags)
+    echo(f"★ {name}")
+
+
+@cli("life achievement", name="ls")
+def ls():
+    """List all achievements"""
+    entries = get_achievements()
+    if not entries:
+        echo("no achievements yet")
+        return
+    for e in entries:
+        date_str = e.achieved_at.strftime("%d/%m/%y")
+        desc_str = f"  — {e.description}" if e.description else ""
+        tags_str = f"  [{e.tags}]" if e.tags else ""
+        echo(f"  {date_str}  {e.name}{desc_str}{tags_str}")
