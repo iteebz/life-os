@@ -22,7 +22,7 @@ def _send_signal(recipient: str, message: str) -> tuple[bool, str, str]:
 
 def _send_telegram(recipient: str, message: str) -> tuple[bool, str, str]:
     if not _telegram._token():
-        return False, "telegram not configured — run: life telegram setup <token>", recipient
+        return False, "telegram not configured — run: life comms telegram setup <token>", recipient
     chat_id = _telegram.resolve_chat_id(recipient)
     if chat_id is None:
         return False, f"can't resolve '{recipient}' for telegram", recipient
@@ -31,7 +31,7 @@ def _send_telegram(recipient: str, message: str) -> tuple[bool, str, str]:
     return success, result, display
 
 
-@cli("life message", name="send")
+@cli("life comms message", name="send")
 def send_cmd(recipient: str, message: str, signal: bool = False, telegram: bool = False):
     """Send a message via Signal or Telegram"""
     if signal and telegram:
@@ -59,7 +59,7 @@ def send_cmd(recipient: str, message: str, signal: bool = False, telegram: bool 
         exit_error(f"failed: {result}")
 
 
-@cli("life message", name="receive")
+@cli("life comms message", name="receive")
 def receive_cmd(timeout: int = 5, signal: bool = False, telegram: bool = False):
     """Poll for new messages"""
     both = not signal and not telegram
@@ -84,7 +84,7 @@ def receive_cmd(timeout: int = 5, signal: bool = False, telegram: bool = False):
         print(f"{total} message(s)")
 
 
-@cli("life telegram", name="setup")
+@cli("life comms telegram", name="setup")
 def telegram_setup_cmd(token: str):
     """Store Telegram bot token"""
     success, result = _telegram.setup(token)
