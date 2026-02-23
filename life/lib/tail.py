@@ -6,6 +6,7 @@ from typing import cast
 
 from .ansi import (
     ANSI,
+    agent_color,
     blue,
     bold,
     coral,
@@ -18,6 +19,7 @@ from .ansi import (
     lime,
     purple,
     red,
+    sky,
     slate,
     strip_markdown,
     teal,
@@ -183,7 +185,7 @@ def _edit_suffix(raw_name: str, args: dict[str, object]) -> str:
     return f" ({' '.join(parts)})" if parts else ""
 
 
-def _format_bash_chain(raw_name: str, args: dict[str, object]) -> list[str] | None:
+def _format_bash_chain(raw_name: str, args: dict[str, object], plate: str = "") -> list[str] | None:
     if raw_name != "Bash":
         return None
     cmd = str(args.get("command", "")).split("\n")[0].replace(_HOME, "~").replace(_CWD, ".")
@@ -199,7 +201,8 @@ def _format_bash_chain(raw_name: str, args: dict[str, object]) -> list[str] | No
         color_fn = _TOOL_COLORS.get(name, gray)
         label = bold(color_fn(name))
         arg_fmt = _format_tool_arg(name, arg[:80]) if arg else ""
-        lines.append(f"  {label} {arg_fmt}")
+        prefix = f"{plate} " if plate else ""
+        lines.append(f"{prefix}{label} {arg_fmt}")
     return lines if lines else None
 
 
@@ -241,10 +244,26 @@ class EventPairer:
         return out
 
 
+_IDENTITY = "steward"
+
+
+def _format_nameplate(ctx_tokens: int | None) -> str:
+    color = agent_color(_IDENTITY)
+    name = f"{ANSI.BOLD}{color}@{_IDENTITY}{ANSI.RESET}"
+    if ctx_tokens is None:
+        return name
+    if ctx_tokens >= 1000:
+        tok_str = gray(f"{ctx_tokens / 1000:.1f}k")
+    else:
+        tok_str = gray(str(ctx_tokens))
+    return f"{name} {tok_str} {sky('·')}"
+
+
 class StreamParser:
     def __init__(self) -> None:
         self._tool_map: dict[str, str] = {}
         self._pairer = EventPairer()
+        self.ctx_tokens: int | None = None
 
     def parse_line(self, line: str) -> list[dict[str, object]]:
         raw = line.strip()
@@ -261,15 +280,30 @@ class StreamParser:
             return [{"type": "raw", "raw": raw}]
         out: list[dict[str, object]] = []
         for entry in normalized:
-            out.extend(self._pairer.process(entry))
+            if entry.get("type") == "usage":
+                in_tok = entry.get("input_tokens")
+                if isinstance(in_tok, int) and in_tok > 0:
+                    self.ctx_tokens = in_tok
+            paired = self._pairer.process(entry)
+            for e in paired:
+                if e.get("type") in ("tool_call", "assistant_text"):
+                    e["_ctx_tokens"] = self.ctx_tokens
+            out.extend(paired)
         return out
 
     def flush(self) -> list[dict[str, object]]:
-        return self._pairer.flush()
+        entries = self._pairer.flush()
+        for e in entries:
+            if e.get("type") == "tool_call" and "_ctx_tokens" not in e:
+                e["_ctx_tokens"] = self.ctx_tokens
+        return entries
 
 
 def _format_tool_call_with_result(
-    raw_name: str, args: dict[str, object], result: dict[str, object] | None
+    raw_name: str,
+    args: dict[str, object],
+    result: dict[str, object] | None,
+    plate: str = "",
 ) -> str:
     name = _TOOL_DISPLAY.get(raw_name, raw_name.lower())
     is_bash = raw_name == "Bash"
@@ -305,21 +339,26 @@ def _format_tool_call_with_result(
     color_fn = _TOOL_COLORS.get(name, gray)
     label = bold(color_fn(name))
     arg_fmt = _format_tool_arg(name, arg[:100]) if arg else ""
-    return f"  {label} {arg_fmt}{suffix}"
+    prefix = f"{plate} " if plate else "  "
+    return f"{prefix}{label} {arg_fmt}{suffix}"
 
 
 def format_entry(entry: dict[str, object], quiet_system: bool = False) -> str | None:
     kind = str(entry.get("type", ""))
 
     if kind == "assistant_text":
+        ctx_tokens = entry.get("_ctx_tokens")
+        plate = _format_nameplate(ctx_tokens if isinstance(ctx_tokens, int) else None)
         text = str(entry.get("text", ""))
         text = strip_markdown(text.replace("\n", " "))
         if len(text) > 120:
             text = text[:120] + "…"
         text = highlight_references(text.lower(), ANSI.FOREST)
-        return f"  {bold(green('hm...'))} {forest(text)}"
+        return f"{plate} {bold(green('hm...'))} {forest(text)}"
 
     if kind == "tool_call":
+        ctx_tokens = entry.get("_ctx_tokens")
+        plate = _format_nameplate(ctx_tokens if isinstance(ctx_tokens, int) else None)
         raw_name = str(entry.get("tool_name") or "unknown")
         args = entry.get("args", {})
         if not isinstance(args, dict):
@@ -327,10 +366,10 @@ def format_entry(entry: dict[str, object], quiet_system: bool = False) -> str | 
         result = entry.get("_result")
         if not isinstance(result, dict):
             result = None
-        chain = _format_bash_chain(raw_name, args)
+        chain = _format_bash_chain(raw_name, args, plate)
         if chain:
             return "\n".join(chain)
-        return _format_tool_call_with_result(raw_name, args, result)
+        return _format_tool_call_with_result(raw_name, args, result, plate)
 
     if kind == "tool_result":
         is_error = bool(entry.get("is_error"))
