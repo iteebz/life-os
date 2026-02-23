@@ -85,7 +85,7 @@ def _rel(secs: float) -> str:
     return f"{int(secs // 86400)}d ago"
 
 
-from . import auto, boot, close, dash, improve, log  # noqa: E402, F401
+from . import auto, boot, close, daemon, dash, improve, launchd, log  # noqa: E402
 
 __all__ = [
     "Observation",
@@ -96,10 +96,12 @@ __all__ = [
     "auto",
     "boot",
     "close",
+    "daemon",
     "dash",
     "delete_observation",
     "get_observations",
     "get_sessions",
     "improve",
+    "launchd",
     "log",
 ]
