@@ -23,6 +23,8 @@ def parse_due_date(due_str: str) -> str | None:
 
     if due_str_lower == "today":
         return today.isoformat()
+    if due_str_lower == "yesterday":
+        return (today - timedelta(days=1)).isoformat()
     if due_str_lower == "tomorrow":
         return (today + timedelta(days=1)).isoformat()
     _day_aliases = {

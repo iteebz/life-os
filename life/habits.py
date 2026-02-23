@@ -2,7 +2,7 @@ import contextlib
 import dataclasses
 import sqlite3
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from fncli import cli
 
@@ -238,16 +238,21 @@ def find_habit_exact(ref: str) -> Habit | None:
     return find_in_pool_exact(ref, get_habits())
 
 
-def check_habit(habit_id: str) -> Habit | None:
+def check_habit(habit_id: str, check_on: date | None = None) -> Habit | None:
     habit = get_habit(habit_id)
     if not habit:
         return None
-    now = datetime.now().isoformat()
+    if check_on is not None:
+        check_date = check_on.isoformat()
+        completed_at = f"{check_date}T23:59:59"
+    else:
+        check_date = clock.today().isoformat()
+        completed_at = datetime.now().isoformat()
     with db.get_db() as conn:
         with contextlib.suppress(sqlite3.IntegrityError):
             conn.execute(
                 "INSERT INTO checks (habit_id, check_date, completed_at) VALUES (?, ?, ?)",
-                (habit_id, clock.today().isoformat(), now),
+                (habit_id, check_date, completed_at),
             )
     return get_habit(habit_id)
 

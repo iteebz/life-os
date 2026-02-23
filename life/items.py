@@ -27,14 +27,34 @@ def _animate_uncheck(label: str) -> None:
 
 
 @cli("life", aliases=["done"])
-def check(ref: list[str]) -> None:
+def check(ref: list[str], date: str | None = None) -> None:
     """Toggle task/habit done"""
-    from .habits import get_checks, toggle_check
+    from .habits import check_habit, get_checks, toggle_check
     from .lib.clock import today
+    from .lib.dates import parse_due_date
 
     item_ref = " ".join(ref) if ref else ""
     if not item_ref:
         exit_error("Usage: life check <item>")
+
+    if date is not None:
+        from datetime import date as date_type
+
+        parsed = parse_due_date(date)
+        if not parsed:
+            exit_error(f"Unrecognized date '{date}' — use yesterday, YYYY-MM-DD, etc.")
+        check_on = date_type.fromisoformat(parsed)
+        task, habit = resolve_item_any(item_ref)
+        if not habit:
+            exit_error("--date only applies to habits")
+        check_habit(habit.id, check_on=check_on)
+        from .lib.ansi import ANSI
+
+        sys.stdout.write(
+            f"  {ANSI.GREEN}\u2713{ANSI.RESET} {ANSI.GREY}{habit.content.lower()} ({parsed}){ANSI.RESET}\n"
+        )
+        return
+
     task, habit = resolve_item_any(item_ref)
     if habit:
         today_date = today()
