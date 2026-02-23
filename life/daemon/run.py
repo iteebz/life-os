@@ -1,18 +1,13 @@
 import os
 import signal
 import subprocess
-import sys
 import threading
 import time
 from pathlib import Path
 
-from fncli import cli
-
-from .config import LIFE_DIR
-from .lib.errors import exit_error
+from life.config import LIFE_DIR
 
 DAEMON_DIR = LIFE_DIR
-PID_FILE = DAEMON_DIR / "daemon.pid"
 LOG_FILE = DAEMON_DIR / "daemon.log"
 
 MAX_TG_SPAWNS_PER_HOUR = 12
@@ -98,7 +93,7 @@ def _spawn_claude_tg(message: str, sender_name: str) -> str:
 
 
 def _telegram_thread(stop: threading.Event, interval: int) -> None:
-    from . import telegram as tg
+    from life import telegram as tg
 
     allowed = _load_allowed_tg_chats()
     if not allowed:
@@ -141,16 +136,16 @@ def _telegram_thread(stop: threading.Event, interval: int) -> None:
 
 
 def _get_signal_phones() -> list[str]:
-    from .comms import accounts as accts_module
+    from life.comms import accounts as accts_module
 
     accounts = accts_module.list_accounts("messaging")
     return [a["email"] for a in accounts if a["provider"] == "signal"]
 
 
 def _signal_thread(stop: threading.Event, interval: int) -> None:
-    from .comms import agent
-    from .comms.adapters.messaging import signal as signal_adapter
-    from .comms.config import get_agent_config
+    from life.comms import agent
+    from life.comms.adapters.messaging import signal as signal_adapter
+    from life.comms.config import get_agent_config
 
     phones = _get_signal_phones()
     if not phones:
@@ -186,7 +181,7 @@ def _signal_thread(stop: threading.Event, interval: int) -> None:
 
 
 def _auto_thread(stop: threading.Event, every: int, provider: str) -> None:
-    from .steward.auto import _run_autonomous
+    from life.steward.auto import _run_autonomous
 
     _log(f"[auto] started, running every {every}s, provider={provider}")
 
@@ -208,9 +203,6 @@ def run(
     auto_provider: str = "claude",
 ) -> None:
     DAEMON_DIR.mkdir(parents=True, exist_ok=True)
-
-    with PID_FILE.open("w") as f:
-        f.write(str(os.getpid()))
 
     stop = threading.Event()
 
@@ -255,137 +247,4 @@ def run(
     for t in threads:
         t.join(timeout=5)
 
-    PID_FILE.unlink(missing_ok=True)
     _log("daemon stopped")
-
-
-PLIST_NAME = "com.life.daemon.plist"
-LAUNCHD_DIR = Path.home() / "Library/LaunchAgents"
-PLIST_PATH = LAUNCHD_DIR / PLIST_NAME
-
-
-def _get_life_path() -> str:
-    result = subprocess.run(["which", "life"], capture_output=True, text=True)
-    if result.returncode == 0:
-        return result.stdout.strip()
-    return str(Path(sys.executable).parent / "life")
-
-
-def _generate_plist(tg_interval: int = 10, signal_interval: int = 5, auto_every: int = 0) -> str:
-    life_path = _get_life_path()
-    python_path = Path(sys.executable).parent
-
-    args = [
-        f"<string>{life_path}</string>",
-        "<string>daemon</string>",
-        "<string>run</string>",
-        f"<string>--tg-interval</string><string>{tg_interval}</string>",
-        f"<string>--signal-interval</string><string>{signal_interval}</string>",
-    ]
-    if auto_every > 0:
-        args.append(f"<string>--auto-every</string><string>{auto_every}</string>")
-
-    args_xml = "\n        ".join(args)
-
-    return f"""<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>com.life.daemon</string>
-    <key>ProgramArguments</key>
-    <array>
-        {args_xml}
-    </array>
-    <key>RunAtLoad</key>
-    <true/>
-    <key>KeepAlive</key>
-    <true/>
-    <key>StandardOutPath</key>
-    <string>{DAEMON_DIR}/daemon.log</string>
-    <key>StandardErrorPath</key>
-    <string>{DAEMON_DIR}/daemon.log</string>
-    <key>EnvironmentVariables</key>
-    <dict>
-        <key>PATH</key>
-        <string>{python_path}:/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
-        <key>HOME</key>
-        <string>{Path.home()}</string>
-    </dict>
-</dict>
-</plist>
-"""
-
-
-def install(
-    tg_interval: int = 10, signal_interval: int = 5, auto_every: int = 0
-) -> tuple[bool, str]:
-    LAUNCHD_DIR.mkdir(parents=True, exist_ok=True)
-    DAEMON_DIR.mkdir(parents=True, exist_ok=True)
-
-    PLIST_PATH.write_text(_generate_plist(tg_interval, signal_interval, auto_every))
-
-    result = subprocess.run(
-        ["launchctl", "load", str(PLIST_PATH)],
-        capture_output=True,
-        text=True,
-    )
-
-    if result.returncode != 0:
-        return False, result.stderr or "failed to load plist"
-
-    return True, f"installed and loaded {PLIST_PATH}"
-
-
-def uninstall() -> tuple[bool, str]:
-    if not PLIST_PATH.exists():
-        return False, "not installed"
-
-    subprocess.run(
-        ["launchctl", "unload", str(PLIST_PATH)],
-        capture_output=True,
-        text=True,
-    )
-
-    PLIST_PATH.unlink(missing_ok=True)
-    return True, "uninstalled"
-
-
-@cli("life daemon", name="run")
-def daemon_run(
-    tg_interval: int = 10,
-    signal_interval: int = 5,
-    auto_every: int = 0,
-    auto_provider: str = "claude",
-) -> None:
-    """Run the daemon (called by launchd — do not invoke directly)"""
-    run(
-        tg_interval=tg_interval,
-        signal_interval=signal_interval,
-        auto_every=auto_every,
-        auto_provider=auto_provider,
-    )
-
-
-@cli("life daemon", name="install")
-def daemon_install(
-    tg_interval: int = 10,
-    signal_interval: int = 5,
-    auto_every: int = 0,
-) -> None:
-    """Install daemon as launchd service"""
-    ok, msg = install(
-        tg_interval=tg_interval, signal_interval=signal_interval, auto_every=auto_every
-    )
-    print(msg)
-    if not ok:
-        exit_error("")
-
-
-@cli("life daemon", name="uninstall")
-def daemon_uninstall() -> None:
-    """Uninstall daemon launchd service"""
-    ok, msg = uninstall()
-    print(msg)
-    if not ok:
-        exit_error("")
