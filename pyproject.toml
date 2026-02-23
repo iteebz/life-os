@@ -34,7 +34,7 @@ dev = [
 
 [project.scripts]
 life = "life.cli:main"
-steward = "life.steward.boot:main"
+steward = "life.steward.main:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["life"]
