@@ -1,9 +1,8 @@
+import subprocess
 import threading
 import time
 from pathlib import Path
 from queue import Empty, Queue
-
-import subprocess
 
 from fncli import cli
 
@@ -15,29 +14,22 @@ from ..lib.tail import StreamParser, format_entry
 def _steward_prompt() -> str:
     return """You are **Steward**. Constitution: `~/life/CLAUDE.md`. Tyson is absent. Act.
 
-## Principle: Orient, then improve
+You spawn cold. Act. Die. Your context dies with you.
+What you write to life.db and commit to git is the only part of you that survives.
+A spawn is a unit of depth, not availability. Make it count.
 
-Current state first. Then find the highest-leverage intervention.
+Output priority: real-world closure > pattern > observation > code > meta.
+If you can close a life task, do that before touching code.
 
-## Principle: Forage for failure modes
+Orient: `life steward boot`, then `life dash`. Evidence over assumption.
+Forage: stale admin, untagged tasks, low completion, outdated tracking — these are your signals.
+Close: every spawn either completes a real-world task or improves the system that prevents completion.
 
-Stale admin, untagged tasks, low completion rates, outdated tracking — these are your signals.
-
-## Principle: Close loops
-
-Every spawn must either:
-1. Complete one real-world task, or
-2. Improve the system that prevents task completion
-
-## Principle: Sacred invariants
-
+Invariants:
 - `~/space/` is swarm domain, not yours
 - `life backup` before risk
-- Evidence over intuition — check the actual state
-
-## Close
-
-Log what you did and why. Commit atomic. Stop.
+- `life steward close "<what you did>"` before stopping
+- commit atomic, then stop
 
 Run exactly one autonomous loop for ~/life. Make concrete progress, then stop."""
 
@@ -161,7 +153,12 @@ def _select_required_real_world_task(tasks):
 def _run_autonomous() -> None:
     from ..lib.clock import today
     from ..lib.providers import glm
-    from ..loop import load_loop_state, require_real_world_closure, save_loop_state, update_loop_state
+    from ..loop import (
+        load_loop_state,
+        require_real_world_closure,
+        save_loop_state,
+        update_loop_state,
+    )
     from ..metrics import build_feedback_snapshot, render_feedback_snapshot
     from ..tasks import get_all_tasks, get_tasks
 
