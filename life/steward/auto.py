@@ -166,8 +166,18 @@ def _build_provider_cmd_env(provider: str, prompt: str) -> tuple[list[str], dict
     from ..lib.providers import claude, glm
 
     if provider == "glm":
-        return glm.build_command(prompt), glm.build_env()
-    return claude.build_command(prompt), claude.build_env()
+        env = glm.build_env()
+        cmd = glm.build_command(prompt)
+    else:
+        env = claude.build_env()
+        cmd = claude.build_command(prompt)
+
+    env["GIT_AUTHOR_NAME"] = "steward-auto"
+    env["GIT_AUTHOR_EMAIL"] = "steward-auto@life.local"
+    env["GIT_COMMITTER_NAME"] = "steward-auto"
+    env["GIT_COMMITTER_EMAIL"] = "steward-auto@life.local"
+
+    return cmd, env
 
 
 def _run_autonomous(provider: str = "claude") -> None:
