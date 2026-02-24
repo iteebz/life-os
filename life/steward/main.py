@@ -8,5 +8,4 @@ def main():
     import fncli
 
     init()
-    fncli.alias_namespace("life steward", "steward")
     sys.exit(fncli.dispatch(["steward", *sys.argv[1:]]))

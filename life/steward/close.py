@@ -4,14 +4,14 @@ from ..lib.errors import exit_error
 from . import add_observation, add_session, delete_observation, get_observations
 
 
-@cli("life steward")
+@cli("steward")
 def close(summary: str):
     """Write session log and close interactive session"""
     add_session(summary)
     print("→ session logged")
 
 
-@cli("life steward")
+@cli("steward")
 def observe(
     body: str,
     tag: str | None = None,
@@ -33,7 +33,7 @@ def observe(
     print(f"→ {body}{suffix}{about_str}")
 
 
-@cli("life steward")
+@cli("steward")
 def rm(
     query: str | None = None,
 ):

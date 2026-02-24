@@ -12,14 +12,12 @@ from . import interventions as _interventions
 from . import items as _items
 from . import mood as _mood
 from . import patterns as _patterns
-from . import steward as _steward
 from . import tag as _tags
 from . import tasks as _tasks
 
 _ = (
     _backup,
     _daemon,
-    _steward,
     _achievements,
     _add,
     _dash,

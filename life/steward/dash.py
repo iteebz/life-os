@@ -5,7 +5,7 @@ from fncli import cli
 from . import _rel, get_observations, get_sessions
 
 
-@cli("life steward")
+@cli("steward")
 def dash():
     """Steward dashboard — improvements, patterns, observations, sessions"""
     from ..improvements import get_improvements

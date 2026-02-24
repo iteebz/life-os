@@ -5,7 +5,7 @@ from fncli import cli
 from . import _rel, get_sessions
 
 
-@cli("life steward")
+@cli("steward")
 def log(
     limit: int = 10,
 ):

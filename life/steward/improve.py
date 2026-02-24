@@ -6,7 +6,7 @@ from ..lib.errors import exit_error
 from . import _rel
 
 
-@cli("life steward", flags={"body": []})
+@cli("steward", flags={"body": []})
 def improve(
     body: str | None = None,
     log: bool = False,

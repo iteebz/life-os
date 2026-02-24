@@ -11,7 +11,7 @@ from . import _rel, get_observations, get_sessions
 STEWARD_BIRTHDAY = datetime(2026, 2, 18)
 
 
-@cli("life steward")
+@cli("steward")
 def boot():
     """Load life state and emit sitrep for interactive session start"""
     from ..habits import get_habits

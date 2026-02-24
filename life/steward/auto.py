@@ -290,7 +290,7 @@ def _run_autonomous(provider: str = "claude") -> None:
         exit_error("steward gate failed: no real-world task was closed")
 
 
-@cli("life steward")
+@cli("steward")
 def on(
     provider: str = "claude",
     glm: bool = False,
@@ -317,7 +317,7 @@ def on(
                 time.sleep(every)
 
 
-@cli("life steward")
+@cli("steward")
 def off() -> None:
     """signal steward to stop after current spawn"""
     _STEWARD_DIR.mkdir(parents=True, exist_ok=True)
@@ -325,7 +325,7 @@ def off() -> None:
     print("[steward] off signal set — will stop after current spawn")
 
 
-@cli("life steward", flags={"watch": ["-w", "--watch"]})
+@cli("steward", flags={"watch": ["-w", "--watch"]})
 def tail(watch: bool = False) -> None:
     """replay last steward spawn; -w to follow live"""
     path = _latest_spawn_file()
