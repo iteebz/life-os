@@ -8,7 +8,6 @@ from . import dash as _dash
 from . import dates as _dates
 from . import db
 from . import habits as _habits
-from . import interventions as _interventions
 from . import items as _items
 from . import mood as _mood
 from . import patterns as _patterns
@@ -22,7 +21,6 @@ _ = (
     _add,
     _dash,
     _dates,
-    _interventions,
     _items,
     _mood,
     _patterns,
