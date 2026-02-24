@@ -1,5 +1,0 @@
-CREATE TABLE steward_observations (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    body TEXT NOT NULL,
-    logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);

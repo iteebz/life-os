@@ -1,1 +1,0 @@
-ALTER TABLE proposals ADD COLUMN email TEXT;

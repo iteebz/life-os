@@ -1,13 +1,9 @@
-# life/db.py
-import inspect
 import shutil
 import sqlite3
 from collections.abc import Callable
 from contextlib import contextmanager
 from datetime import datetime
-from importlib import import_module
 from pathlib import Path
-from typing import cast
 
 from fncli import cli
 
@@ -17,6 +13,57 @@ MIGRATIONS_TABLE = "_migrations"
 
 MigrationFn = Callable[[sqlite3.Connection], None]
 Migration = tuple[str, str | MigrationFn]
+
+_LEGACY_MIGRATIONS = {
+    "001_foundation",
+    "002_subtasks",
+    "003_completed_datetime",
+    "004_scheduled_time",
+    "005_blocked_by",
+    "006_task_mutations",
+    "007_due_time",
+    "008_interventions",
+    "009_mutation_reason",
+    "010_habit_archived_at",
+    "011_deleted_tasks",
+    "012_task_links",
+    "013_task_links_created_at",
+    "014_task_description",
+    "015_tags_unique_partial_index",
+    "016_checks_completed_at",
+    "017_search_fts",
+    "018_cancelled_tasks",
+    "019_patterns",
+    "020_steward_sessions",
+    "021_steward_observations",
+    "022_observation_tags",
+    "023_steward_task_field",
+    "023_mood_log",
+    "024_steward_task_field.sql",
+    "024_remove_steward_tag",
+    "024_task_source",
+    "025_observation_about_date",
+    "026_habit_subhabits_and_private",
+    "027_pattern_tags",
+    "028_scheduled_vs_deadline",
+    "029_is_deadline",
+    "030_special_dates",
+    "031_improvements",
+    "032_comms_foundation",
+    "033_comms_stateless",
+    "034_comms_account_tracking",
+    "035_comms_decision_log",
+    "036_comms_proposals",
+    "037_comms_proposal_corrections",
+    "038_comms_proposal_email",
+    "039_comms_signal_messages",
+    "040_comms_sender_stats",
+    "041_comms_snooze",
+    "042_achievements",
+    "043_learnings",
+    "044_telegram_messages",
+    "045_unified_messages",
+}
 
 
 @contextmanager
@@ -33,6 +80,10 @@ def get_db(db_path: Path | None = None):
         raise
     finally:
         conn.close()
+
+
+def _schema_sql() -> str:
+    return (Path(__file__).parent / "schema.sql").read_text()
 
 
 def _create_backup(db_path: Path) -> Path:
@@ -78,28 +129,21 @@ def _check_data_loss(
             raise ValueError(f"migration data loss: {table} had {count} rows, now {after}")
 
 
+def _is_fresh(conn: sqlite3.Connection) -> bool:
+    row = conn.execute(
+        "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name != '_migrations' AND name != 'sqlite_sequence'"
+    ).fetchone()
+    return row[0] == 0
+
+
 def load_migrations() -> list[Migration]:
     migrations_dir = Path(__file__).parent / "migrations"
-    migrations: list[Migration] = []
-
-    if migrations_dir.exists():
-        migrations.extend(
-            (sql_file.stem, sql_file.read_text())
-            for sql_file in sorted(migrations_dir.glob("*.sql"))
-        )
-
-    try:
-        mig_module = import_module("life.migrations")
-        for name, obj in inspect.getmembers(mig_module):
-            if name.startswith("migration_") and callable(obj):
-                mig_name = name.replace("migration_", "", 1)
-                if not any(m[0] == mig_name for m in migrations):
-                    fn: MigrationFn = cast(MigrationFn, obj)
-                    migrations.append((mig_name, fn))
-    except (ImportError, AttributeError):
-        pass
-
-    return sorted(migrations, key=lambda x: x[0])
+    if not migrations_dir.exists():
+        return []
+    return [
+        (sql_file.stem, sql_file.read_text())
+        for sql_file in sorted(migrations_dir.glob("[0-9]*.sql"))
+    ]
 
 
 def _apply_migrations(conn: sqlite3.Connection, db_path: Path) -> None:
@@ -107,6 +151,20 @@ def _apply_migrations(conn: sqlite3.Connection, db_path: Path) -> None:
         f"CREATE TABLE IF NOT EXISTS {MIGRATIONS_TABLE} "
         "(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
     )
+    conn.commit()
+
+    if _is_fresh(conn):
+        conn.executescript(_schema_sql())
+        for name in _LEGACY_MIGRATIONS:
+            conn.execute(f"INSERT OR IGNORE INTO {MIGRATIONS_TABLE} (name) VALUES (?)", (name,))  # noqa: S608
+        conn.commit()
+        return
+
+    applied = {row[0] for row in conn.execute(f"SELECT name FROM {MIGRATIONS_TABLE}").fetchall()}  # noqa: S608
+
+    for name in _LEGACY_MIGRATIONS:
+        if name not in applied:
+            conn.execute(f"INSERT OR IGNORE INTO {MIGRATIONS_TABLE} (name) VALUES (?)", (name,))  # noqa: S608
     conn.commit()
 
     applied = {row[0] for row in conn.execute(f"SELECT name FROM {MIGRATIONS_TABLE}").fetchall()}  # noqa: S608

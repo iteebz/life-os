@@ -1,1 +1,0 @@
-ALTER TABLE habits ADD COLUMN archived_at TIMESTAMP NULL;
