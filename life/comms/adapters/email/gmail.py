@@ -1,7 +1,6 @@
 import base64
 import hashlib
 import json
-from datetime import datetime
 from email.mime.text import MIMEText
 from pathlib import Path
 from typing import Any, cast
@@ -12,7 +11,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
-from life.comms.models import Draft, Message
+from life.comms.models import Draft
 
 SCOPES = [
     "openid",
@@ -196,7 +195,7 @@ def list_inbox_threads(email_addr: str, max_results: int = 50) -> list[dict[str,
     return list_threads(email_addr, label="inbox", max_results=max_results)
 
 
-def fetch_messages(account_id: str, email_addr: str, since_days: int = 7) -> list[Message]:
+def fetch_messages(account_id: str, email_addr: str, since_days: int = 7) -> list[dict[str, Any]]:
     creds, _ = _get_credentials(email_addr)
     service = build("gmail", "v1", credentials=creds)
 
@@ -224,21 +223,19 @@ def fetch_messages(account_id: str, email_addr: str, since_days: int = 7) -> lis
         status = "unread" if "UNREAD" in label_ids else "read"
 
         messages.append(
-            Message(
-                id=msg_hash,
-                thread_id=thread_hash,
-                account_id=account_id,
-                provider="gmail",
-                from_addr=from_addr,
-                to_addr=to_addr,
-                subject=subject,
-                body=body,
-                body_html=None,
-                headers=json.dumps(headers),
-                status=status,
-                timestamp=datetime.now(),
-                synced_at=datetime.now(),
-            )
+            {
+                "id": msg_hash,
+                "thread_id": thread_hash,
+                "account_id": account_id,
+                "provider": "gmail",
+                "from_addr": from_addr,
+                "to_addr": to_addr,
+                "subject": subject,
+                "body": body,
+                "headers": json.dumps(headers),
+                "status": status,
+                "date": date_str,
+            }
         )
 
     return messages

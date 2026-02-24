@@ -14,34 +14,6 @@ class Account:
 
 
 @dataclass(frozen=True)
-class Thread:
-    id: str
-    account_id: str
-    provider: str
-    subject: str | None
-    participants: str
-    last_message_at: datetime | None
-    created_at: datetime
-
-
-@dataclass(frozen=True)
-class Message:
-    id: str
-    thread_id: str
-    account_id: str
-    provider: str
-    from_addr: str
-    to_addr: str
-    subject: str | None
-    body: str
-    body_html: str | None
-    headers: str | None
-    status: str
-    timestamp: datetime
-    synced_at: datetime
-
-
-@dataclass(frozen=True)
 class Draft:
     id: str
     thread_id: str | None

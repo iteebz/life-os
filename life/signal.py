@@ -71,7 +71,9 @@ def send(recipient: str, message: str, attachment: str | None = None) -> tuple[b
     cmd.extend(["-m", message, recipient])
 
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-    if result.returncode == 0:
+    success = result.returncode == 0
+    _track_outbound(recipient, message, success=success)
+    if success:
         return True, "sent"
     return False, result.stderr.strip() or "send failed"
 
@@ -84,7 +86,9 @@ def send_to(
         cmd.extend(["--attachment", attachment])
     cmd.extend(["-m", message, recipient])
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-    if result.returncode == 0:
+    success = result.returncode == 0
+    _track_outbound(recipient, message, success=success)
+    if success:
         return True, "sent"
     return False, result.stderr.strip() or "send failed"
 
@@ -96,7 +100,9 @@ def send_group(phone: str, group_id: str, message: str) -> tuple[bool, str]:
         text=True,
         timeout=30,
     )
-    if result.returncode == 0:
+    success = result.returncode == 0
+    _track_outbound(group_id, message, group_id=group_id, success=success)
+    if success:
         return True, "sent to group"
     return False, result.stderr.strip() or "send failed"
 
@@ -147,8 +153,32 @@ def receive(
     return messages
 
 
+def _track_outbound(
+    peer: str,
+    body: str,
+    group_id: str | None = None,
+    success: bool = True,
+) -> None:
+    from .db import get_db
+
+    ts = int(datetime.now().timestamp() * 1000)
+    msg_id = f"sig-out-{ts}-{peer[-4:] if len(peer) >= 4 else peer}"
+    try:
+        with get_db() as conn:
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO messages
+                (id, channel, direction, peer, body, group_id, success, timestamp)
+                VALUES (?, 'signal', 'out', ?, ?, ?, ?, ?)
+                """,
+                (msg_id, peer, body, group_id, 1 if success else 0, ts),
+            )
+    except Exception:  # noqa: S110
+        pass
+
+
 def _store_messages(phone: str, messages: list[dict[str, Any]]) -> int:
-    from .comms.db import get_db
+    from .db import get_db
 
     stored = 0
     with get_db() as conn:
@@ -156,19 +186,17 @@ def _store_messages(phone: str, messages: list[dict[str, Any]]) -> int:
             try:
                 conn.execute(
                     """
-                    INSERT OR IGNORE INTO signal_messages
-                    (id, account_phone, sender_phone, sender_name, body, timestamp, group_id, received_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT OR IGNORE INTO messages
+                    (id, channel, direction, peer, peer_name, body, group_id, read_at, timestamp)
+                    VALUES (?, 'signal', 'in', ?, ?, ?, ?, NULL, ?)
                     """,
                     (
                         msg["id"],
-                        phone,
                         msg["from"],
                         msg.get("from_name", ""),
                         msg["body"],
-                        msg["timestamp"],
                         msg.get("group"),
-                        datetime.now().isoformat(),
+                        msg["timestamp"],
                     ),
                 )
                 stored += 1
@@ -183,15 +211,12 @@ def get_messages(
     limit: int = 50,
     unread_only: bool = False,
 ) -> list[dict[str, Any]]:
-    from .comms.db import get_db
+    from .db import get_db
 
-    query = "SELECT * FROM signal_messages WHERE 1=1"
+    query = "SELECT * FROM messages WHERE channel = 'signal' AND direction = 'in'"
     params: list[Any] = []
-    if phone:
-        query += " AND account_phone = ?"
-        params.append(phone)
     if sender:
-        query += " AND sender_phone = ?"
+        query += " AND peer = ?"
         params.append(sender)
     if unread_only:
         query += " AND read_at IS NULL"
@@ -204,42 +229,41 @@ def get_messages(
 
 
 def get_conversations(phone: str) -> list[dict[str, Any]]:
-    from .comms.db import get_db
+    from .db import get_db
 
     with get_db() as conn:
         rows = conn.execute(
             """
-            SELECT sender_phone, sender_name,
+            SELECT peer AS sender_phone, peer_name AS sender_name,
                    COUNT(*) as message_count,
                    MAX(timestamp) as last_timestamp,
                    SUM(CASE WHEN read_at IS NULL THEN 1 ELSE 0 END) as unread_count
-            FROM signal_messages
-            WHERE account_phone = ?
-            GROUP BY sender_phone
+            FROM messages
+            WHERE channel = 'signal' AND direction = 'in'
+            GROUP BY peer
             ORDER BY last_timestamp DESC
             """,
-            (phone,),
         ).fetchall()
         return [dict(row) for row in rows]
 
 
 def mark_read(message_id: str) -> bool:
-    from .comms.db import get_db
+    from .db import get_db
 
     with get_db() as conn:
         conn.execute(
-            "UPDATE signal_messages SET read_at = ? WHERE id = ?",
+            "UPDATE messages SET read_at = ? WHERE id = ? AND channel = 'signal'",
             (datetime.now().isoformat(), message_id),
         )
     return True
 
 
 def get_message(message_id: str) -> dict[str, Any] | None:
-    from .comms.db import get_db
+    from .db import get_db
 
     with get_db() as conn:
         row = conn.execute(
-            "SELECT * FROM signal_messages WHERE id = ? OR id LIKE ?",
+            "SELECT * FROM messages WHERE channel = 'signal' AND (id = ? OR id LIKE ?)",
             (message_id, f"{message_id}%"),
         ).fetchone()
         return dict(row) if row else None
@@ -249,7 +273,7 @@ def reply_to(phone: str, message_id: str, body: str) -> tuple[bool, str, dict[st
     msg = get_message(message_id)
     if not msg:
         return False, f"message {message_id} not found", None
-    success, result = send_to(phone, msg["sender_phone"], body)
+    success, result = send_to(phone, msg["peer"], body)
     if success:
         mark_read(msg["id"])
     return success, result, msg
@@ -420,7 +444,8 @@ def signal_inbox():
     for c in conversations:
         name = c["sender_name"] or c["sender_phone"]
         unread = f" ({c['unread_count']} unread)" if c["unread_count"] else ""
-        print(f"  {c['sender_phone']:16} | {name:20} | {c['message_count']} msgs{unread}")
+        phone_col = c["sender_phone"] or ""
+        print(f"  {phone_col:16} | {name:20} | {c['message_count']} msgs{unread}")
 
 
 @cli("life comms signal", name="history")
@@ -434,7 +459,7 @@ def signal_history(contact: str, limit: int = 20):
         print(f"no messages from {contact}")
         return
     for msg in reversed(msgs):
-        sender = msg["sender_name"] or msg["sender_phone"]
+        sender = msg.get("peer_name") or msg.get("peer", "?")
         ts = datetime.fromtimestamp(msg["timestamp"] / 1000).strftime("%m-%d %H:%M")
         mid = msg["id"][:8] if msg.get("id") else ""
         print(f"{mid} [{ts}] {sender}: {msg['body']}")
@@ -448,7 +473,7 @@ def reply_cmd(message_id: str, message: str):
         exit_error("no Signal account registered")
     success, err, original = reply_to(phone, message_id, message)
     if success and original:
-        sender = original["sender_name"] or original["sender_phone"]
+        sender = original.get("peer_name") or original.get("peer", "?")
         print(f"replied to {sender}")
     else:
         exit_error(f"failed: {err}")

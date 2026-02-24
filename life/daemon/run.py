@@ -143,9 +143,7 @@ def _get_signal_phones() -> list[str]:
 
 
 def _signal_thread(stop: threading.Event, interval: int) -> None:
-    from life.comms import agent
     from life.comms.adapters.messaging import signal as signal_adapter
-    from life.comms.config import get_agent_config
 
     phones = _get_signal_phones()
     if not phones:
@@ -155,25 +153,13 @@ def _signal_thread(stop: threading.Event, interval: int) -> None:
     _log(f"[signal] started, {len(phones)} account(s), polling every {interval}s")
 
     while not stop.is_set():
-        agent_config = get_agent_config()
-        agent_enabled = bool(agent_config.get("enabled", True))
-        use_nlp = bool(agent_config.get("nlp", False))
-
         for phone in phones:
             try:
                 msgs = signal_adapter.receive(timeout=1, phone=phone, store=True)
                 if msgs:
                     for m in msgs:
-                        sender = m.get("from_name", m.get("sender_phone", "Unknown"))
+                        sender = m.get("from_name", m.get("peer", "Unknown"))
                         _log(f"[signal] [{phone}] {sender}: {m['body'][:50]}")
-
-                        if agent_enabled:
-                            response = agent.handle_incoming(phone, m, use_nlp=use_nlp)
-                            if response:
-                                sender_phone = m.get("sender_phone", "")
-                                if sender_phone:
-                                    signal_adapter.send(phone, sender_phone, response)
-                                    _log(f"[signal] [{phone}] -> {sender_phone}: {response[:50]}")
             except Exception as e:
                 _log(f"[signal] [{phone}] error: {e}")
 

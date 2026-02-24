@@ -1,7 +1,6 @@
 import uuid
 from datetime import datetime
 
-from . import audit
 from .db import get_db, now_iso
 from .models import Draft
 
@@ -36,17 +35,6 @@ def create_draft(
                 from_addr,
             ),
         )
-
-    audit.log(
-        "create",
-        "draft",
-        draft_id,
-        {
-            "to": to_addr,
-            "subject": subject,
-            "auto_generated": claude_reasoning is not None,
-        },
-    )
 
     return draft_id
 
@@ -96,14 +84,10 @@ def approve_draft(draft_id: str) -> None:
     with get_db() as conn:
         conn.execute("UPDATE drafts SET approved_at = ? WHERE id = ?", (now_iso(), draft_id))
 
-    audit.log("approve", "draft", draft_id)
-
 
 def mark_sent(draft_id: str) -> None:
     with get_db() as conn:
         conn.execute("UPDATE drafts SET sent_at = ? WHERE id = ?", (now_iso(), draft_id))
-
-    audit.log("send", "draft", draft_id)
 
 
 def list_pending_drafts() -> list[Draft]:

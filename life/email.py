@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from fncli import cli
 
 from .lib.errors import exit_error
@@ -31,95 +29,6 @@ def inbox(limit: int = 20):
         ts = datetime.fromtimestamp(item.timestamp / 1000).strftime("%m-%d %H:%M")
         unread = "●" if item.unread else " "
         print(f"{unread} [{ts}] {item.sender[:25]:25} {item.preview}")
-
-
-@cli("life comms email", name="triage")
-def triage(limit: int = 20, confidence: float = 0.7, dry_run: bool = False, execute: bool = False):
-    """Triage inbox — Claude bulk-proposes actions"""
-    from .comms import triage as triage_module
-    from .comms.services import execute_approved_proposals
-
-    print("scanning inbox...")
-    proposals = triage_module.triage_inbox(limit=limit)
-    if not proposals:
-        print("nothing to triage")
-        return
-
-    print(f"\n{len(proposals)} proposals:\n")
-    for p in proposals:
-        conf = f"{p.confidence:.0%}"
-        skip = " (skip)" if p.confidence < confidence or p.action == "ignore" else ""
-        print(f"  [{conf}] {p.action:10} {p.item.sender[:20]:20} {p.reasoning}{skip}")
-
-    created = triage_module.create_proposals_from_triage(
-        proposals, min_confidence=confidence, dry_run=dry_run
-    )
-
-    if dry_run:
-        print(f"\ndry run: would create {len(created)} proposals")
-        return
-
-    print(f"\ncreated {len(created)} proposals")
-
-    if execute and created:
-        print("\nexecuting...")
-        results = execute_approved_proposals()
-        executed = sum(1 for r in results if r.success)
-        print(f"executed: {executed}/{len(results)}")
-
-
-@cli("life comms email", name="clear")
-def clear(limit: int = 50, confidence: float = 0.8, dry_run: bool = False):
-    """One-command inbox clear: triage → approve → execute"""
-    from .comms import proposals as proposals_module
-    from .comms import triage as triage_module
-    from .comms.contacts import get_high_priority_patterns
-    from .comms.services import execute_approved_proposals
-
-    print("scanning inbox...")
-    proposals = triage_module.triage_inbox(limit=limit)
-    if not proposals:
-        print("inbox clear")
-        return
-
-    high_priority = get_high_priority_patterns()
-
-    def _is_high_priority(p) -> bool:
-        return any(pat in p.item.sender.lower() for pat in high_priority)
-
-    auto = [
-        p
-        for p in proposals
-        if p.confidence >= confidence and p.action != "ignore" and not _is_high_priority(p)
-    ]
-    review = [
-        p
-        for p in proposals
-        if p.confidence < confidence or p.action == "ignore" or _is_high_priority(p)
-    ]
-
-    print(f"\nauto ({len(auto)}) | review ({len(review)})\n")
-    for p in auto:
-        print(f"  {p.action:8} {p.item.sender[:25]:25} {p.reasoning[:30]}")
-
-    if review:
-        print("\nneeds review:")
-        for p in review:
-            print(f"  [{p.confidence:.0%}] {p.item.sender[:25]:25} {p.item.preview[:30]}")
-
-    if dry_run:
-        print(f"\ndry run: would auto-execute {len(auto)} items")
-        return
-
-    created = triage_module.create_proposals_from_triage(auto, min_confidence=0.0, dry_run=False)
-    for pid, _ in created:
-        proposals_module.approve_proposal(pid)
-
-    results = execute_approved_proposals()
-    executed = sum(1 for r in results if r.success)
-    print(f"\nexecuted: {executed}/{len(results)}")
-    if review:
-        print(f"run `life comms email review` for {len(review)} items needing attention")
 
 
 @cli("life comms email", name="threads")
@@ -262,7 +171,6 @@ def draft_show(draft_id: str):
 def approve_draft(draft_id: str):
     """Approve draft for sending"""
     from .comms import drafts as drafts_module
-    from .comms import policy
 
     full_id = drafts_module.resolve_draft_id(draft_id) or draft_id
     d = drafts_module.get_draft(full_id)
@@ -271,9 +179,6 @@ def approve_draft(draft_id: str):
     if d.approved_at:
         print("already approved")
         return
-    allowed, err = policy.check_recipient_allowed(d.to_addr)
-    if not allowed:
-        exit_error(f"cannot approve: {err}")
     drafts_module.approve_draft(full_id)
     print(f"approved {full_id[:8]} — run `life comms email send {full_id[:8]}` to send")
 
@@ -295,30 +200,27 @@ def send_draft(draft_id: str):
 @cli("life comms email", name="archive")
 def archive(thread_id: str, email: str | None = None):
     """Archive thread"""
-    from .comms import audit, services
+    from .comms import services
 
     _run_service(services.thread_action, "archive", thread_id, email)
-    audit.log("archive", "thread", thread_id, {"reason": "manual"})
     print(f"archived {thread_id}")
 
 
 @cli("life comms email", name="delete")
 def delete(thread_id: str, email: str | None = None):
     """Delete thread"""
-    from .comms import audit, services
+    from .comms import services
 
     _run_service(services.thread_action, "delete", thread_id, email)
-    audit.log("delete", "thread", thread_id, {"reason": "manual"})
     print(f"deleted {thread_id}")
 
 
 @cli("life comms email", name="flag")
 def flag(thread_id: str, email: str | None = None):
     """Flag thread"""
-    from .comms import audit, services
+    from .comms import services
 
     _run_service(services.thread_action, "flag", thread_id, email)
-    audit.log("flag", "thread", thread_id, {"reason": "manual"})
     print(f"flagged {thread_id}")
 
 
@@ -335,64 +237,6 @@ def snooze(thread_id: str, until: str = "tomorrow", email: str | None = None):
     print(f"snoozed until {snooze_until.strftime('%Y-%m-%d %H:%M')}")
 
 
-@cli("life comms email", name="review")
-def review(action: str | None = None):
-    """Review proposals"""
-    from .comms import proposals as proposals_module
-
-    items = proposals_module.list_proposals(status="pending")
-    if action:
-        items = [p for p in items if p["proposed_action"] == action]
-    if not items:
-        print("no proposals")
-        return
-    by_action: dict[str, list[Any]] = {}
-    for p in items:
-        by_action.setdefault(p["proposed_action"], []).append(p)
-    for act in ["flag", "archive", "delete"]:
-        if act not in by_action:
-            continue
-        print(f"\n{act.upper()} ({len(by_action[act])}):")
-        for p in by_action[act]:
-            print(f"  {p['id'][:8]} | {p['agent_reasoning'] or p['entity_id'][:8]}")
-
-
-@cli("life comms email", name="approve-proposal")
-def approve_proposal(proposal_id: str | None = None, action: str | None = None, all: bool = False):
-    """Approve proposal(s)"""
-    from .comms import proposals as proposals_module
-
-    if all or action:
-        pending = proposals_module.list_proposals(status="pending")
-        if action:
-            pending = [p for p in pending if p["proposed_action"] == action]
-        count = sum(1 for p in pending if proposals_module.approve_proposal(p["id"]))
-        print(f"approved {count} proposals")
-        return
-    if not proposal_id:
-        exit_error("provide proposal_id or --all")
-    if proposals_module.approve_proposal(proposal_id):
-        print(f"approved {proposal_id[:8]}")
-    else:
-        exit_error("not found or already processed")
-
-
-@cli("life comms email", name="resolve")
-def resolve():
-    """Execute all approved proposals"""
-    from .comms import proposals as proposals_module
-    from .comms import services
-
-    approved = proposals_module.get_approved_proposals()
-    if not approved:
-        print("no approved proposals")
-        return
-    results = services.execute_approved_proposals()
-    executed = sum(1 for r in results if r.success)
-    failed = sum(1 for r in results if not r.success)
-    print(f"executed: {executed}  failed: {failed}")
-
-
 @cli("life comms email", name="senders")
 def senders(limit: int = 20):
     """Show sender statistics"""
@@ -407,27 +251,6 @@ def senders(limit: int = 20):
         print(
             f"  {s.sender[:30]:30} | recv:{s.received_count:3} resp:{resp:4} pri:{s.priority_score:.2f}"
         )
-
-
-@cli("life comms email", name="stats")
-def stats():
-    """Show learning stats"""
-    from .comms import learning
-
-    action_stats = learning.get_decision_stats()
-    if not action_stats:
-        print("no decision data yet")
-        return
-    for action, s in sorted(action_stats.items(), key=lambda x: -x[1].total):
-        print(f"  {action:12} | {s.total:3} total | {s.accuracy:.0%} accuracy")
-
-
-@cli("life comms email", name="digest")
-def digest(days: int = 7):
-    """Weekly activity digest"""
-    from .comms import digest as digest_module
-
-    print(digest_module.format_digest(digest_module.get_digest(days=days)))
 
 
 @cli("life comms email", name="rules")

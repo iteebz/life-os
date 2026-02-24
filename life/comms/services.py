@@ -4,19 +4,8 @@ from dataclasses import dataclass
 from typing import Any
 
 from . import accounts as accts_module
-from . import drafts, policy, proposals, senders
+from . import drafts, senders
 from .adapters.email import gmail, outlook
-from .adapters.messaging import signal
-
-
-@dataclass(frozen=True)
-class ProposalExecution:
-    proposal_id: str
-    action: str
-    entity_type: str
-    entity_id: str
-    success: bool
-    error: str | None
 
 
 def _resolve_email_account(email: str | None) -> dict[str, Any]:
@@ -132,12 +121,10 @@ def send_draft(draft_id: str) -> None:
         raise ValueError(f"Draft {draft_id} not found")
     if d.sent_at:
         raise ValueError("Draft already sent")
+    if not d.approved_at:
+        raise ValueError("Draft requires approval before sending")
     if not d.from_account_id or not d.from_addr:
         raise ValueError("Draft missing source account info")
-
-    ok, errors = policy.validate_send(draft_id, d.to_addr)
-    if not ok:
-        raise ValueError("; ".join(errors))
 
     account = accts_module.get_account_by_id(d.from_account_id)
     if not account:
@@ -181,6 +168,8 @@ class InboxItem:
 
 
 def get_unified_inbox(limit: int = 20) -> list[InboxItem]:
+    from life.signal import get_messages as signal_get_messages
+
     items: list[InboxItem] = []
 
     email_accounts = accts_module.list_accounts("email")
@@ -209,13 +198,13 @@ def get_unified_inbox(limit: int = 20) -> list[InboxItem]:
     signal_accounts = accts_module.list_accounts("messaging")
     for account in signal_accounts:
         if account["provider"] == "signal":
-            msgs = signal.get_messages(phone=account["email"], limit=limit, unread_only=False)
+            msgs = signal_get_messages(phone=account["email"], limit=limit, unread_only=False)
             items.extend(
                 [
                     InboxItem(
                         source="signal",
                         source_id=account["email"],
-                        sender=m.get("sender_name") or m.get("sender_phone", "Unknown"),
+                        sender=m.get("peer_name") or m.get("peer", "Unknown"),
                         subject="",
                         preview=m.get("body", "")[:60],
                         timestamp=m.get("timestamp", 0),
@@ -287,56 +276,3 @@ def _get_thread_action(adapter, action: str):
         "undelete": adapter.undelete_thread,
     }
     return action_map.get(action)
-
-
-def execute_approved_proposals() -> list[ProposalExecution]:
-    approved = proposals.get_approved_proposals()
-    results: list[ProposalExecution] = []
-
-    for proposal in approved:
-        action = proposal["proposed_action"]
-        entity_type = proposal["entity_type"]
-        entity_id = proposal["entity_id"]
-        email = proposal.get("email")
-
-        try:
-            if entity_type == "thread":
-                if not email:
-                    account = _resolve_email_account(None)
-                    email = account["email"]
-                thread_action(action, entity_id, email)
-            elif entity_type == "signal_message":
-                _execute_signal_action(action, entity_id)
-            else:
-                raise ValueError(f"Unknown entity type: {entity_type}")
-            proposals.mark_executed(proposal["id"])
-            results.append(
-                ProposalExecution(
-                    proposal_id=proposal["id"],
-                    action=action,
-                    entity_type=entity_type,
-                    entity_id=entity_id,
-                    success=True,
-                    error=None,
-                )
-            )
-        except ValueError as exc:
-            results.append(
-                ProposalExecution(
-                    proposal_id=proposal["id"],
-                    action=action,
-                    entity_type=entity_type,
-                    entity_id=entity_id,
-                    success=False,
-                    error=str(exc),
-                )
-            )
-
-    return results
-
-
-def _execute_signal_action(action: str, message_id: str) -> None:
-    if action in ("mark_read", "ignore"):
-        signal.mark_read(message_id)
-    else:
-        raise ValueError(f"Unknown signal action: {action}")

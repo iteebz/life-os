@@ -195,7 +195,6 @@ def boot():
     try:
         from ..comms.accounts import list_accounts
         from ..comms.drafts import list_pending_drafts
-        from ..comms.proposals import list_proposals
 
         email_accounts = list_accounts("email")
         if email_accounts:
@@ -217,15 +216,10 @@ def boot():
                     flagged_lines.append(f"  [comms error: {e}]")
 
             pending_drafts = list_pending_drafts()
-            pending_proposals = list_proposals(status="pending")
             parts = [f"{total_inbox} in inbox"]
             if pending_drafts:
                 parts.append(
                     f"{len(pending_drafts)} draft{'s' if len(pending_drafts) != 1 else ''} pending"
-                )
-            if pending_proposals:
-                parts.append(
-                    f"{len(pending_proposals)} proposal{'s' if len(pending_proposals) != 1 else ''} to review"
                 )
             print(f"\nCOMMS: {', '.join(parts)}")
             for line in flagged_lines:
