@@ -92,6 +92,17 @@ def boot():
             tag_str = f" #{o.tag}" if o.tag else ""
             print(f"  {rel:<10}  {o.body}{tag_str}")
 
+    from ..lib.dates import list_dates
+
+    upcoming_dates = [d for d in list_dates() if 0 <= d["days_until"] <= 30]
+    if upcoming_dates:
+        print("\nDATES:")
+        for d in upcoming_dates:
+            days = d["days_until"]
+            when = "today" if days == 0 else f"in {days}d"
+            type_str = f"  [{d['type']}]" if d["type"] != "other" else ""
+            print(f"  {when:<10}  {d['name']}{type_str}")
+
     open_improvements = get_improvements()
     if open_improvements:
         print("\nIMPROVEMENTS:")
