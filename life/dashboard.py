@@ -2,12 +2,11 @@ from . import db
 from .habits import get_habits
 from .lib import clock
 from .models import Habit, Task
-from .tasks import _fetch_tasks, _task_sort_key, get_tasks
+from .tasks import _fetch_tasks
 
 __all__ = [
     "get_day_breakdown",
     "get_day_completed",
-    "get_pending_items",
     "get_today_breakdown",
     "get_today_completed",
 ]
@@ -93,12 +92,6 @@ def get_day_breakdown(date_str: str) -> tuple[int, int, int, int]:
         ).fetchone()[0]
 
     return habits_done, tasks_done, tasks_added + habits_added, tasks_deleted
-
-
-def get_pending_items(asc: bool = True, include_steward: bool = False) -> list[Task]:
-    """Get pending tasks for display. asc=True returns sorted ascending."""
-    tasks = get_tasks(include_steward=include_steward)
-    return sorted(tasks, key=_task_sort_key, reverse=not asc)
 
 
 def get_today_completed() -> list[Task | Habit]:

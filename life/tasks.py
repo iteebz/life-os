@@ -30,7 +30,6 @@ __all__ = [
     "find_task_any",
     "find_task_exact",
     "get_all_tasks",
-    "get_focus",
     "get_mutations",
     "get_subtasks",
     "get_task",
@@ -38,7 +37,6 @@ __all__ = [
     "last_completion",
     "rename_task",
     "set_blocked_by",
-    "toggle_completed",
     "toggle_focus",
     "uncheck_task",
     "update_task",
@@ -164,11 +162,6 @@ def get_subtasks(parent_id: str) -> list[Task]:
         return _fetch_tasks(conn, "parent_id = ?", (parent_id,))
 
 
-def get_focus() -> list[Task]:
-    with db.get_db() as conn:
-        return _fetch_tasks(conn, "focus = 1 AND completed_at IS NULL AND steward = 0")
-
-
 _TRACKED_FIELDS = {
     "content",
     "scheduled_date",
@@ -281,30 +274,27 @@ def defer_task(task_id: str, reason: str) -> Task | None:
     return task
 
 
+def delete_task(task_id: str, cancel_reason: str | None = None) -> None:
+    with db.get_db() as conn:
+        row = conn.execute("SELECT id, content FROM tasks WHERE id = ?", (task_id,)).fetchone()
+        if row:
+            tag_rows = conn.execute("SELECT tag FROM tags WHERE task_id = ?", (task_id,)).fetchall()
+            tags_str = ",".join(r[0] for r in tag_rows) if tag_rows else None
+            if cancel_reason:
+                conn.execute(
+                    "INSERT INTO deleted_tasks (task_id, content, tags, cancel_reason, cancelled) VALUES (?, ?, ?, ?, 1)",
+                    (row[0], row[1], tags_str, cancel_reason),
+                )
+            else:
+                conn.execute(
+                    "INSERT INTO deleted_tasks (task_id, content, tags) VALUES (?, ?, ?)",
+                    (row[0], row[1], tags_str),
+                )
+        conn.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+
+
 def cancel_task(task_id: str, reason: str) -> None:
-    with db.get_db() as conn:
-        row = conn.execute("SELECT id, content FROM tasks WHERE id = ?", (task_id,)).fetchone()
-        if row:
-            tag_rows = conn.execute("SELECT tag FROM tags WHERE task_id = ?", (task_id,)).fetchall()
-            tags_str = ",".join(r[0] for r in tag_rows) if tag_rows else None
-            conn.execute(
-                "INSERT INTO deleted_tasks (task_id, content, tags, cancel_reason, cancelled) VALUES (?, ?, ?, ?, 1)",
-                (row[0], row[1], tags_str, reason),
-            )
-        conn.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
-
-
-def delete_task(task_id: str) -> None:
-    with db.get_db() as conn:
-        row = conn.execute("SELECT id, content FROM tasks WHERE id = ?", (task_id,)).fetchone()
-        if row:
-            tag_rows = conn.execute("SELECT tag FROM tags WHERE task_id = ?", (task_id,)).fetchall()
-            tags_str = ",".join(r[0] for r in tag_rows) if tag_rows else None
-            conn.execute(
-                "INSERT INTO deleted_tasks (task_id, content, tags) VALUES (?, ?, ?)",
-                (row[0], row[1], tags_str),
-            )
-        conn.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+    delete_task(task_id, cancel_reason=reason)
 
 
 def check_task(task_id: str) -> tuple[Task | None, Task | None]:
@@ -353,16 +343,6 @@ def uncheck_task(task_id: str) -> Task | None:
                 conn.execute("UPDATE tasks SET completed_at = NULL WHERE id = ?", (task.parent_id,))
                 _record_mutation(conn, task.parent_id, "completed_at", parent.completed_at, None)
     return get_task(task_id)
-
-
-def toggle_completed(task_id: str) -> Task | None:
-    task = get_task(task_id)
-    if not task:
-        return None
-    if task.completed_at:
-        return uncheck_task(task_id)
-    task, _ = check_task(task_id)
-    return task
 
 
 def toggle_focus(task_id: str) -> Task | None:

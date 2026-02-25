@@ -1,17 +1,6 @@
-from dataclasses import dataclass
-from datetime import datetime
-
 from fncli import cli
 
 from .db import get_db
-
-
-@dataclass(frozen=True)
-class Learning:
-    id: int
-    body: str
-    tags: str | None
-    logged_at: datetime
 
 
 def add_learning(body: str, tags: str | None = None) -> int:
@@ -21,17 +10,6 @@ def add_learning(body: str, tags: str | None = None) -> int:
             (body, tags),
         )
         return cursor.lastrowid or 0
-
-
-def get_learnings() -> list[Learning]:
-    with get_db() as conn:
-        rows = conn.execute(
-            "SELECT id, body, tags, logged_at FROM learnings ORDER BY logged_at DESC"
-        ).fetchall()
-    return [
-        Learning(id=row[0], body=row[1], tags=row[2], logged_at=datetime.fromisoformat(row[3]))
-        for row in rows
-    ]
 
 
 def _log_task(

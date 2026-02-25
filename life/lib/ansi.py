@@ -82,40 +82,12 @@ def dim(text: str) -> str:
     return f"\033[2m{text}\033[22m{_R}"
 
 
-def muted(text: str) -> str:
-    return f"{ANSI.MUTED}{text}{_R}"
-
-
-def secondary(text: str) -> str:
-    return f"{ANSI.SECONDARY}{text}{_R}"
-
-
-def lime(text: str) -> str:
-    return f"{ANSI.LIME}{text}{_R}"
-
-
-def teal(text: str) -> str:
-    return f"{ANSI.TEAL}{text}{_R}"
-
-
 def gold(text: str) -> str:
     return f"{ANSI.GOLD}{text}{_R}"
 
 
 def coral(text: str) -> str:
     return f"{ANSI.CORAL}{text}{_R}"
-
-
-def purple(text: str) -> str:
-    return f"{ANSI.PURPLE}{text}{_R}"
-
-
-def sky(text: str) -> str:
-    return f"{ANSI.SKY}{text}{_R}"
-
-
-def blue(text: str) -> str:
-    return f"{ANSI.BLUE}{text}{_R}"
 
 
 def green(text: str) -> str:
@@ -134,52 +106,8 @@ def white(text: str) -> str:
     return f"{ANSI.WHITE}{text}{_R}"
 
 
-def forest(text: str) -> str:
-    return f"{ANSI.FOREST}{text}{_R}"
-
-
-def slate(text: str) -> str:
-    return f"{ANSI.SLATE}{text}{_R}"
-
-
-def peach(text: str) -> str:
-    return f"{ANSI.PEACH}{text}{_R}"
-
-
-def orange(text: str) -> str:
-    return f"{ANSI.ORANGE}{text}{_R}"
-
-
-def magenta(text: str) -> str:
-    return f"{ANSI.MAGENTA}{text}{_R}"
-
-
 def cyan(text: str) -> str:
     return f"{ANSI.CYAN}{text}{_R}"
-
-
-def yellow(text: str) -> str:
-    return f"{ANSI.YELLOW}{text}{_R}"
-
-
-def pink(text: str) -> str:
-    return f"{ANSI.PINK}{text}{_R}"
-
-
-def lavender(text: str) -> str:
-    return f"{ANSI.LAVENDER}{text}{_R}"
-
-
-def mint(text: str) -> str:
-    return f"{ANSI.MINT}{text}{_R}"
-
-
-def sage(text: str) -> str:
-    return f"{ANSI.SAGE}{text}{_R}"
-
-
-def indigo(text: str) -> str:
-    return f"{ANSI.INDIGO}{text}{_R}"
 
 
 _REFERENCE_RE = re.compile(r"(?<![a-zA-Z0-9_.:/-])([a-z])/([a-f0-9]{8})(?![a-zA-Z0-9_])")

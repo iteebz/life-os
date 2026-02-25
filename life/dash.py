@@ -5,7 +5,6 @@ from fncli import UsageError, cli
 from .dashboard import (
     get_day_breakdown,
     get_day_completed,
-    get_pending_items,
     get_today_breakdown,
     get_today_completed,
 )
@@ -28,7 +27,7 @@ __all__ = [
 @cli("life")
 def dashboard(verbose: bool = False) -> None:
     """Life dashboard"""
-    items = get_pending_items() + get_habits()
+    items = get_tasks() + get_habits()
     today_items = get_today_completed()
     today_breakdown = get_today_breakdown()
     print(render_dashboard(items, today_breakdown, None, None, today_items, verbose=verbose))
