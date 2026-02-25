@@ -15,7 +15,7 @@ from .lib.converters import row_to_task
 from .lib.errors import exit_error
 from .lib.format import animate_check, format_status
 from .lib.fuzzy import find_in_pool, find_in_pool_exact
-from .lib.parsing import parse_due_and_item, validate_content
+from .lib.parsing import parse_due_and_item
 from .models import Task, TaskMutation
 from .tag import add_tag, hydrate_tags, load_tags_for_tasks
 
@@ -458,66 +458,6 @@ def _schedule(args: list[str], remove: bool = False) -> None:
 
 
 # ── cli ──────────────────────────────────────────────────────────────────────
-
-
-def task(
-    content: list[str],
-    focus: bool = False,
-    due: str | None = None,
-    tag: list[str] | None = None,
-    under: str | None = None,
-    desc: str | None = None,
-    done: bool = False,
-    steward: bool = False,
-    source: str | None = None,
-) -> None:
-    """Add a task"""
-    from .lib.resolve import resolve_task
-
-    content_str = " ".join(content) if content else ""
-    try:
-        validate_content(content_str)
-    except ValueError as e:
-        exit_error(f"Error: {e}")
-    resolved_due = None
-    resolved_time = None
-    if due:
-        from .lib.parsing import parse_due_datetime
-
-        resolved_due, resolved_time = parse_due_datetime(due)
-    parent_id = None
-    if under:
-        parent_task = resolve_task(under)
-        if parent_task.parent_id:
-            exit_error("Error: subtasks cannot have subtasks")
-        parent_id = parent_task.id
-    tags = list(tag) if tag else []
-    if focus and parent_id:
-        exit_error("Error: cannot focus a subtask — set focus on the parent")
-    task_id = add_task(
-        content_str,
-        focus=focus,
-        scheduled_date=resolved_due,
-        tags=tags,
-        parent_id=parent_id,
-        description=desc,
-        steward=steward,
-        source=source,
-    )
-    if resolved_due or resolved_time:
-        updates: dict[str, Any] = {}
-        if resolved_due:
-            updates["scheduled_date"] = resolved_due
-        if resolved_time:
-            updates["scheduled_time"] = resolved_time
-        update_task(task_id, **updates)
-    if done:
-        check_task(task_id)
-        print(format_status("\u2713", content_str, task_id))
-        return
-    symbol = f"{ANSI.BOLD}\u29bf{ANSI.RESET}" if focus else "\u25a1"
-    prefix = "  \u2514 " if parent_id else ""
-    print(f"{prefix}{format_status(symbol, content_str, task_id)}")
 
 
 @cli("life")

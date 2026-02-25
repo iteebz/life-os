@@ -81,20 +81,15 @@ def log(score: int, label: str | None = None):
 @cli("life mood", name="show")
 def show():
     """View rolling 24h mood window"""
+    from .lib.format import format_elapsed
+
     entries = get_recent_moods(hours=24)
     if not entries:
         print("no mood logged in the last 24h")
         return
     now_dt = datetime.now()
     for e in entries:
-        delta = now_dt - e.logged_at
-        secs = delta.total_seconds()
-        if secs < 3600:
-            rel = f"{int(secs // 60)}m ago"
-        elif secs < 86400:
-            rel = f"{int(secs // 3600)}h ago"
-        else:
-            rel = f"{int(secs // 86400)}d ago"
+        rel = format_elapsed(e.logged_at, now_dt)
         bar = "█" * e.score + "░" * (5 - e.score)
         label_str = f"  {e.label}" if e.label else ""
         print(f"  {rel:<10}  {bar}  {e.score}/5{label_str}")

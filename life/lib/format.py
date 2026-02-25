@@ -1,15 +1,35 @@
 import sys
-from datetime import date
+from datetime import date, datetime
 
 from .ansi import ANSI
 
 __all__ = [
     "animate_check",
     "format_due",
+    "format_elapsed",
     "format_habit",
     "format_status",
     "format_task",
 ]
+
+
+def format_elapsed(dt: datetime, now: datetime | None = None) -> str:
+    """Format a datetime as a human-readable relative string (e.g. '5m ago', '3h ago')."""
+    if now is None:
+        now = datetime.now()
+    s = int((now - dt).total_seconds())
+    if s < 60:
+        return f"{s}s ago"
+    m = s // 60
+    if m < 60:
+        return f"{m}m ago"
+    h = m // 60
+    if h < 24:
+        return f"{h}h ago"
+    d = h // 24
+    if d < 7:
+        return f"{d}d ago"
+    return dt.strftime("%Y-%m-%d")
 
 
 def animate_check(label: str) -> None:

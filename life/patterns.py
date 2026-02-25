@@ -48,22 +48,15 @@ def get_patterns(limit: int = 20, tag: str | None = None) -> list[Pattern]:
 @cli("life pattern", name="log")
 def log(limit: int = 20, tag: str | None = None):
     """Review logged patterns"""
+    from .lib.format import format_elapsed
+
     patterns = get_patterns(limit, tag=tag)
     if not patterns:
         print("no patterns logged")
         return
     now = datetime.now()
     for p in patterns:
-        delta = now - p.logged_at
-        s = delta.total_seconds()
-        if s < 3600:
-            rel = f"{int(s // 60)}m ago"
-        elif s < 86400:
-            rel = f"{int(s // 3600)}h ago"
-        elif s < 86400 * 7:
-            rel = f"{int(s // 86400)}d ago"
-        else:
-            rel = p.logged_at.strftime("%Y-%m-%d")
+        rel = format_elapsed(p.logged_at, now)
         tag_suffix = f"  [{p.tag}]" if p.tag else ""
         print(f"{rel:<10}  {p.body}{tag_suffix}")
 

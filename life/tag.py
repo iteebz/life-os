@@ -29,17 +29,17 @@ def add_tag(task_id: str | None, habit_id: str | None, tag: str, conn=None) -> N
     if (task_id is None and habit_id is None) or (task_id is not None and habit_id is not None):
         raise ValueError("Exactly one of (task_id, habit_id) must be not None")
 
-    if conn is None:
-        with db.get_db() as conn:
-            conn.execute(
-                "INSERT INTO tags (task_id, habit_id, tag) VALUES (?, ?, ?) ON CONFLICT DO NOTHING",
-                (task_id, habit_id, tag.lower()),
-            )
-    else:
-        conn.execute(
+    def _insert(c: sqlite3.Connection) -> None:
+        c.execute(
             "INSERT INTO tags (task_id, habit_id, tag) VALUES (?, ?, ?) ON CONFLICT DO NOTHING",
             (task_id, habit_id, tag.lower()),
         )
+
+    if conn is None:
+        with db.get_db() as c:
+            _insert(c)
+    else:
+        _insert(conn)
 
 
 def get_tags_for_task(task_id: str) -> list[str]:
@@ -106,56 +106,39 @@ def list_all_tags() -> list[str]:
         return [row[0] for row in cursor.fetchall()]
 
 
-def load_tags_for_tasks(
-    task_ids: list[str], conn: sqlite3.Connection | None = None
+def _load_tags_by_column(
+    column: str, ids: list[str], conn: sqlite3.Connection | None = None
 ) -> dict[str, list[str]]:
-    """Batch load all tags for multiple tasks.
-
-    Returns dict mapping task_id -> list of tag strings.
-    """
-    if not task_ids:
+    """Batch load tags for items by column name (task_id or habit_id)."""
+    if not ids:
         return {}
 
-    placeholders = ",".join("?" * len(task_ids))
-    query = f"SELECT task_id, tag FROM tags WHERE task_id IN ({placeholders}) ORDER BY tag"  # noqa: S608
+    placeholders = ",".join("?" * len(ids))
+    query = f"SELECT {column}, tag FROM tags WHERE {column} IN ({placeholders}) ORDER BY tag"  # noqa: S608
 
     def _run(c: sqlite3.Connection) -> dict[str, list[str]]:
-        cursor = c.execute(query, task_ids)
+        cursor = c.execute(query, ids)
         tags_map: defaultdict[str, list[str]] = defaultdict(list)
-        for task_id, tag in cursor.fetchall():
-            tags_map[task_id].append(tag)
+        for item_id, tag in cursor.fetchall():
+            tags_map[item_id].append(tag)
         return dict(tags_map)
 
     if conn is not None:
         return _run(conn)
     with db.get_db() as c:
         return _run(c)
+
+
+def load_tags_for_tasks(
+    task_ids: list[str], conn: sqlite3.Connection | None = None
+) -> dict[str, list[str]]:
+    return _load_tags_by_column("task_id", task_ids, conn)
 
 
 def load_tags_for_habits(
     habit_ids: list[str], conn: sqlite3.Connection | None = None
 ) -> dict[str, list[str]]:
-    """Batch load all tags for multiple habits.
-
-    Returns dict mapping habit_id -> list of tag strings.
-    """
-    if not habit_ids:
-        return {}
-
-    placeholders = ",".join("?" * len(habit_ids))
-    query = f"SELECT habit_id, tag FROM tags WHERE habit_id IN ({placeholders}) ORDER BY tag"  # noqa: S608
-
-    def _run(c: sqlite3.Connection) -> dict[str, list[str]]:
-        cursor = c.execute(query, habit_ids)
-        tags_map: defaultdict[str, list[str]] = defaultdict(list)
-        for habit_id, tag in cursor.fetchall():
-            tags_map[habit_id].append(tag)
-        return dict(tags_map)
-
-    if conn is not None:
-        return _run(conn)
-    with db.get_db() as c:
-        return _run(c)
+    return _load_tags_by_column("habit_id", habit_ids, conn)
 
 
 @cli("life tag", name="add")

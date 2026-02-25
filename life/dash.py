@@ -10,6 +10,7 @@ from .dashboard import (
 )
 from .habits import get_habits
 from .lib.clock import now, today
+from .lib.format import format_elapsed
 from .lib.render import render_dashboard, render_day_summary, render_momentum
 from .metrics import build_feedback_snapshot, render_feedback_snapshot
 from .momentum import weekly_momentum
@@ -33,21 +34,6 @@ def dashboard(verbose: bool = False) -> None:
     print(render_dashboard(items, today_breakdown, None, None, today_items, verbose=verbose))
 
 
-def _format_elapsed(dt) -> str:
-    delta = now() - dt
-    s = int(delta.total_seconds())
-    if s < 60:
-        return f"{s}s ago"
-    m = s // 60
-    if m < 60:
-        return f"{m}m ago"
-    h = m // 60
-    if h < 24:
-        return f"{h}h ago"
-    d = h // 24
-    return f"{d}d ago"
-
-
 @cli("life")
 def status() -> None:
     """System health check"""
@@ -66,7 +52,7 @@ def status() -> None:
     )
 
     lc = last_completion()
-    last_check_str = _format_elapsed(lc) if lc else "never"
+    last_check_str = format_elapsed(lc, now()) if lc else "never"
 
     lines = []
     lines.append(

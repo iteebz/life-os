@@ -11,9 +11,8 @@ from .lib import clock
 from .lib.ansi import ANSI
 from .lib.converters import row_to_habit
 from .lib.errors import exit_error
-from .lib.format import animate_check, format_status
+from .lib.format import animate_check
 from .lib.fuzzy import find_in_pool, find_in_pool_exact
-from .lib.parsing import validate_content
 from .models import Habit
 from .tag import get_tags_for_habit, load_tags_for_habits
 
@@ -40,6 +39,9 @@ __all__ = [
 # ── domain ───────────────────────────────────────────────────────────────────
 
 
+_HABIT_COLS = "id, content, created, archived_at, parent_id, private"
+
+
 def _hydrate_habit(habit: Habit, checks: list[datetime], tags: list[str]) -> Habit:
     return dataclasses.replace(habit, checks=checks, tags=tags)
 
@@ -50,6 +52,23 @@ def _get_habit_checks(conn, habit_id: str) -> list[datetime]:
         (habit_id,),
     )
     return [datetime.fromisoformat(row[0]) for row in cursor.fetchall()]
+
+
+def _fetch_habits(
+    conn: sqlite3.Connection, where: str, params: tuple[object, ...] = ()
+) -> list[Habit]:
+    """Fetch habits matching a WHERE clause and hydrate checks + tags."""
+    cursor = conn.execute(
+        f"SELECT {_HABIT_COLS} FROM habits WHERE {where}",  # noqa: S608
+        params,
+    )
+    rows = cursor.fetchall()
+    all_ids = [row[0] for row in rows]
+    tags_map = load_tags_for_habits(all_ids, conn=conn)
+    return [
+        _hydrate_habit(row_to_habit(row), _get_habit_checks(conn, row[0]), tags_map.get(row[0], []))
+        for row in rows
+    ]
 
 
 def add_habit(
@@ -118,38 +137,15 @@ def delete_habit(habit_id: str) -> None:
 def get_habits(habit_ids: list[str] | None = None, include_private: bool = True) -> list[Habit]:
     if habit_ids is None:
         private_filter = "" if include_private else " AND private = 0"
+        where = f"archived_at IS NULL{private_filter}"
         with db.get_db() as conn:
-            cursor = conn.execute(
-                f"SELECT id, content, created, archived_at, parent_id, private FROM habits WHERE archived_at IS NULL{private_filter} ORDER BY created DESC"  # noqa: S608
-            )
-            rows = cursor.fetchall()
-            all_habit_ids = [row[0] for row in rows]
-            tags_map = load_tags_for_habits(all_habit_ids, conn=conn)
-            habits = []
-            for row in rows:
-                habit_id = row[0]
-                checks = _get_habit_checks(conn, habit_id)
-                tags = tags_map.get(habit_id, [])
-                habit = row_to_habit(row)
-                habits.append(_hydrate_habit(habit, checks, tags))
-            return habits
+            return _fetch_habits(conn, f"{where} ORDER BY created DESC")
 
     if not habit_ids:
         return []
     placeholders = ",".join("?" * len(habit_ids))
     with db.get_db() as conn:
-        rows = conn.execute(
-            f"SELECT id, content, created, archived_at, parent_id, private FROM habits WHERE id IN ({placeholders})",  # noqa: S608
-            tuple(habit_ids),
-        ).fetchall()
-        tags_map = load_tags_for_habits([r[0] for r in rows], conn=conn)
-        result = []
-        for row in rows:
-            habit_id = row[0]
-            checks = _get_habit_checks(conn, habit_id)
-            tags = tags_map.get(habit_id, [])
-            result.append(_hydrate_habit(row_to_habit(row), checks, tags))
-        return result
+        return _fetch_habits(conn, f"id IN ({placeholders})", tuple(habit_ids))
 
 
 def get_checks(habit_id: str) -> list[datetime]:
@@ -192,39 +188,14 @@ def get_streak(habit_id: str) -> int:
 
 def get_subhabits(parent_id: str) -> list["Habit"]:
     with db.get_db() as conn:
-        cursor = conn.execute(
-            "SELECT id, content, created, archived_at, parent_id, private FROM habits WHERE parent_id = ? AND archived_at IS NULL ORDER BY created ASC",
-            (parent_id,),
+        return _fetch_habits(
+            conn, "parent_id = ? AND archived_at IS NULL ORDER BY created ASC", (parent_id,)
         )
-        rows = cursor.fetchall()
-        all_habit_ids = [row[0] for row in rows]
-        tags_map = load_tags_for_habits(all_habit_ids, conn=conn)
-        habits = []
-        for row in rows:
-            habit_id = row[0]
-            checks = _get_habit_checks(conn, habit_id)
-            tags = tags_map.get(habit_id, [])
-            habit = row_to_habit(row)
-            habits.append(_hydrate_habit(habit, checks, tags))
-        return habits
 
 
 def get_archived_habits() -> list[Habit]:
     with db.get_db() as conn:
-        cursor = conn.execute(
-            "SELECT id, content, created, archived_at, parent_id, private FROM habits WHERE archived_at IS NOT NULL ORDER BY archived_at DESC"
-        )
-        rows = cursor.fetchall()
-        all_habit_ids = [row[0] for row in rows]
-        tags_map = load_tags_for_habits(all_habit_ids, conn=conn)
-        habits = []
-        for row in rows:
-            habit_id = row[0]
-            checks = _get_habit_checks(conn, habit_id)
-            tags = tags_map.get(habit_id, [])
-            habit = row_to_habit(row)
-            habits.append(_hydrate_habit(habit, checks, tags))
-        return habits
+        return _fetch_habits(conn, "archived_at IS NOT NULL ORDER BY archived_at DESC")
 
 
 def archive_habit(habit_id: str) -> Habit | None:
@@ -312,36 +283,6 @@ def check_habit_cmd(habit: Habit) -> None:
 
 
 # ── cli ──────────────────────────────────────────────────────────────────────
-
-
-def habit(
-    content: list[str] | None = None,
-    tag: list[str] | None = None,
-    under: str | None = None,
-    private: bool = False,
-    log: bool = False,
-) -> None:
-    """Add daily habit or view history (--log)"""
-    from .lib.render import render_habit_matrix
-    from .lib.resolve import resolve_habit
-
-    if log or not content:
-        print(render_habit_matrix(get_habits()))
-        return
-    content_str = " ".join(content) if content else ""
-    try:
-        validate_content(content_str)
-    except ValueError as e:
-        exit_error(f"Error: {e}")
-    parent_id = None
-    if under:
-        parent = resolve_habit(under)
-        if not parent:
-            exit_error(f"No habit found matching '{under}'")
-        parent_id = parent.id
-    tags = list(tag) if tag else []
-    habit_id = add_habit(content_str, tags=tags, parent_id=parent_id, private=private)
-    print(format_status("\u25a1", content_str, habit_id))
 
 
 @cli("life")
