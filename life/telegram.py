@@ -1,18 +1,15 @@
 import contextlib
-import re
-from pathlib import Path
 from typing import Any
 
 import keyring
 import requests
-import yaml
 
 from .db import get_db
+from .lib.resolve import resolve_people_field
 
 SERVICE = "life-cli-telegram"
 TOKEN_KEY = "bot_token"  # noqa: S105
 API = "https://api.telegram.org/bot{token}"
-PEOPLE_DIR = Path.home() / "life" / "steward" / "people"
 
 _cached_token: str | None = None
 _cached_update_id: int | None = None
@@ -35,29 +32,8 @@ def _api(method: str, token: str, **kwargs: Any) -> dict[str, Any]:
 def resolve_chat_id(name: str) -> int | None:
     if name.lstrip("-").isdigit():
         return int(name)
-
-    if PEOPLE_DIR.exists():
-        name_lower = name.lower()
-        for profile in PEOPLE_DIR.glob("*.md"):
-            text = profile.read_text()
-            match = re.match(r"^---\n(.*?)\n---", text, re.DOTALL)
-            if not match:
-                continue
-            try:
-                frontmatter = yaml.safe_load(match.group(1))
-            except Exception:  # noqa: S112
-                continue
-            if not isinstance(frontmatter, dict):
-                continue
-            chat_id = frontmatter.get("telegram")
-            if not chat_id:
-                continue
-            if profile.stem.lower() == name_lower:
-                return int(chat_id)
-            name_field = frontmatter.get("name", "")
-            if isinstance(name_field, str) and name_field.lower() == name_lower:
-                return int(chat_id)
-    return None
+    result = resolve_people_field(name, "telegram")
+    return int(result) if result else None
 
 
 def send(chat_id: int, message: str, token: str | None = None) -> tuple[bool, str]:

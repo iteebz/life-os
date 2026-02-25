@@ -1,7 +1,6 @@
 import contextlib
 import re
 import sqlite3
-import sys
 import uuid
 from datetime import date as _date
 from datetime import datetime
@@ -14,7 +13,7 @@ from .lib import clock
 from .lib.ansi import ANSI
 from .lib.converters import row_to_task
 from .lib.errors import exit_error
-from .lib.format import format_status
+from .lib.format import animate_check, format_status
 from .lib.fuzzy import find_in_pool, find_in_pool_exact
 from .lib.parsing import parse_due_and_item, validate_content
 from .models import Task, TaskMutation
@@ -47,6 +46,18 @@ __all__ = [
 
 
 # ── domain ───────────────────────────────────────────────────────────────────
+
+_TASK_COLS = "id, content, focus, scheduled_date, created, completed_at, parent_id, scheduled_time, blocked_by, description, steward, source, is_deadline"
+
+
+def _fetch_tasks(
+    conn: sqlite3.Connection, where: str, params: tuple[object, ...] = ()
+) -> list[Task]:
+    cursor = conn.execute(f"SELECT {_TASK_COLS} FROM tasks WHERE {where}", params)  # noqa: S608
+    tasks = [row_to_task(row) for row in cursor.fetchall()]
+    task_ids = [t.id for t in tasks]
+    tags_map = load_tags_for_tasks(task_ids, conn=conn)
+    return hydrate_tags(tasks, tags_map)
 
 
 def _task_sort_key(task: Task) -> tuple[bool, bool, object, object]:
@@ -124,70 +135,38 @@ def add_task(
 def get_task(task_id: str) -> Task | None:
     with db.get_db() as conn:
         cursor = conn.execute(
-            "SELECT id, content, focus, scheduled_date, created, completed_at, parent_id, scheduled_time, blocked_by, description, steward, source, is_deadline FROM tasks WHERE id = ?",
+            f"SELECT {_TASK_COLS} FROM tasks WHERE id = ?",  # noqa: S608
             (task_id,),
         )
         row = cursor.fetchone()
         if not row:
             return None
-
         task = row_to_task(row)
         tags_map = load_tags_for_tasks([task_id], conn=conn)
         return hydrate_tags([task], tags_map)[0]
 
 
 def get_tasks(include_steward: bool = False) -> list[Task]:
+    where = "completed_at IS NULL" if include_steward else "completed_at IS NULL AND steward = 0"
     with db.get_db() as conn:
-        if include_steward:
-            cursor = conn.execute(
-                "SELECT id, content, focus, scheduled_date, created, completed_at, parent_id, scheduled_time, blocked_by, description, steward, source, is_deadline FROM tasks WHERE completed_at IS NULL"
-            )
-        else:
-            cursor = conn.execute(
-                "SELECT id, content, focus, scheduled_date, created, completed_at, parent_id, scheduled_time, blocked_by, description, steward, source, is_deadline FROM tasks WHERE completed_at IS NULL AND steward = 0"
-            )
-        tasks = [row_to_task(row) for row in cursor.fetchall()]
-        task_ids = [t.id for t in tasks]
-        tags_map = load_tags_for_tasks(task_ids, conn=conn)
-        result = hydrate_tags(tasks, tags_map)
-
-    return sorted(result, key=_task_sort_key)
+        tasks = _fetch_tasks(conn, where)
+    return sorted(tasks, key=_task_sort_key)
 
 
 def get_all_tasks() -> list[Task]:
     with db.get_db() as conn:
-        cursor = conn.execute(
-            "SELECT id, content, focus, scheduled_date, created, completed_at, parent_id, scheduled_time, blocked_by, description, steward, source, is_deadline FROM tasks WHERE steward = 0"
-        )
-        tasks = [row_to_task(row) for row in cursor.fetchall()]
-        task_ids = [t.id for t in tasks]
-        tags_map = load_tags_for_tasks(task_ids, conn=conn)
-        result = hydrate_tags(tasks, tags_map)
-
-    return sorted(result, key=_task_sort_key)
+        tasks = _fetch_tasks(conn, "steward = 0")
+    return sorted(tasks, key=_task_sort_key)
 
 
 def get_subtasks(parent_id: str) -> list[Task]:
     with db.get_db() as conn:
-        cursor = conn.execute(
-            "SELECT id, content, focus, scheduled_date, created, completed_at, parent_id, scheduled_time, blocked_by, description, steward, source, is_deadline FROM tasks WHERE parent_id = ?",
-            (parent_id,),
-        )
-        tasks = [row_to_task(row) for row in cursor.fetchall()]
-        task_ids = [t.id for t in tasks]
-        tags_map = load_tags_for_tasks(task_ids, conn=conn)
-        return hydrate_tags(tasks, tags_map)
+        return _fetch_tasks(conn, "parent_id = ?", (parent_id,))
 
 
 def get_focus() -> list[Task]:
     with db.get_db() as conn:
-        cursor = conn.execute(
-            "SELECT id, content, focus, scheduled_date, created, completed_at, parent_id, scheduled_time, blocked_by, description, steward, source, is_deadline FROM tasks WHERE focus = 1 AND completed_at IS NULL AND steward = 0"
-        )
-        tasks = [row_to_task(row) for row in cursor.fetchall()]
-        task_ids = [t.id for t in tasks]
-        tags_map = load_tags_for_tasks(task_ids, conn=conn)
-        return hydrate_tags(tasks, tags_map)
+        return _fetch_tasks(conn, "focus = 1 AND completed_at IS NULL AND steward = 0")
 
 
 _TRACKED_FIELDS = {
@@ -220,34 +199,33 @@ def _record_mutations(
         _record_mutation(conn, task_id, field, getattr(old, field, None), new_val)
 
 
-_UNSET: object = object()
-UNSET = _UNSET
+UNSET: object = object()
 
 
 def update_task(
     task_id: str,
     content: str | None = None,
     focus: bool | None = None,
-    scheduled_date: str | object = _UNSET,
-    scheduled_time: str | object = _UNSET,
-    is_deadline: bool | object = _UNSET,
-    parent_id: str | object = _UNSET,
-    description: str | object = _UNSET,
+    scheduled_date: str | object = UNSET,
+    scheduled_time: str | object = UNSET,
+    is_deadline: bool | object = UNSET,
+    parent_id: str | object = UNSET,
+    description: str | object = UNSET,
 ) -> Task | None:
     updates = {}
     if content is not None:
         updates["content"] = content
     if focus is not None:
         updates["focus"] = focus
-    if scheduled_date is not _UNSET:
+    if scheduled_date is not UNSET:
         updates["scheduled_date"] = scheduled_date
-    if scheduled_time is not _UNSET:
+    if scheduled_time is not UNSET:
         updates["scheduled_time"] = scheduled_time
-    if is_deadline is not _UNSET:
+    if is_deadline is not UNSET:
         updates["is_deadline"] = is_deadline
-    if parent_id is not _UNSET:
+    if parent_id is not UNSET:
         updates["parent_id"] = parent_id
-    if description is not _UNSET:
+    if description is not UNSET:
         updates["description"] = description
 
     if updates:
@@ -450,14 +428,9 @@ def check_task_cmd(task: Task) -> None:
     if task.completed_at:
         exit_error(f"'{task.content}' is already done")
     _, parent_completed = check_task(task.id)
-    _animate_check(task.content.lower())
+    animate_check(task.content.lower())
     if parent_completed:
-        _animate_check(parent_completed.content.lower())
-
-
-def _animate_check(label: str) -> None:
-    sys.stdout.write(f"  {ANSI.GREEN}\u2713{ANSI.RESET} {ANSI.GREY}{label}{ANSI.RESET}\n")
-    sys.stdout.flush()
+        animate_check(parent_completed.content.lower())
 
 
 def _fmt_date_label(date_str: str) -> str:

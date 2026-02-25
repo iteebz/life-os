@@ -2,16 +2,14 @@ import json
 import re
 import subprocess
 from datetime import datetime
-from pathlib import Path
 from typing import Any
 
-import yaml
 from fncli import cli
 
 from .lib.errors import exit_error
+from .lib.resolve import resolve_people_field
 
 SIGNAL_CLI = "signal-cli"
-PEOPLE_DIR = Path.home() / "life" / "steward" / "people"
 
 
 def _default_account() -> str | None:
@@ -32,50 +30,15 @@ def _default_account() -> str | None:
 def resolve_contact(name_or_number: str) -> str:
     if name_or_number.startswith("+") or name_or_number.lstrip("0").isdigit():
         return name_or_number
-
-    if not PEOPLE_DIR.exists():
-        return name_or_number
-
-    name_lower = name_or_number.lower()
-    for profile in PEOPLE_DIR.glob("*.md"):
-        text = profile.read_text()
-        match = re.match(r"^---\n(.*?)\n---", text, re.DOTALL)
-        if not match:
-            continue
-        try:
-            frontmatter = yaml.safe_load(match.group(1))
-        except Exception:  # noqa: S112
-            continue
-        if not isinstance(frontmatter, dict):
-            continue
-        signal_num = frontmatter.get("signal")
-        if not signal_num:
-            continue
-        if profile.stem.lower() == name_lower:
-            return str(signal_num)
-        name_field = frontmatter.get("name", "")
-        if isinstance(name_field, str) and name_field.lower() == name_lower:
-            return str(signal_num)
-
-    return name_or_number
+    result = resolve_people_field(name_or_number, "signal")
+    return result if result else name_or_number
 
 
 def send(recipient: str, message: str, attachment: str | None = None) -> tuple[bool, str]:
     phone = _default_account()
     if not phone:
         return False, "no Signal account registered with signal-cli"
-
-    cmd = [SIGNAL_CLI, "-a", phone, "send"]
-    if attachment:
-        cmd.extend(["--attachment", attachment])
-    cmd.extend(["-m", message, recipient])
-
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-    success = result.returncode == 0
-    _track_outbound(recipient, message, success=success)
-    if success:
-        return True, "sent"
-    return False, result.stderr.strip() or "send failed"
+    return send_to(phone, recipient, message, attachment=attachment)
 
 
 def send_to(

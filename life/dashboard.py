@@ -1,10 +1,8 @@
 from . import db
-from .habits import get_habit
+from .habits import get_habits
 from .lib import clock
-from .lib.converters import row_to_task
 from .models import Habit, Task
-from .tag import hydrate_tags, load_tags_for_tasks
-from .tasks import _task_sort_key, get_tasks
+from .tasks import _fetch_tasks, _task_sort_key, get_tasks
 
 __all__ = [
     "get_day_breakdown",
@@ -19,66 +17,50 @@ def _get_checked_today() -> list[Habit]:
     """Internal: SELECT habits with checks WHERE check_date = today."""
     today_str = clock.today().isoformat()
     with db.get_db() as conn:
-        cursor = conn.execute(
+        rows = conn.execute(
             """
-            SELECT DISTINCT h.id, h.content, h.created
+            SELECT DISTINCT h.id
             FROM habits h
             INNER JOIN checks c ON h.id = c.habit_id
             WHERE DATE(c.check_date) = DATE(?)
             ORDER BY h.created DESC
             """,
             (today_str,),
-        )
-        habits = []
-        for row in cursor.fetchall():
-            habit_id = row[0]
-            habit = get_habit(habit_id)
-            if habit:
-                habits.append(habit)
-        return habits
+        ).fetchall()
+    habit_ids = [r[0] for r in rows]
+    return get_habits(habit_ids=habit_ids)
 
 
 def _get_completed_today() -> list[Task]:
     """Internal: SELECT completed tasks from today."""
     today_str = clock.today().isoformat()
     with db.get_db() as conn:
-        cursor = conn.execute(
-            "SELECT id, content, focus, scheduled_date, created, completed_at, parent_id, scheduled_time, blocked_by, description, steward, source, is_deadline FROM tasks WHERE date(completed_at) = ? AND completed_at IS NOT NULL",
+        return _fetch_tasks(
+            conn,
+            "date(completed_at) = ? AND completed_at IS NOT NULL",
             (today_str,),
         )
-        tasks = [row_to_task(row) for row in cursor.fetchall()]
-        task_ids = [t.id for t in tasks]
-        tags_map = load_tags_for_tasks(task_ids, conn=conn)
-        return hydrate_tags(tasks, tags_map)
 
 
 def get_day_completed(date_str: str) -> list[Task | Habit]:
     """Get tasks and habits completed on a given date (YYYY-MM-DD)."""
     with db.get_db() as conn:
-        cursor = conn.execute(
-            "SELECT id, content, focus, scheduled_date, created, completed_at, parent_id, scheduled_time, blocked_by, description, steward, source, is_deadline FROM tasks WHERE date(completed_at) = ? AND completed_at IS NOT NULL",
+        completed_tasks = _fetch_tasks(
+            conn,
+            "date(completed_at) = ? AND completed_at IS NOT NULL",
             (date_str,),
         )
-        tasks = [row_to_task(row) for row in cursor.fetchall()]
-        task_ids = [t.id for t in tasks]
-        tags_map = load_tags_for_tasks(task_ids, conn=conn)
-        completed_tasks = hydrate_tags(tasks, tags_map)
-
-        cursor = conn.execute(
+        habit_id_rows = conn.execute(
             """
-            SELECT DISTINCT h.id, h.content, h.created
+            SELECT DISTINCT h.id
             FROM habits h
             INNER JOIN checks c ON h.id = c.habit_id
             WHERE DATE(c.check_date) = DATE(?)
             """,
             (date_str,),
-        )
-        completed_habits: list[Habit] = []
-        for row in cursor.fetchall():
-            habit = get_habit(row[0])
-            if habit:
-                completed_habits.append(habit)
-
+        ).fetchall()
+    habit_ids = [r[0] for r in habit_id_rows]
+    completed_habits = get_habits(habit_ids=habit_ids)
     return [*completed_tasks, *completed_habits]
 
 
@@ -121,39 +103,9 @@ def get_pending_items(asc: bool = True, include_steward: bool = False) -> list[T
 
 def get_today_completed() -> list[Task | Habit]:
     """Get tasks and habits completed today."""
-    completed_tasks = _get_completed_today()
-    completed_habits = _get_checked_today()
-    return completed_tasks + completed_habits
+    return [*_get_completed_today(), *_get_checked_today()]
 
 
-def get_today_breakdown():
+def get_today_breakdown() -> tuple[int, int, int, int]:
     """Get count of tasks and habits completed today, and items added today."""
-    today_str = clock.today().isoformat()
-    with db.get_db() as conn:
-        cursor = conn.execute(
-            "SELECT COUNT(DISTINCT habit_id) FROM checks WHERE DATE(check_date) = DATE(?)",
-            (today_str,),
-        )
-        habits_today = cursor.fetchone()[0]
-
-        cursor = conn.execute(
-            "SELECT COUNT(*) FROM tasks WHERE DATE(created) = DATE(?)",
-            (today_str,),
-        )
-        tasks_added = cursor.fetchone()[0]
-
-        cursor = conn.execute(
-            "SELECT COUNT(*) FROM habits WHERE DATE(created) = DATE(?)",
-            (today_str,),
-        )
-        habits_added = cursor.fetchone()[0]
-
-        cursor = conn.execute(
-            "SELECT COUNT(*) FROM deleted_tasks WHERE DATE(deleted_at) = DATE(?)",
-            (today_str,),
-        )
-        tasks_deleted = cursor.fetchone()[0]
-
-    tasks_today = len(_get_completed_today())
-    added_today = tasks_added + habits_added
-    return habits_today, tasks_today, added_today, tasks_deleted
+    return get_day_breakdown(clock.today().isoformat())

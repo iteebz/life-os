@@ -1,13 +1,20 @@
+import sys
 from datetime import date
 
 from .ansi import ANSI
 
 __all__ = [
+    "animate_check",
     "format_due",
     "format_habit",
     "format_status",
     "format_task",
 ]
+
+
+def animate_check(label: str) -> None:
+    sys.stdout.write(f"  {ANSI.GREEN}\u2713{ANSI.RESET} {ANSI.GREY}{label}{ANSI.RESET}\n")
+    sys.stdout.flush()
 
 
 def _format_tags(tags: list[str]) -> str:

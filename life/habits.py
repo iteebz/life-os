@@ -11,7 +11,7 @@ from .lib import clock
 from .lib.ansi import ANSI
 from .lib.converters import row_to_habit
 from .lib.errors import exit_error
-from .lib.format import format_status
+from .lib.format import animate_check, format_status
 from .lib.fuzzy import find_in_pool, find_in_pool_exact
 from .lib.parsing import validate_content
 from .models import Habit
@@ -134,12 +134,22 @@ def get_habits(habit_ids: list[str] | None = None, include_private: bool = True)
                 habits.append(_hydrate_habit(habit, checks, tags))
             return habits
 
-    result = []
-    for habit_id in habit_ids:
-        habit = get_habit(habit_id)
-        if habit:
-            result.append(habit)
-    return result
+    if not habit_ids:
+        return []
+    placeholders = ",".join("?" * len(habit_ids))
+    with db.get_db() as conn:
+        rows = conn.execute(
+            f"SELECT id, content, created, archived_at, parent_id, private FROM habits WHERE id IN ({placeholders})",  # noqa: S608
+            tuple(habit_ids),
+        ).fetchall()
+        tags_map = load_tags_for_habits([r[0] for r in rows], conn=conn)
+        result = []
+        for row in rows:
+            habit_id = row[0]
+            checks = _get_habit_checks(conn, habit_id)
+            tags = tags_map.get(habit_id, [])
+            result.append(_hydrate_habit(row_to_habit(row), checks, tags))
+        return result
 
 
 def get_checks(habit_id: str) -> list[datetime]:
@@ -298,14 +308,7 @@ def check_habit_cmd(habit: Habit) -> None:
     if updated:
         checked_today = any(c.date() == today() for c in updated.checks)
         if checked_today:
-            _animate_check(habit.content.lower())
-
-
-def _animate_check(label: str) -> None:
-    import sys
-
-    sys.stdout.write(f"  {ANSI.GREEN}\u2713{ANSI.RESET} {ANSI.GREY}{label}{ANSI.RESET}\n")
-    sys.stdout.flush()
+            animate_check(habit.content.lower())
 
 
 # ── cli ──────────────────────────────────────────────────────────────────────
