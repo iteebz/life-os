@@ -49,6 +49,17 @@ def _log_achievement(name: str, tags: str | None = None) -> None:
     print(f"★ {name}")
 
 
+@cli("life add", name="h", flags={"tag": ["-t", "--tag"]})
+def add_habit_cmd(content: list[str], tag: list[str] | None = None):
+    """Add a habit"""
+    from .habits import add_habit as _add
+
+    name = " ".join(content)
+    _add(name, tags=tag)
+    suffix = " " + " ".join(f"#{t}" for t in tag) if tag else ""
+    print(f"→ {name}{suffix}")
+
+
 @cli("life add", name="t", flags={"tag": ["-t", "--tag"]})
 def add_task_cmd(
     content: list[str], tag: list[str] | None = None, due: str | None = None, focus: bool = False
