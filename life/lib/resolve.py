@@ -49,7 +49,11 @@ def resolve_people_field(name: str, field: str) -> str | None:
 
 
 def resolve_task(ref: str) -> Task:
-    task = find_task(ref)
+    task = find_task_exact(ref)
+    if not task:
+        task = find_task(ref)
+        if task:
+            print(f"→ matched: {task.content}")
     if not task:
         exit_error(f"No task found: '{ref}'")
     return task

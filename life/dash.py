@@ -144,3 +144,22 @@ def _show_day(target: date) -> None:
 def momentum() -> None:
     """Momentum and weekly trends"""
     print(render_momentum(weekly_momentum()))
+
+
+@cli("life")
+def ls(tag: str | None = None, overdue: bool = False) -> None:
+    """List tasks with optional filters (--tag <tag>, --overdue)"""
+    from .lib.clock import today as _today
+    from .lib.format import format_task
+
+    tasks = get_tasks()
+    if tag:
+        tasks = [t for t in tasks if tag in (t.tags or [])]
+    if overdue:
+        today_date = _today()
+        tasks = [t for t in tasks if t.scheduled_date and t.scheduled_date < today_date]
+    if not tasks:
+        print("no tasks")
+        return
+    for t in tasks:
+        print(f"  □ {format_task(t, tags=t.tags, show_id=True)}")
