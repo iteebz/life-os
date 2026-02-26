@@ -1,14 +1,40 @@
-Read ARCH.md for structure and layer boundaries.
+Entry: `life/cli.py`. Domain: `life/tasks.py`, `life/habits.py`, etc. Infrastructure: `life/lib/`. Output via `echo()`, errors via `exit_error()` — `life/lib/errors.py`.
 
-The CLI entry point is `life/cli.py`. Domain logic lives in `life/tasks.py`, `life/habits.py` etc. Shared infrastructure is in `life/lib/`. Output via `echo()`, errors via `exit_error()` — both in `life/lib/errors.py`.
+Resolve refs at CLI boundary via `lib/resolve.py`. `resolve_task(ref)` / `resolve_item(ref)` — domain functions only receive IDs. Fuzzy match: UUID prefix → substring → fuzzy (0.8 cutoff). Fuzzy hits print `→ matched: <content>`.
 
-Resolve user refs (fuzzy string, UUID prefix) at the CLI boundary using `lib/resolve.py`. Commands call `resolve_task(ref)` / `resolve_item(ref)` — domain functions only ever receive IDs.
+## Structure
 
-Outstanding debt tracked in `~/life/brr/IMPROVEMENTS.md`.
+```
+life/
+  cli.py        — dispatch entry point
+  add.py        — life add subcommands (t, h, o, p, l, a)
+  dash.py       — dashboard, status, ls, momentum, stats, view
+  tasks.py      — task CRUD, find_task*, schedule
+  habits.py     — habit CRUD + check tracking
+  items.py      — done, rm, rename, focus (unified task/habit)
+  models.py     — Task, Habit, TaskMutation (no deps)
+  db.py         — SQLite + migrations
+  lib/          — shared infrastructure (no domain imports except resolve.py)
+    errors.py   — echo(), exit_error()
+    fuzzy.py    — UUID prefix → substring → fuzzy
+    resolve.py  — CLI boundary resolver
+    render.py   — dashboard + habit matrix
+    format.py   — format_task(), format_habit()
+    clock.py    — today(), now()
+```
+
+## Layer rule
+
+Higher imports lower, never upward. `lib/` is clean except `resolve.py` (intentional boundary layer).
 
 ## Key primitives
 
-- `life defer <task> --reason <why>` — explicit deferral, logged to `task_mutations` with `field=defer` and reason. Does not reschedule. Use `life schedule` or `life now` to reschedule separately.
-- `life now <task>` — set due=today, due_time=current time.
-- `life schedule <HH:MM> <task>` — set scheduled time only.
-- `life task <content> --under <parent>` — create subtask (fuzzy match on parent). One level deep only.
+- `life add t "<name>" -t <tag>` — add task
+- `life add h "<name>" -t <tag>` — add habit
+- `life defer <task> --reason <why>` — defer, logs to task_mutations. Does not reschedule.
+- `life schedule <HH:MM> <task>` — set time only
+- `life now <task>` — due=today, time=now
+- `life due <when> <task>` — set deadline
+- `life ls [--tag <tag>] [--overdue]` — filtered task list
+
+Outstanding debt: `~/life/brr/IMPROVEMENTS.md`
