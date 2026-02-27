@@ -52,8 +52,13 @@ def mark_improvement_done(query: str) -> Improvement | None:
     improvements = get_improvements()
     if not improvements:
         return None
-    q = query.lower()
-    matches = [i for i in improvements if q in i.body.lower()]
+    # try ID first
+    try:
+        imp_id = int(query)
+        matches = [i for i in improvements if i.id == imp_id]
+    except ValueError:
+        q = query.lower()
+        matches = [i for i in improvements if q in i.body.lower()]
     if not matches:
         return None
     target = matches[0]
