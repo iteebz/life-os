@@ -214,6 +214,9 @@ def _section_done(
         if isinstance(item, Task) and item.completed_at:
             return item.completed_at
         if isinstance(item, Habit) and item.checks:
+            day_checks = [c for c in item.checks if c.date() == target]
+            if day_checks:
+                return max(day_checks)
             return max(item.checks)
         return item.created
 
