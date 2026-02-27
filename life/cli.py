@@ -1,38 +1,14 @@
 import sys
+from pathlib import Path
 
-from . import achievements as _achievements
-from . import add as _add
-from . import backup as _backup
-from . import daemon as _daemon
-from . import dash as _dash
-from . import dates as _dates
+import fncli
+
 from . import db
-from . import habits as _habits
-from . import items as _items
-from . import mood as _mood
-from . import patterns as _patterns
-from . import tag as _tags
-from . import tasks as _tasks
-
-_ = (
-    _backup,
-    _daemon,
-    _achievements,
-    _add,
-    _dash,
-    _dates,
-    _items,
-    _mood,
-    _patterns,
-    _tasks,
-    _habits,
-    _tags,
-)
 
 
 def main():
     db.init()
-    from fncli import dispatch
+    fncli.autodiscover(Path(__file__).parent, "life")
 
     user_args = sys.argv[1:]
     if not user_args or user_args == ["-v"] or user_args == ["--verbose"]:
@@ -41,7 +17,7 @@ def main():
         dashboard(verbose="--verbose" in user_args or "-v" in user_args)
         return
     argv = ["life", *user_args]
-    code = dispatch(argv)
+    code = fncli.dispatch(argv)
     sys.exit(code)
 
 
