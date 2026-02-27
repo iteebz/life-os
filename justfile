@@ -20,7 +20,6 @@ bin:
         SCRIPT=~/bin/$BIN
         printf '#!/bin/sh\n# managed by space launch\ncd %s || exit 1\nexec %s run "$(basename "$0")" "$@"\n' "$REPO" "$UV" > "$SCRIPT"
         chmod 755 "$SCRIPT"
-        echo "installed ~/bin/$BIN"
     done
 
 lint:
