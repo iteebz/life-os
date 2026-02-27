@@ -167,7 +167,7 @@ def _render_upcoming_dates() -> list[str]:
         return []
     if not upcoming:
         return []
-    lines = []
+    lines = [""]
     type_emoji = {"birthday": "🎂", "anniversary": "💍", "deadline": "⚠️", "other": "📌"}
     for d in upcoming:
         emoji = type_emoji.get(d["type"], "📌")
