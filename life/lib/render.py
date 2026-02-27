@@ -245,24 +245,6 @@ def _section_done(
     return lines
 
 
-def _section_dates() -> list[str]:
-    from life.lib.dates import upcoming_dates
-
-    try:
-        upcoming = upcoming_dates(within_days=14)
-    except Exception:
-        return []
-    if not upcoming:
-        return []
-    type_emoji = {"birthday": "🎂", "anniversary": "💍", "deadline": "⚠️", "other": "📌"}
-    lines = []
-    for d in upcoming:
-        emoji = type_emoji.get(d["type"], "📌")
-        days_str = "today!" if d["days_until"] == 0 else f"in {d['days_until']}d"
-        lines.append(f"{emoji} {d['name']} — {days_str}")
-    return lines
-
-
 def _section_overdue(tasks: list[Task], ctx: RenderCtx) -> tuple[list[str], set[str]]:
     lines = [f"\n{_active.bold}{_active.red}OVERDUE{_R}"]
     scheduled_ids: set[str] = set()
@@ -281,18 +263,29 @@ def _section_overdue(tasks: list[Task], ctx: RenderCtx) -> tuple[list[str], set[
     return lines, scheduled_ids
 
 
+_EVENT_EMOJI: dict[str, str] = {
+    "birthday": "🎂",
+    "anniversary": "💍",
+    "deadline": "⚠️",
+    "other": "📌",
+}
+
+
 def _section_schedule(
     tasks: list[Task],
     label: str,
     ctx: RenderCtx,
     is_today: bool = False,
+    events: list[dict[str, object]] | None = None,
 ) -> tuple[list[str], set[str]]:
-    if not tasks:
+    all_events = events or []
+    if not tasks and not all_events:
         if is_today:
             return [f"\n{bold(white(label + ' (0)'))}", f"  {gray('nothing scheduled.')}"], set()
         return [], set()
 
-    lines = [f"\n{bold(white(label + f' ({len(tasks)})'))}"]
+    count = len(tasks) + len(all_events)
+    lines = [f"\n{bold(white(label + f' ({count})'))}"]
     scheduled_ids: set[str] = set()
 
     if is_today:
@@ -339,6 +332,10 @@ def _section_schedule(
             lines.append(
                 f"  □ {time_str}{task.content.lower()}{tags_str}{fire}{parent_hint}{id_str}"
             )
+
+    for event in all_events:
+        emoji = _EVENT_EMOJI.get(str(event.get("type", "")), "📌")
+        lines.append(f"  {emoji} {str(event.get('name', '')).lower()}")
 
     return lines, scheduled_ids
 
@@ -397,11 +394,17 @@ def render_dashboard(
     habits = [i for i in items if isinstance(i, Habit)]
     total_habits = len({h.id for h in habits})
 
+    from .dates import upcoming_dates
+
+    upcoming_by_date: dict[date, list[dict[str, object]]] = {}
+    for ev in upcoming_dates(within_days=14):
+        ev_date = ctx.today + timedelta(days=ev["days_until"])
+        upcoming_by_date.setdefault(ev_date, []).append(ev)
+
     lines: list[str] = []
     lines += _section_header(
         ctx.today, tasks_today, habits_today, total_habits, added_today, deleted_today
     )
-    lines += _section_dates()
 
     done_lines = _section_done(today_items or [], ctx)
     if done_lines:
@@ -427,7 +430,9 @@ def render_dashboard(
         and t.scheduled_date.isoformat() == today_str
         and t.id not in ctx.subtask_ids
     ]
-    today_lines, today_ids = _section_schedule(due_today, "TODAY", ctx, is_today=True)
+    today_lines, today_ids = _section_schedule(
+        due_today, "TODAY", ctx, is_today=True, events=upcoming_by_date.get(ctx.today, [])
+    )
     lines += today_lines
     scheduled_ids |= today_ids
 
@@ -436,15 +441,22 @@ def render_dashboard(
     all_habits = list(set(habits + today_habit_items))
     lines += _section_habits(all_habits, checked_ids, ctx)
 
-    for offset in range(1, 8):
+    for offset in range(1, 15):
         day = ctx.today + timedelta(days=offset)
-        label = "TOMORROW" if offset == 1 else day.strftime("%A").upper()
+        if offset == 1:
+            label = "TOMORROW"
+        elif offset <= 7:
+            label = day.strftime("%A").upper()
+        else:
+            label = day.strftime("%-d %b").upper()
         due_day = [
             t
             for t in ctx.pending
             if t.scheduled_date and t.scheduled_date == day and t.id not in ctx.subtask_ids
         ]
-        day_lines, day_ids = _section_schedule(due_day, label, ctx)
+        day_lines, day_ids = _section_schedule(
+            due_day, label, ctx, events=upcoming_by_date.get(day, [])
+        )
         lines += day_lines
         scheduled_ids |= day_ids
 

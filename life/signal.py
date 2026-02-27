@@ -423,7 +423,7 @@ def signal_history(contact: str, limit: int = 20):
         return
     for msg in reversed(msgs):
         sender = msg.get("peer_name") or msg.get("peer", "?")
-        ts = datetime.fromtimestamp(msg["timestamp"] / 1000).strftime("%m-%d %H:%M")
+        ts = datetime.fromtimestamp(msg["timestamp"] / 1000).strftime("%d/%m %H:%M")
         mid = msg["id"][:8] if msg.get("id") else ""
         print(f"{mid} [{ts}] {sender}: {msg['body']}")
 

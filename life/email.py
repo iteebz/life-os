@@ -26,7 +26,7 @@ def inbox(limit: int = 20):
         print("inbox empty")
         return
     for item in items:
-        ts = datetime.fromtimestamp(item.timestamp / 1000).strftime("%m-%d %H:%M")
+        ts = datetime.fromtimestamp(item.timestamp / 1000).strftime("%d/%m %H:%M")
         unread = "●" if item.unread else " "
         print(f"{unread} [{ts}] {item.sender[:25]:25} {item.preview}")
 
