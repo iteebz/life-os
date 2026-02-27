@@ -619,7 +619,12 @@ def defer(ref: list[str], reason: str) -> None:
     print(f"\u2192 {t.content.lower()} deferred: {reason}")
 
 
-@cli("life")
+@cli(
+    "life",
+    help={
+        "ref": "[DATE] [TIME] <task>  e.g. '14:00 call jeff', 'tomorrow 14:00 call jeff', '2026-03-01 09:00 dentist'"
+    },
+)
 def schedule(ref: list[str], remove: bool = False) -> None:
     """Schedule task"""
     if remove:
