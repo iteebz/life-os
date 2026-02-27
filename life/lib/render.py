@@ -190,13 +190,16 @@ def _row_habit(
 def _section_header(
     today: date, tasks_done: int, habits_done: int, total_habits: int, added: int, deleted: int
 ) -> list[str]:
-    lines = [f"\n{bold(white(today.strftime('%a') + ' · ' + today.strftime('%-d %b %Y')))}"]
+    time_str = clock.now().strftime("%H:%M")
+    lines = [
+        f"\n{bold(white(today.strftime('%a') + ' · ' + today.strftime('%-d %b %Y') + ' · ' + time_str))}"
+    ]
     lines.append(f"{_GREY}done:{_R} {green(str(tasks_done))}")
     lines.append(f"{_GREY}habits:{_R} {cyan(str(habits_done))}{_GREY}/{total_habits}{_R}")
     if added:
         lines.append(f"{_GREY}added:{_R} {gold(str(added))}")
     if deleted:
-        lines.append(f"{_GREY}deleted:{_R} {red(str(deleted))}")
+        lines.append(f"{_GREY}removed:{_R} {red(str(deleted))}")
     return lines
 
 
@@ -220,7 +223,7 @@ def _section_done(
             return max(item.checks)
         return item.created
 
-    lines = [bold(green("DONE"))] if show_header else []
+    lines = [bold(green(f"DONE ({len(items)})"))] if show_header else []
     for item in sorted(items, key=_sort_key):
         tags_str = _fmt_tags(item.tags, ctx.tag_colors)
         content = item.content.lower()
@@ -286,10 +289,10 @@ def _section_schedule(
 ) -> tuple[list[str], set[str]]:
     if not tasks:
         if is_today:
-            return [f"\n{bold(white(label))}", f"  {gray('nothing scheduled.')}"], set()
+            return [f"\n{bold(white(label + ' (0)'))}", f"  {gray('nothing scheduled.')}"], set()
         return [], set()
 
-    lines = [f"\n{bold(white(label))}"]
+    lines = [f"\n{bold(white(label + f' ({len(tasks)})'))}"]
     scheduled_ids: set[str] = set()
 
     if is_today:
@@ -428,6 +431,11 @@ def render_dashboard(
     lines += today_lines
     scheduled_ids |= today_ids
 
+    today_habit_items = [i for i in (today_items or []) if isinstance(i, Habit)]
+    checked_ids = {i.id for i in today_habit_items}
+    all_habits = list(set(habits + today_habit_items))
+    lines += _section_habits(all_habits, checked_ids, ctx)
+
     for offset in range(1, 8):
         day = ctx.today + timedelta(days=offset)
         label = "TOMORROW" if offset == 1 else day.strftime("%A").upper()
@@ -439,11 +447,6 @@ def render_dashboard(
         day_lines, day_ids = _section_schedule(due_day, label, ctx)
         lines += day_lines
         scheduled_ids |= day_ids
-
-    today_habit_items = [i for i in (today_items or []) if isinstance(i, Habit)]
-    checked_ids = {i.id for i in today_habit_items}
-    all_habits = list(set(habits + today_habit_items))
-    lines += _section_habits(all_habits, checked_ids, ctx)
 
     completed_today_tasks = [i for i in (today_items or []) if isinstance(i, Task)]
     completed_subs: dict[str, list[Task]] = {}
@@ -480,7 +483,7 @@ def render_day_summary(
     if added:
         lines.append(f"{_GREY}added:{_R} {gold(str(added))}")
     if deleted:
-        lines.append(f"{_GREY}deleted:{_R} {red(str(deleted))}")
+        lines.append(f"{_GREY}removed:{_R} {red(str(deleted))}")
     if mood:
         score, label = mood
         bar = "█" * score + "░" * (5 - score)
