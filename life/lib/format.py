@@ -41,7 +41,7 @@ def render_done_row(
     check = ansi.purple("✓") if is_habit else ansi.green("✓")
     tag_str = ""
     if tags:
-        parts = [f"{ansi.POOL[hash(t) % len(ansi.POOL)]}#{t}{r}" for t in tags]
+        parts = [f"{ansi.POOL[hash(t) % len(ansi.POOL)][0]}#{t}{r}" for t in tags]
         tag_str = " " + " ".join(parts)
     id_str = f" {grey}[{item_id[:8]}]{r}"
     time_part = f"{grey}{time_str}{r} " if time_str else ""
@@ -54,7 +54,7 @@ def render_uncheck_row(content: str, tags: list[str], item_id: str) -> None:
     grey = ansi._active.muted
     tag_str = ""
     if tags:
-        parts = [f"{ansi.POOL[hash(t) % len(ansi.POOL)]}#{t}{r}" for t in tags]
+        parts = [f"{ansi.POOL[hash(t) % len(ansi.POOL)][0]}#{t}{r}" for t in tags]
         tag_str = " " + " ".join(parts)
     id_str = f" {grey}[{item_id[:8]}]{r}"
     sys.stdout.write(f"  □ {content}{tag_str}{id_str}\n")

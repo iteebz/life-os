@@ -83,7 +83,7 @@ def _tag_colors(entries: list[Achievement]) -> dict[str, str]:
         if e.tags:
             all_tags.extend(t.strip() for t in e.tags.split(","))
     unique = sorted(set(all_tags))
-    return {tag: POOL[i % len(POOL)] for i, tag in enumerate(unique)}
+    return {tag: POOL[i % len(POOL)][0] for i, tag in enumerate(unique)}
 
 
 def _print_achievements(entries: list[Achievement]) -> None:

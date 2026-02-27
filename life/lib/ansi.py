@@ -81,15 +81,15 @@ _COLORS = {
     "muted",
 }
 
-POOL: list[str] = [
-    "\033[38;5;223m",  # pale-gold
-    "\033[38;5;215m",  # apricot
-    "\033[38;5;210m",  # salmon
-    "\033[38;5;219m",  # pale-pink
-    "\033[38;5;177m",  # orchid
-    "\033[38;5;111m",  # cornflower
-    "\033[38;5;158m",  # pale-mint
-    "\033[38;5;116m",  # seafoam
+POOL: list[tuple[str, str]] = [
+    ("\033[38;5;209m", "coral"),  # orange-red   ~15°
+    ("\033[38;5;215m", "apricot"),  # orange       ~30°
+    ("\033[38;5;149m", "lime"),  # yellow-green ~80°
+    ("\033[38;5;158m", "pale-mint"),  # mint-green   ~150°
+    ("\033[38;5;116m", "seafoam"),  # teal         ~175°
+    ("\033[38;5;81m", "sky"),  # cyan-blue    ~195°
+    ("\033[38;5;204m", "rose"),  # hot pink     ~320°
+    ("\033[38;5;217m", "peach"),  # soft pink    ~340°
 ]
 
 

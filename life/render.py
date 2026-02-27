@@ -8,7 +8,7 @@ from life.habits import get_subhabits
 from life.tasks import _task_sort_key
 
 from .lib import clock
-from .lib.ansi import POOL, _active, bold, coral, dim, gold, gray, green, purple, red, white
+from .lib.ansi import POOL, _active, bold, dim, gold, gray, green, purple, red, white
 from .lib.format import format_habit, format_task
 
 __all__ = [
@@ -49,7 +49,7 @@ def _fmt_rel_date(
         label = f"{day_label}·{time}" if time else day_label
     else:
         label = f"+{delta}d"
-    return coral(label) if is_deadline else label
+    return red(label) if is_deadline else label
 
 
 def _fmt_tags(tags: list[str], tag_colors: dict[str, str]) -> str:
@@ -69,7 +69,7 @@ def _get_direct_tags(task: Task, pending: list[Task]) -> list[str]:
 
 def _build_tag_colors(items: Sequence[Task | Habit]) -> dict[str, str]:
     tags = sorted({tag for item in items for tag in item.tags})
-    pool = random.sample(POOL, len(POOL))
+    pool = random.sample([code for code, _ in POOL], len(POOL))
     return {tag: pool[i % len(pool)] for i, tag in enumerate(tags)}
 
 
@@ -560,7 +560,7 @@ def _block_task(
         date_str = task.scheduled_date.isoformat()
         if task.scheduled_time:
             date_str += f" {_fmt_time(task.scheduled_time)}"
-        lines.append(f"{indent}  {coral(label) if task.is_deadline else label}: {date_str}")
+        lines.append(f"{indent}  {red(label) if task.is_deadline else label}: {date_str}")
     if task.description:
         lines.append(f"{indent}  {task.description}")
     if task.blocked_by:

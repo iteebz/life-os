@@ -10,6 +10,8 @@ from .dashboard import (
     get_today_completed,
 )
 from .habits import get_habits
+from .lib import ansi
+from .lib.ansi import POOL
 from .lib.clock import now, today
 from .lib.format import format_elapsed
 from .metrics import build_feedback_snapshot, render_feedback_snapshot
@@ -208,3 +210,25 @@ def ls(tag: str | None = None, overdue: bool = False, json: bool = False) -> Non
         return
     for t in tasks:
         print(f"  □ {format_task(t, tags=t.tags, show_id=True)}")
+
+
+@cli("life")
+def colors() -> None:
+    """Show the color palette"""
+    r = ansi._active.reset
+    grey = ansi._active.muted
+    lines = [f"\n{ansi.bold(ansi.white('POOL (tag colors)'))}\n"]
+    for code, name in POOL:
+        lines.append(f"  {code}██{r}  {name}")
+    lines.append(f"\n{ansi.bold(ansi.white('RESERVED'))}\n")
+    reserved = [
+        (ansi._active.green, "tasks", "green"),
+        (ansi._active.purple, "habits", "purple"),
+        (ansi._active.gold, "added", "gold"),
+        (ansi._active.red, "removed + deadlines", "red"),
+        (ansi._active.white, "headers", "white"),
+        (ansi._active.muted, "muted", "gray"),
+    ]
+    for code, label, name in reserved:
+        lines.append(f"  {code}██{r}  {grey}{label}{r}  {name}")
+    print("\n".join(lines))
