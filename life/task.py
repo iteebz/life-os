@@ -715,6 +715,6 @@ def task(
             for t in tasks:
                 print(f"  □ {format_task(t, tags=t.tags, show_id=True)}")
         return
-    from .items import add as _add
+    from .item import add as _add
 
     _add(ref, tag=tag, due=due or schedule, focus=focus)
