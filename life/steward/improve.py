@@ -15,23 +15,13 @@ def improve(
     body: str | None = None,
     log: bool = False,
     done: str | None = None,
-    rm: str | None = None,
 ):
     """Log a system improvement or mark one done"""
     from ..improvements import (
         add_improvement,
-        delete_improvement,
         get_improvements,
         mark_improvement_done,
     )
-
-    if rm is not None:
-        deleted = delete_improvement(rm)
-        if deleted:
-            print(f"→ removed {rm}")
-        else:
-            exit_error(f"no improvement matching '{rm}'")
-        return
 
     if done is not None:
         target = mark_improvement_done(done)

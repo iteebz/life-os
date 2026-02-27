@@ -22,17 +22,8 @@ def observe(
     body: str | None = None,
     tag: str | None = None,
     about: str | None = None,
-    rm: str | None = None,
 ):
     """Log a raw observation — things Tyson says that should persist as context"""
-    if rm is not None:
-        deleted = delete_observation(rm)
-        if deleted:
-            print(f"→ removed {rm}")
-        else:
-            exit_error(f"no observation matching '{rm}'")
-        return
-
     if body is None:
         observations = get_observations(limit=20, tag=tag)
         if not observations:
