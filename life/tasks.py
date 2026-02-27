@@ -554,7 +554,7 @@ def set_cmd(
     print(f"{prefix}{format_status('\u25a1', updated.content, updated.id)}")
 
 
-@cli("life")
+@cli("life", flags={"json": ["-j"]})
 def show(ref: list[str], json: bool = False) -> None:
     """Show full task detail"""
     import json as _json

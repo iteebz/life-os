@@ -51,6 +51,12 @@ class Config:
 _config = Config()
 
 
+def get_partner_tag() -> str | None:
+    """Get the tag used to track partner-facing tasks (e.g. 'janice'). None = disabled."""
+    val = _config.get("partner_tag")
+    return str(val).strip() if val else None
+
+
 def get_profile() -> str:
     """Get current profile"""
     profile = _config.get("profile", "")

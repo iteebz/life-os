@@ -1,6 +1,8 @@
+import dataclasses
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
+from .config import get_partner_tag
 from .db import get_db
 from .models import Habit, Task
 
@@ -24,18 +26,26 @@ DEFAULT_WEIGHT = 1
 
 
 @dataclass(frozen=True)
+class TagStat:
+    open: int
+    done_7d: int
+
+
+@dataclass(frozen=True)
 class FeedbackSnapshot:
     closure_score: float
     closure_earned: float
     closure_possible: float
-    janice_done: int
-    janice_open: int
+    partner_done: int
+    partner_open: int
     defer_count: int
     habit_rate: float
     habit_checked: int
     habit_possible: int
     overdue_resets: int
     flags: list[str]
+    partner_tag: str | None = None
+    tag_stats: dict[str, TagStat] = dataclasses.field(default_factory=dict)
 
 
 def _in_window(ts: datetime | None, start: date, end: date) -> bool:
@@ -102,12 +112,13 @@ def build_feedback_snapshot(
     closure_possible = closure_earned + closure_open
     closure_score = closure_earned / closure_possible if closure_possible else 0.0
 
-    janice_done = sum(
+    ptag = get_partner_tag()
+    partner_done = sum(
         1
         for t in top_all
-        if "janice" in (t.tags or []) and _in_window(t.completed_at, window_start, today)
+        if ptag and ptag in (t.tags or []) and _in_window(t.completed_at, window_start, today)
     )
-    janice_open = sum(1 for t in top_pending if "janice" in (t.tags or []))
+    partner_open = sum(1 for t in top_pending if ptag and ptag in (t.tags or []))
 
     defer_count = _count_defers(window_start, today)
     overdue_resets = _count_overdue_resets(window_start, today)
@@ -116,9 +127,21 @@ def build_feedback_snapshot(
     habit_checked = sum(1 for h in habits for c in h.checks if window_start <= c.date() <= today)
     habit_rate = habit_checked / habit_possible if habit_possible else 0.0
 
+    tracked_tags = set(TAG_WEIGHT.keys())
+    tag_stats: dict[str, TagStat] = {}
+    for tag in tracked_tags:
+        done = sum(
+            1
+            for t in top_all
+            if tag in (t.tags or []) and _in_window(t.completed_at, window_start, today)
+        )
+        open_ = sum(1 for t in top_pending if tag in (t.tags or []))
+        if done or open_:
+            tag_stats[tag] = TagStat(open=open_, done_7d=done)
+
     flags: list[str] = []
-    janice_total = janice_done + janice_open
-    if janice_total and (janice_done / janice_total) < 0.5:
+    partner_total = partner_done + partner_open
+    if ptag and partner_total and (partner_done / partner_total) < 0.5:
         flags.append("partner_at_risk")
     if closure_possible > 0 and closure_score < 0.2:
         flags.append("stuck")
@@ -131,23 +154,30 @@ def build_feedback_snapshot(
         closure_score=closure_score,
         closure_earned=closure_earned,
         closure_possible=closure_possible,
-        janice_done=janice_done,
-        janice_open=janice_open,
+        partner_done=partner_done,
+        partner_open=partner_open,
         defer_count=defer_count,
         habit_rate=habit_rate,
         habit_checked=habit_checked,
         habit_possible=habit_possible,
         overdue_resets=overdue_resets,
         flags=flags,
+        partner_tag=ptag,
+        tag_stats=tag_stats,
     )
 
 
 def render_feedback_snapshot(snapshot: FeedbackSnapshot) -> list[str]:
-    janice_total = snapshot.janice_done + snapshot.janice_open
+    partner_total = snapshot.partner_done + snapshot.partner_open
     lines = [
         "STATS (7d):",
         f"  closure:  {_format_pct(snapshot.closure_score)} ({snapshot.closure_earned:.0f}/{snapshot.closure_possible:.0f} pts)",
-        f"  partner:  {_format_ratio(snapshot.janice_done, janice_total)} ({snapshot.janice_done}/{janice_total})",
+    ]
+    if snapshot.partner_tag and partner_total:
+        lines.append(
+            f"  partner:  {_format_ratio(snapshot.partner_done, partner_total)} ({snapshot.partner_done}/{partner_total})"
+        )
+    lines += [
         f"  rhythm:   {snapshot.habit_rate:.0%} ({snapshot.habit_checked}/{snapshot.habit_possible})",
         f"  dodges:   {snapshot.defer_count}",
         f"  slips:    {snapshot.overdue_resets}",
@@ -160,10 +190,10 @@ def render_feedback_snapshot(snapshot: FeedbackSnapshot) -> list[str]:
 
 
 def render_feedback_headline(snapshot: FeedbackSnapshot) -> str:
-    janice_total = snapshot.janice_done + snapshot.janice_open
+    partner_total = snapshot.partner_done + snapshot.partner_open
     parts = [f"closure {_format_pct(snapshot.closure_score)}"]
-    if janice_total:
-        parts.append(f"partner {_format_ratio(snapshot.janice_done, janice_total)}")
+    if snapshot.partner_tag and partner_total:
+        parts.append(f"partner {_format_ratio(snapshot.partner_done, partner_total)}")
     parts.append(f"rhythm {snapshot.habit_rate:.0%}")
     if snapshot.flags:
         parts.append("⚑ " + ", ".join(snapshot.flags))

@@ -27,7 +27,7 @@ def dashboard() -> None:
     print(render_dashboard(items, today_breakdown, today_items=today_items))
 
 
-@cli("life")
+@cli("life", flags={"json": ["-j"]})
 def status(json: bool = False) -> None:
     """System health check"""
     tasks = get_tasks()
@@ -64,6 +64,10 @@ def status(json: bool = False) -> None:
                         "janice_open": len(janice),
                     },
                     "flags": list(snapshot.flags),
+                    "tag_stats": {
+                        tag: {"open": s.open, "done_7d": s.done_7d}
+                        for tag, s in snapshot.tag_stats.items()
+                    },
                     "hot_list": {
                         "overdue": [{"id": t.id, "content": t.content} for t in hot_overdue],
                         "janice": [{"id": t.id, "content": t.content} for t in hot_janice],
@@ -165,7 +169,7 @@ def momentum() -> None:
     print(render_momentum(weekly_momentum()))
 
 
-@cli("life")
+@cli("life", flags={"json": ["-j"]})
 def ls(tag: str | None = None, overdue: bool = False, json: bool = False) -> None:
     """List tasks with optional filters (--tag <tag>, --overdue, --json)"""
     from .lib.clock import today as _today
