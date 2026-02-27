@@ -1,3 +1,4 @@
+import re
 from datetime import date, datetime, timedelta
 from typing import Any
 
@@ -48,6 +49,8 @@ def parse_due_date(due_str: str) -> str | None:
         if days_ahead == 0 and due_str_lower != today.strftime("%a").lower():
             days_ahead = 7
         return (today + timedelta(days=days_ahead)).isoformat()
+    if re.match(r"^\d{1,2}:\d{2}$", due_str.strip()):
+        return None
     try:
         return (
             dateutil_parser.parse(due_str, default=datetime(today.year, today.month, today.day))
