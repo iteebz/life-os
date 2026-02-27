@@ -1,3 +1,4 @@
+import fncli
 from fncli import cli
 
 from .db import get_db
@@ -92,25 +93,4 @@ def add_achievement_sub(name: str, tags: str | None = None):
     _log_achievement(name, tags)
 
 
-@cli("life log", name="a", flags={"tags": ["-t", "--tags"]})
-def add_achievement(name: str, tags: str | None = None):
-    """Log an achievement"""
-    _log_achievement(name, tags)
-
-
-@cli("life log", name="o", flags={"tag": ["-t", "--tag"]})
-def add_observation(body: str, tag: str | None = None):
-    """Log an observation"""
-    _log_observation(body, tag)
-
-
-@cli("life log", name="p", flags={"tag": ["-t", "--tag"]})
-def add_pattern(body: str, tag: str | None = None):
-    """Log a pattern"""
-    _log_pattern(body, tag)
-
-
-@cli("life log", name="l", flags={"tags": ["-t", "--tags"]})
-def add_learning_cmd(body: str, tags: str | None = None):
-    """Log a steward learning"""
-    _log_learning(body, tags)
+fncli.alias_namespace("life add", "life log")

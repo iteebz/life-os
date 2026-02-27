@@ -16,14 +16,6 @@ from .metrics import build_feedback_snapshot, render_feedback_snapshot
 from .momentum import weekly_momentum
 from .tasks import get_all_tasks, get_tasks, last_completion
 
-__all__ = [
-    "dashboard",
-    "momentum",
-    "stats",
-    "status",
-    "view",
-]
-
 
 @cli("life")
 def dashboard(verbose: bool = False) -> None:
