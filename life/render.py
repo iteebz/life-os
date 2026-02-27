@@ -117,7 +117,7 @@ class RenderCtx:
 # ── row renderers ─────────────────────────────────────────────────────────────
 
 
-def _row_subtask(sub: Task, ctx: RenderCtx, indent: str = "   └ ") -> str:
+def _row_subtask(sub: Task, ctx: RenderCtx, indent: str = "  └ ") -> str:
     id_str = f" {_GREY}[{sub.id[:8]}]{_R}"
     tags_str = _fmt_tags(_get_direct_tags(sub, ctx.pending), ctx.tag_colors)
     time_str = f"{_fmt_time(sub.scheduled_time)} " if sub.scheduled_time else ""
@@ -147,12 +147,12 @@ def _row_task(
         blocker = ctx.id_to_content.get(task.blocked_by, task.blocked_by[:8])
         row = f"{indent}⊘ {_GREY}{date_str}{task.content.lower()}{tags_str}{_R} {dim('← ' + blocker.lower())}{id_str}"
     else:
-        indicator = f"{_active.bold}🔥{_R} " if task.focus else ""
-        row = f"{indent}{indicator}{date_str}{task.content.lower()}{tags_str}{id_str}"
+        fire = f" {_active.bold}🔥{_R}" if task.focus else ""
+        row = f"{indent}□ {date_str}{task.content.lower()}{tags_str}{fire}{id_str}"
 
     rows = [row]
     rows.extend(
-        _row_subtask(sub, ctx, indent=f"{indent} └ ")
+        _row_subtask(sub, ctx, indent=f"{indent}└ ")
         for sub in sorted(ctx.subtasks.get(task.id, []), key=_task_sort_key)
     )
     for sub in completed_subs.get(task.id, []):
@@ -180,7 +180,7 @@ def _row_habit(
     else:
         lines = [f"{indent}□ {trend} {habit.content.lower()}{tags_str}{id_str}"]
     for sub in get_subhabits(habit.id):
-        lines.extend(_row_habit(sub, checked_ids, ctx, indent="    └ "))
+        lines.extend(_row_habit(sub, checked_ids, ctx, indent="   └ "))
     return lines
 
 
@@ -194,7 +194,7 @@ def _section_header(
     lines = [
         f"\n{bold(white(today.strftime('%a') + ' · ' + today.strftime('%-d %b %Y') + ' · ' + time_str))}"
     ]
-    lines.append(f"{_GREY}done:{_R} {green(str(tasks_done))}")
+    lines.append(f"{_GREY}tasks:{_R} {green(str(tasks_done))}")
     lines.append(f"{_GREY}habits:{_R} {cyan(str(habits_done))}{_GREY}/{total_habits}{_R}")
     if added:
         lines.append(f"{_GREY}added:{_R} {gold(str(added))}")
@@ -288,50 +288,25 @@ def _section_schedule(
     lines = [f"\n{bold(white(label + f' ({count})'))}"]
     scheduled_ids: set[str] = set()
 
-    if is_today:
-        # Hierarchical: parent with indented children, blocked indicator
-        def _sort(t: Task) -> tuple[int, str, bool]:
-            return (0, t.scheduled_time, not t.focus) if t.scheduled_time else (1, "", not t.focus)
+    def _sort(t: Task) -> tuple[int, str, bool]:
+        return (0, t.scheduled_time, not t.focus) if t.scheduled_time else (1, "", not t.focus)
 
-        for task in sorted(tasks, key=_sort):
-            scheduled_ids.add(task.id)
-            tags_str = _fmt_tags(task.tags, ctx.tag_colors)
-            id_str = f" {_GREY}[{task.id[:8]}]{_R}"
-            time_str = f"{_fmt_time(task.scheduled_time)} " if task.scheduled_time else ""
-            if task.blocked_by:
-                blocker = ctx.id_to_content.get(task.blocked_by, task.blocked_by[:8])
-                lines.append(
-                    f"  ⊘ {time_str}{_GREY}{task.content.lower()}{_R}{tags_str} {dim('← ' + blocker.lower())}{id_str}"
-                )
-            else:
-                fire = f" {_active.bold}🔥{_R}" if task.focus else ""
-                lines.append(f"  □ {time_str}{task.content.lower()}{tags_str}{fire}{id_str}")
-            for sub in sorted(ctx.subtasks.get(task.id, []), key=_task_sort_key):
-                scheduled_ids.add(sub.id)
-                lines.append(_row_subtask(sub, ctx))
-    else:
-        # Flat: expand subtasks with parent hint, sorted by time
-        entries: list[tuple[str, Task, Task | None]] = []
-        for task in tasks:
-            scheduled_ids.add(task.id)
-            subs = ctx.subtasks.get(task.id, [])
-            if subs:
-                for sub in subs:
-                    scheduled_ids.add(sub.id)
-                    entries.append((sub.scheduled_time or "ZZZ", sub, task))
-            else:
-                entries.append((task.scheduled_time or "ZZZ", task, None))
-        entries.sort(key=lambda x: (x[0], x[1].created))
-        for _, task, parent in entries:
-            tags = _get_direct_tags(task, ctx.pending) if parent else task.tags
-            tags_str = _fmt_tags(tags, ctx.tag_colors)
-            id_str = f" {_GREY}[{task.id[:8]}]{_R}"
-            time_str = f"{_fmt_time(task.scheduled_time)} " if task.scheduled_time else ""
-            fire = f" {_active.bold}🔥{_R}" if (task.focus or (parent and parent.focus)) else ""
-            parent_hint = f" {dim('~ ' + parent.content.lower())}" if parent else ""
+    for task in sorted(tasks, key=_sort):
+        scheduled_ids.add(task.id)
+        tags_str = _fmt_tags(task.tags, ctx.tag_colors)
+        id_str = f" {_GREY}[{task.id[:8]}]{_R}"
+        time_str = f"{_fmt_time(task.scheduled_time)} " if task.scheduled_time else ""
+        if task.blocked_by:
+            blocker = ctx.id_to_content.get(task.blocked_by, task.blocked_by[:8])
             lines.append(
-                f"  □ {time_str}{task.content.lower()}{tags_str}{fire}{parent_hint}{id_str}"
+                f"  ⊘ {time_str}{_GREY}{task.content.lower()}{_R}{tags_str} {dim('← ' + blocker.lower())}{id_str}"
             )
+        else:
+            fire = f" {_active.bold}🔥{_R}" if task.focus else ""
+            lines.append(f"  □ {time_str}{task.content.lower()}{tags_str}{fire}{id_str}")
+        for sub in sorted(ctx.subtasks.get(task.id, []), key=_task_sort_key):
+            scheduled_ids.add(sub.id)
+            lines.append(_row_subtask(sub, ctx))
 
     for event in all_events:
         emoji = _EVENT_EMOJI.get(str(event.get("type", "")), "📌")
@@ -489,7 +464,7 @@ def render_day_summary(
     lines = [
         f"\n{bold(white(target_date.strftime('%a') + ' · ' + target_date.strftime('%-d %b %Y')))}"
     ]
-    lines.append(f"{_GREY}done:{_R} {green(str(tasks_done))}")
+    lines.append(f"{_GREY}tasks:{_R} {green(str(tasks_done))}")
     habits_total_str = f"{_GREY}/{total_habits}{_R}" if total_habits else ""
     lines.append(f"{_GREY}habits:{_R} {cyan(str(habits_done))}{habits_total_str}")
     if added:
