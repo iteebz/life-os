@@ -18,12 +18,12 @@ from .tasks import get_all_tasks, get_tasks, last_completion
 
 
 @cli("life")
-def dashboard(verbose: bool = False) -> None:
+def dashboard() -> None:
     """Life dashboard"""
     items = get_tasks() + get_habits()
     today_items = get_today_completed()
     today_breakdown = get_today_breakdown()
-    print(render_dashboard(items, today_breakdown, None, None, today_items, verbose=verbose))
+    print(render_dashboard(items, today_breakdown, today_items=today_items))
 
 
 @cli("life")

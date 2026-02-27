@@ -102,8 +102,11 @@ def _render_subtask_row(
 def _render_header(
     today: date, tasks_done: int, habits_done: int, total_habits: int, added: int, deleted: int
 ) -> list[str]:
-    lines = [f"\n{bold(white(today.strftime('%a') + ' · ' + today.strftime('%-d %b %Y')))}"]
-    lines.append(f"{_GREY}done:{_R} {green(str(tasks_done))}")
+    now = clock.now()
+    lines = [
+        f"\n{bold(white(today.strftime('%a') + ' · ' + today.strftime('%-d %b %Y') + ' · ' + now.strftime('%H:%M')))}"
+    ]
+    lines.append(f"{_GREY}tasks:{_R} {green(str(tasks_done))}")
     lines.append(f"{_GREY}habits:{_R} {cyan(str(habits_done))}{_GREY}/{total_habits}{_R}")
     if added:
         lines.append(f"{_GREY}added:{_R} {gold(str(added))}")
@@ -181,8 +184,7 @@ def _render_today_tasks(
     subtasks_by_parent: dict[str, list[Task]],
     all_pending: list[Task],
 ) -> tuple[list[str], set[str]]:
-    now = clock.now()
-    lines = [f"\n{bold(white('TODAY · ' + now.strftime('%H:%M')))}"]
+    lines = [f"\n{bold(white('TODAY'))}"]
     scheduled_ids: set[str] = set()
 
     if not due_today:
@@ -441,11 +443,7 @@ def _render_tasks(
 def render_dashboard(
     items,
     today_breakdown,
-    momentum,
-    context,
     today_items=None,
-    profile=None,
-    verbose=False,
 ):
     habits_today, tasks_today, added_today, deleted_today = today_breakdown
     today = clock.today()
