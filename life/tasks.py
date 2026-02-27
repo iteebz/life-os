@@ -387,7 +387,7 @@ def last_completion() -> datetime | None:
             "SELECT completed_at FROM tasks WHERE completed_at IS NOT NULL ORDER BY completed_at DESC LIMIT 1"
         ).fetchone()
         check_row = conn.execute(
-            "SELECT completed_at FROM checks ORDER BY completed_at DESC LIMIT 1"
+            "SELECT completed_at FROM habit_checks ORDER BY completed_at DESC LIMIT 1"
         ).fetchone()
     candidates: list[datetime] = []
     for row in (task_row, check_row):

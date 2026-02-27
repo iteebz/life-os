@@ -29,7 +29,7 @@ def add_session(summary: str) -> int:
 def add_observation(body: str, tag: str | None = None, about_date: date | None = None) -> int:
     with get_db() as conn:
         cursor = conn.execute(
-            "INSERT INTO steward_observations (body, tag, about_date) VALUES (?, ?, ?)",
+            "INSERT INTO observations (body, tag, about_date) VALUES (?, ?, ?)",
             (body, tag, about_date.isoformat() if about_date else None),
         )
         return cursor.lastrowid or 0
@@ -39,12 +39,12 @@ def get_observations(limit: int = 20, tag: str | None = None) -> list[Observatio
     with get_db() as conn:
         if tag:
             rows = conn.execute(
-                "SELECT id, body, tag, logged_at, about_date FROM steward_observations WHERE tag = ? ORDER BY logged_at DESC LIMIT ?",
+                "SELECT id, body, tag, logged_at, about_date FROM observations WHERE tag = ? ORDER BY logged_at DESC LIMIT ?",
                 (tag, limit),
             ).fetchall()
         else:
             rows = conn.execute(
-                "SELECT id, body, tag, logged_at, about_date FROM steward_observations ORDER BY logged_at DESC LIMIT ?",
+                "SELECT id, body, tag, logged_at, about_date FROM observations ORDER BY logged_at DESC LIMIT ?",
                 (limit,),
             ).fetchall()
         return [
@@ -61,7 +61,7 @@ def get_observations(limit: int = 20, tag: str | None = None) -> list[Observatio
 
 def delete_observation(obs_id: int) -> bool:
     with get_db() as conn:
-        cursor = conn.execute("DELETE FROM steward_observations WHERE id = ?", (obs_id,))
+        cursor = conn.execute("DELETE FROM observations WHERE id = ?", (obs_id,))
         return cursor.rowcount > 0
 
 

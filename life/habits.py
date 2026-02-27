@@ -48,7 +48,7 @@ def _hydrate_habit(habit: Habit, checks: list[datetime], tags: list[str]) -> Hab
 
 def _get_habit_checks(conn, habit_id: str) -> list[datetime]:
     cursor = conn.execute(
-        "SELECT completed_at FROM checks WHERE habit_id = ? ORDER BY completed_at",
+        "SELECT completed_at FROM habit_checks WHERE habit_id = ? ORDER BY completed_at",
         (habit_id,),
     )
     return [datetime.fromisoformat(row[0]) for row in cursor.fetchall()]
@@ -154,7 +154,7 @@ def get_checks(habit_id: str) -> list[datetime]:
 
     with db.get_db() as conn:
         cursor = conn.execute(
-            "SELECT completed_at FROM checks WHERE habit_id = ? ORDER BY completed_at DESC",
+            "SELECT completed_at FROM habit_checks WHERE habit_id = ? ORDER BY completed_at DESC",
             (habit_id,),
         )
         return [datetime.fromisoformat(row[0]) for row in cursor.fetchall()]
@@ -232,7 +232,7 @@ def check_habit(habit_id: str, check_on: date | None = None) -> Habit | None:
     with db.get_db() as conn:
         with contextlib.suppress(sqlite3.IntegrityError):
             conn.execute(
-                "INSERT INTO checks (habit_id, check_date, completed_at) VALUES (?, ?, ?)",
+                "INSERT INTO habit_checks (habit_id, check_date, completed_at) VALUES (?, ?, ?)",
                 (habit_id, check_date, completed_at),
             )
     return get_habit(habit_id)
@@ -245,7 +245,7 @@ def uncheck_habit(habit_id: str, check_on: date | None = None) -> Habit | None:
     check_date = check_on.isoformat() if check_on is not None else clock.today().isoformat()
     with db.get_db() as conn:
         conn.execute(
-            "DELETE FROM checks WHERE habit_id = ? AND check_date = ?",
+            "DELETE FROM habit_checks WHERE habit_id = ? AND check_date = ?",
             (habit_id, check_date),
         )
     return get_habit(habit_id)
@@ -257,7 +257,7 @@ def toggle_check(habit_id: str) -> Habit | None:
         return None
     with db.get_db() as conn:
         cursor = conn.execute(
-            "SELECT 1 FROM checks WHERE habit_id = ? AND check_date = ?",
+            "SELECT 1 FROM habit_checks WHERE habit_id = ? AND check_date = ?",
             (habit_id, clock.today().isoformat()),
         )
         if cursor.fetchone():

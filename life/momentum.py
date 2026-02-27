@@ -66,7 +66,7 @@ def weekly_momentum():
             cursor = conn.execute(
                 """
                 SELECT COUNT(*)
-                FROM checks c
+                FROM habit_checks c
                 WHERE c.check_date >= ?
                 AND c.check_date <= ?""",
                 (start_str, end_str),

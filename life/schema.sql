@@ -29,7 +29,7 @@ CREATE TABLE habits (
     CHECK (length(content) > 0)
 );
 
-CREATE TABLE checks (
+CREATE TABLE habit_checks (
     habit_id TEXT NOT NULL,
     check_date TEXT NOT NULL,
     completed_at TEXT NOT NULL,
@@ -85,7 +85,7 @@ CREATE TABLE steward_sessions (
     logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE steward_observations (
+CREATE TABLE observations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     body TEXT NOT NULL,
     logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -208,7 +208,7 @@ CREATE INDEX idx_tasks_parent ON tasks(parent_id) WHERE parent_id IS NOT NULL;
 CREATE INDEX idx_tasks_blocked_by ON tasks(blocked_by) WHERE blocked_by IS NOT NULL;
 CREATE INDEX idx_habits_created ON habits(created);
 CREATE INDEX idx_habits_parent ON habits(parent_id) WHERE parent_id IS NOT NULL;
-CREATE INDEX idx_checks_date ON checks(check_date);
+CREATE INDEX idx_checks_date ON habit_checks(check_date);
 CREATE INDEX idx_tags_task ON tags(task_id);
 CREATE INDEX idx_tags_habit ON tags(habit_id);
 CREATE INDEX idx_tags_name ON tags(tag);
@@ -218,7 +218,7 @@ CREATE INDEX idx_mutations_task ON task_mutations(task_id);
 CREATE INDEX idx_mutations_field ON task_mutations(field);
 CREATE INDEX idx_mutations_at ON task_mutations(mutated_at);
 CREATE INDEX idx_deleted_tasks_at ON deleted_tasks(deleted_at);
-CREATE INDEX idx_observations_tag ON steward_observations(tag) WHERE tag IS NOT NULL;
+CREATE INDEX idx_observations_tag ON observations(tag) WHERE tag IS NOT NULL;
 CREATE INDEX idx_achievements_at ON achievements(achieved_at);
 CREATE INDEX idx_drafts_approved ON drafts(approved_at);
 CREATE INDEX idx_messages_channel ON messages(channel);

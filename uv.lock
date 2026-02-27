@@ -199,7 +199,7 @@ wheels = [
 [[package]]
 name = "fncli"
 version = "0.0.1"
-source = { git = "https://github.com/iteebz/fncli.git#0a285494f0455dc9837e533d1644d2ec8971b321" }
+source = { git = "https://github.com/iteebz/fncli.git#cd9da22434dfac7f2ef841ac10976c59a4c37d59" }
 
 [[package]]
 name = "google-api-core"

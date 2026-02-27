@@ -20,7 +20,7 @@ def _get_checked_today() -> list[Habit]:
             """
             SELECT DISTINCT h.id
             FROM habits h
-            INNER JOIN checks c ON h.id = c.habit_id
+            INNER JOIN habit_checks c ON h.id = c.habit_id
             WHERE DATE(c.check_date) = DATE(?)
             ORDER BY h.created DESC
             """,
@@ -53,7 +53,7 @@ def get_day_completed(date_str: str) -> list[Task | Habit]:
             """
             SELECT DISTINCT h.id
             FROM habits h
-            INNER JOIN checks c ON h.id = c.habit_id
+            INNER JOIN habit_checks c ON h.id = c.habit_id
             WHERE DATE(c.check_date) = DATE(?)
             """,
             (date_str,),
@@ -67,7 +67,7 @@ def get_day_breakdown(date_str: str) -> tuple[int, int, int, int]:
     """Get breakdown stats for a given date (YYYY-MM-DD)."""
     with db.get_db() as conn:
         habits_done = conn.execute(
-            "SELECT COUNT(DISTINCT habit_id) FROM checks WHERE DATE(check_date) = DATE(?)",
+            "SELECT COUNT(DISTINCT habit_id) FROM habit_checks WHERE DATE(check_date) = DATE(?)",
             (date_str,),
         ).fetchone()[0]
 
