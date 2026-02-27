@@ -6,9 +6,9 @@ from typing import Any
 from fncli import cli
 
 from life import config
-from life.db import get_db, load_migrations
+from life.db import get_db
 
-__all__ = ["cli", "score"]
+__all__ = ["score"]
 
 FTS_TABLES = ("tasks_fts", "habits_fts", "tags_fts")
 MIGRATIONS_TABLE = "_migrations"
@@ -39,14 +39,13 @@ def _check_fts_integrity(conn: sqlite3.Connection) -> list[str]:
     return corrupted
 
 
-def _expected_schema(migrations_path: Path) -> dict[str, set[str]] | None:
+def _expected_schema() -> dict[str, set[str]] | None:
+    schema_path = Path(__file__).parent / "schema.sql"
+    if not schema_path.exists():
+        return None
     mem = sqlite3.connect(":memory:")
     try:
-        for _name, migration in load_migrations():
-            if callable(migration):
-                migration(mem)
-            else:
-                mem.executescript(migration)
+        mem.executescript(schema_path.read_text())
         rows = mem.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
         ).fetchall()
@@ -64,7 +63,7 @@ def _expected_schema(migrations_path: Path) -> dict[str, set[str]] | None:
 
 
 def _check_schema_drift(conn: sqlite3.Connection) -> list[str]:
-    expected = _expected_schema(Path(__file__).parent / "migrations")
+    expected = _expected_schema()
     if expected is None:
         return ["could not build expected schema"]
 

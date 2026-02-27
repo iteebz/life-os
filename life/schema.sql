@@ -152,20 +152,6 @@ CREATE TABLE drafts (
     from_addr TEXT
 );
 
-CREATE TABLE send_queue (
-    id TEXT PRIMARY KEY,
-    draft_id TEXT NOT NULL,
-    account_id TEXT NOT NULL,
-    scheduled_at TIMESTAMP,
-    attempts INTEGER DEFAULT 0,
-    last_error TEXT,
-    status TEXT DEFAULT 'pending',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (draft_id) REFERENCES drafts(id),
-    FOREIGN KEY (account_id) REFERENCES accounts(id)
-);
-
-
 CREATE TABLE sender_stats (
     id TEXT PRIMARY KEY,
     sender TEXT NOT NULL UNIQUE,
