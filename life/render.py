@@ -147,8 +147,8 @@ def _row_task(
         blocker = ctx.id_to_content.get(task.blocked_by, task.blocked_by[:8])
         row = f"{indent}⊘ {_GREY}{date_str}{task.content.lower()}{tags_str}{_R} {dim('← ' + blocker.lower())}{id_str}"
     else:
-        fire = f" {_active.bold}🔥{_R}" if task.focus else ""
-        row = f"{indent}□ {date_str}{task.content.lower()}{tags_str}{fire}{id_str}"
+        fire = f"{_active.bold}🔥{_R} " if task.focus else ""
+        row = f"{indent}□ {fire}{date_str}{task.content.lower()}{tags_str}{id_str}"
 
     rows = [row]
     rows.extend(
@@ -254,11 +254,11 @@ def _section_overdue(tasks: list[Task], ctx: RenderCtx) -> tuple[list[str], set[
         scheduled_ids.add(task.id)
         tags_str = _fmt_tags(task.tags, ctx.tag_colors)
         id_str = f" {_GREY}[{task.id[:8]}]{_R}"
-        fire = f" {_active.bold}🔥{_R}" if task.focus else ""
+        fire = f"{_active.bold}🔥{_R} " if task.focus else ""
         label = _fmt_rel_date(
             task.scheduled_date or ctx.today, ctx.today, task.scheduled_time, task.is_deadline
         )
-        lines.append(f"  □ {label} {task.content.lower()}{tags_str}{fire}{id_str}")
+        lines.append(f"  □ {fire}{label} {task.content.lower()}{tags_str}{id_str}")
         for sub in sorted(ctx.subtasks.get(task.id, []), key=_task_sort_key):
             scheduled_ids.add(sub.id)
             lines.append(_row_subtask(sub, ctx))
@@ -305,8 +305,8 @@ def _section_schedule(
                 f"  ⊘ {time_str}{_GREY}{task.content.lower()}{_R}{tags_str} {dim('← ' + blocker.lower())}{id_str}"
             )
         else:
-            fire = f" {_active.bold}🔥{_R}" if task.focus else ""
-            lines.append(f"  □ {time_str}{task.content.lower()}{tags_str}{fire}{id_str}")
+            fire = f"{_active.bold}🔥{_R} " if task.focus else ""
+            lines.append(f"  □ {fire}{time_str}{task.content.lower()}{tags_str}{id_str}")
         for sub in sorted(ctx.subtasks.get(task.id, []), key=_task_sort_key):
             scheduled_ids.add(sub.id)
             lines.append(_row_subtask(sub, ctx))
@@ -550,10 +550,10 @@ def _block_task(
     indent: str = "",
 ) -> list[str]:
     tags_str = _fmt_tags(task.tags, ctx.tag_colors)
-    focus_str = f" {_active.bold}🔥{_R}" if task.focus else ""
+    focus_str = f"{_active.bold}🔥{_R} " if task.focus else ""
     status = gray("✓") if task.completed_at else "□"
     lines = [
-        f"{indent}{status} {dim('[' + task.id[:8] + ']')}  {task.content.lower()}{tags_str}{focus_str}"
+        f"{indent}{status} {focus_str}{dim('[' + task.id[:8] + ']')}  {task.content.lower()}{tags_str}"
     ]
 
     if task.scheduled_date:
