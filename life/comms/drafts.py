@@ -64,7 +64,6 @@ def get_draft(draft_id: str) -> Draft | None:
         return Draft(
             id=row_dict["id"],
             thread_id=row_dict["thread_id"],
-            message_id=None,
             to_addr=row_dict["to_addr"],
             cc_addr=row_dict["cc_addr"],
             subject=row_dict["subject"],
@@ -104,7 +103,6 @@ def list_pending_drafts() -> list[Draft]:
             Draft(
                 id=row["id"],
                 thread_id=row["thread_id"],
-                message_id=None,
                 to_addr=row["to_addr"],
                 cc_addr=row["cc_addr"],
                 subject=row["subject"],

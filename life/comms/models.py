@@ -17,7 +17,6 @@ class Account:
 class Draft:
     id: str
     thread_id: str | None
-    message_id: str | None
     to_addr: str
     cc_addr: str | None
     subject: str | None
