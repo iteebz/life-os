@@ -1,3 +1,4 @@
+import json as _json
 from datetime import date, datetime, timedelta
 
 from fncli import UsageError, cli
@@ -27,7 +28,7 @@ def dashboard() -> None:
 
 
 @cli("life")
-def status() -> None:
+def status(json: bool = False) -> None:
     """System health check"""
     tasks = get_tasks()
     all_tasks = get_all_tasks()
@@ -45,6 +46,32 @@ def status() -> None:
 
     lc = last_completion()
     last_check_str = format_elapsed(lc, now()) if lc else "never"
+
+    if json:
+        overdue_ids = {t.id for t in overdue}
+        hot_overdue = overdue[:3]
+        hot_janice = [t for t in janice if t.id not in overdue_ids][:3]
+        print(
+            _json.dumps(
+                {
+                    "tasks": len(tasks),
+                    "habits": len(habits),
+                    "focused": len(focused),
+                    "last_check": last_check_str,
+                    "health": {
+                        "untagged": len(untagged),
+                        "overdue": len(overdue),
+                        "janice_open": len(janice),
+                    },
+                    "flags": list(snapshot.flags),
+                    "hot_list": {
+                        "overdue": [{"id": t.id, "content": t.content} for t in hot_overdue],
+                        "janice": [{"id": t.id, "content": t.content} for t in hot_janice],
+                    },
+                }
+            )
+        )
+        return
 
     lines = []
     lines.append(
@@ -139,8 +166,8 @@ def momentum() -> None:
 
 
 @cli("life")
-def ls(tag: str | None = None, overdue: bool = False) -> None:
-    """List tasks with optional filters (--tag <tag>, --overdue)"""
+def ls(tag: str | None = None, overdue: bool = False, json: bool = False) -> None:
+    """List tasks with optional filters (--tag <tag>, --overdue, --json)"""
     from .lib.clock import today as _today
     from .lib.format import format_task
 
@@ -150,6 +177,28 @@ def ls(tag: str | None = None, overdue: bool = False) -> None:
     if overdue:
         today_date = _today()
         tasks = [t for t in tasks if t.scheduled_date and t.scheduled_date < today_date]
+    if json:
+        print(
+            _json.dumps(
+                [
+                    {
+                        "id": t.id,
+                        "content": t.content,
+                        "tags": t.tags,
+                        "scheduled_date": t.scheduled_date.isoformat()
+                        if t.scheduled_date
+                        else None,
+                        "scheduled_time": t.scheduled_time,
+                        "focus": t.focus,
+                        "parent_id": t.parent_id,
+                        "blocked_by": t.blocked_by,
+                        "description": t.description,
+                    }
+                    for t in tasks
+                ]
+            )
+        )
+        return
     if not tasks:
         print("no tasks")
         return

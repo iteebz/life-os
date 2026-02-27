@@ -555,8 +555,10 @@ def set_cmd(
 
 
 @cli("life")
-def show(ref: list[str]) -> None:
+def show(ref: list[str], json: bool = False) -> None:
     """Show full task detail"""
+    import json as _json
+
     from .lib.render import render_task_detail
     from .lib.resolve import resolve_task
 
@@ -564,6 +566,23 @@ def show(ref: list[str]) -> None:
     if not item_ref:
         raise UsageError("Usage: life show <task>")
     t = resolve_task(item_ref)
+    if json:
+        print(
+            _json.dumps(
+                {
+                    "id": t.id,
+                    "content": t.content,
+                    "tags": t.tags,
+                    "scheduled_date": t.scheduled_date.isoformat() if t.scheduled_date else None,
+                    "scheduled_time": t.scheduled_time,
+                    "focus": t.focus,
+                    "parent_id": t.parent_id,
+                    "blocked_by": t.blocked_by,
+                    "description": t.description,
+                }
+            )
+        )
+        return
     if t.parent_id:
         parent = get_task(t.parent_id)
         parent_subtasks = get_subtasks(t.parent_id) if parent else []
