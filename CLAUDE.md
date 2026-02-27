@@ -38,3 +38,10 @@ Higher imports lower, never upward. `lib/` is clean except `resolve.py` (intenti
 - `life ls [--tag <tag>] [--overdue]` — filtered task list
 
 Outstanding debt: `~/life/brr/IMPROVEMENTS.md`
+
+## Commits
+
+- Same logical change → amend, not new commit
+- Visual/aesthetic changes shown for approval → don't commit until confirmed
+- Exploratory work that may be reverted → hold the commit until direction is clear
+- Revert+recommit pairs are always avoidable: verify before committing, not after
