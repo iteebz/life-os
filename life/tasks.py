@@ -630,6 +630,32 @@ def schedule(ref: list[str], remove: bool = False) -> None:
         raise UsageError("Usage: life schedule <ref> <when>  or  --remove")
 
 
+@cli("life", flags={"ref": []})
+def unschedule(ref: list[str] | None = None, overdue: bool = False) -> None:
+    """Clear schedule from tasks, returning them to backlog"""
+    from .lib.clock import today as _today
+    from .lib.resolve import resolve_task
+
+    if overdue:
+        today_date = _today()
+        tasks = [t for t in get_all_tasks() if t.scheduled_date and t.scheduled_date < today_date]
+        if not tasks:
+            print("No overdue tasks.")
+            return
+        for t in tasks:
+            update_task(t.id, scheduled_date=None, scheduled_time=None, is_deadline=False)
+            print(format_status("□", t.content, t.id))
+        return
+
+    if not ref:
+        raise UsageError("Usage: life unschedule <task> [task...]  or  --overdue")
+
+    for r in ref:
+        t = resolve_task(r)
+        update_task(t.id, scheduled_date=None, scheduled_time=None, is_deadline=False)
+        print(format_status("□", t.content, t.id))
+
+
 @cli("life")
 def today(ref: list[str]) -> None:
     """Schedule task for today"""
