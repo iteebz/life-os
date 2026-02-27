@@ -3,6 +3,8 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
+from fncli import cli
+
 from life import config
 from life.db import get_db, load_migrations
 
@@ -137,7 +139,7 @@ def score() -> dict[str, Any]:
     }
 
 
-def cli() -> None:
+def _render() -> None:
     result = score()
     status = "✓" if result["ok"] else "✗"
     print(f"db: {status} {result['detail']}")
@@ -162,5 +164,11 @@ def cli() -> None:
         raise SystemExit(1)
 
 
+@cli("life", name="health")
+def health_cmd() -> None:
+    """Check database integrity"""
+    _render()
+
+
 if __name__ == "__main__":
-    cli()
+    _render()
