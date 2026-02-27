@@ -94,8 +94,8 @@ class RenderCtx:
     @classmethod
     def build(
         cls,
-        items: list[Task | Habit],
-        today_items: list[Task | Habit] | None = None,
+        items: Sequence[Task | Habit],
+        today_items: Sequence[Task | Habit] | None = None,
     ) -> "RenderCtx":
         today = clock.today()
         pending = [i for i in items if isinstance(i, Task)]
@@ -358,11 +358,8 @@ def _section_backlog(
 ) -> list[str]:
     if not tasks:
         return []
-    subtask_ids = {t.id for t in tasks if t.parent_id}
-    top_level = [t for t in tasks if t.id not in subtask_ids]
-
     groups: dict[str, list[Task]] = {}
-    for task in sorted(top_level, key=lambda t: t.content.lower()):
+    for task in sorted(tasks, key=lambda t: t.content.lower()):
         groups.setdefault(_primary_tag(task) or "", []).append(task)
 
     sections = [t for t in TAG_ORDER if t in groups]
@@ -451,7 +448,11 @@ def render_dashboard(
         if t.parent_id:
             completed_subs.setdefault(t.parent_id, []).append(t)
 
-    backlog = [i for i in items if isinstance(i, Task) and i.id not in scheduled_ids]
+    backlog = [
+        i
+        for i in items
+        if isinstance(i, Task) and i.id not in scheduled_ids and i.id not in ctx.subtask_ids
+    ]
     lines += _section_backlog(backlog, ctx, completed_subs)
 
     return "\n".join(lines) + "\n"
@@ -548,12 +549,11 @@ def render_habit_matrix(habits: list[Habit]) -> str:
 def _block_task(
     task: Task,
     subtasks: list[Task],
-    all_tasks: list[Task],
-    tag_colors: dict[str, str],
+    ctx: RenderCtx,
     mutations: list[TaskMutation] | None = None,
     indent: str = "",
 ) -> list[str]:
-    tags_str = _fmt_tags(task.tags, tag_colors)
+    tags_str = _fmt_tags(task.tags, ctx.tag_colors)
     focus_str = f" {ANSI.BOLD}🔥{_R}" if task.focus else ""
     status = gray("✓") if task.completed_at else "□"
     lines = [
@@ -573,7 +573,7 @@ def _block_task(
 
     for sub in sorted(subtasks, key=_task_sort_key):
         sub_status = gray("✓") if sub.completed_at else "□"
-        sub_tags_str = _fmt_tags(_get_direct_tags(sub, all_tasks), tag_colors)
+        sub_tags_str = _fmt_tags(_get_direct_tags(sub, ctx.pending), ctx.tag_colors)
         time_str = f"{dim(_fmt_time(sub.scheduled_time))} " if sub.scheduled_time else ""
         lines.append(
             f"{indent}  └ {sub_status} {dim('[' + sub.id[:8] + ']')}  {time_str}{sub.content.lower()}{sub_tags_str}"
@@ -596,9 +596,9 @@ def render_task_detail(
     parent_subtasks: list[Task] | None = None,
 ) -> str:
     all_tasks = [task, *subtasks, *(parent_subtasks or []), *([parent] if parent else [])]
-    tag_colors = _build_tag_colors(all_tasks)
+    ctx = RenderCtx.build(all_tasks)
     if parent:
-        lines = _block_task(parent, parent_subtasks or [], all_tasks, tag_colors)
+        lines = _block_task(parent, parent_subtasks or [], ctx)
     else:
-        lines = _block_task(task, subtasks, all_tasks, tag_colors, mutations)
+        lines = _block_task(task, subtasks, ctx, mutations)
     return "\n".join(lines)
