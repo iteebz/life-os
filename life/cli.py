@@ -14,7 +14,7 @@ def main():
     if not user_args or user_args == ["-v"] or user_args == ["--verbose"]:
         from .dash import dashboard
 
-        dashboard(verbose="--verbose" in user_args or "-v" in user_args)
+        dashboard()
         return
     argv = ["life", *user_args]
     code = fncli.dispatch(argv)
