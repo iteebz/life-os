@@ -9,7 +9,6 @@ from . import _rel, get_observations, get_sessions
 def dash():
     """Steward dashboard — improvements, patterns, observations, sessions"""
     from ..improvements import get_improvements
-    from ..patterns import get_patterns
 
     improvements = get_improvements()
     if improvements:
@@ -18,15 +17,6 @@ def dash():
             print(f"  [{i.id}] {i.body}")
     else:
         print("IMPROVEMENTS: none")
-
-    patterns = get_patterns(limit=5)
-    if patterns:
-        print("\nRECENT PATTERNS:")
-        now = datetime.now()
-        for p in patterns:
-            s = (now - p.logged_at).total_seconds()
-            rel = _rel(s) if s < 86400 * 7 else p.logged_at.strftime("%Y-%m-%d")
-            print(f"  {rel:<10}  {p.body}")
 
     observations = get_observations(limit=10)
     if observations:

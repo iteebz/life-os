@@ -72,12 +72,6 @@ CREATE TABLE deleted_tasks (
 );
 
 
-CREATE TABLE patterns (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    body TEXT NOT NULL,
-    logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    tag TEXT
-);
 
 CREATE TABLE steward_sessions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
