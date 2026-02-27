@@ -45,8 +45,11 @@ def _match_fuzzy[T: (Task, Habit)](ref: str, pool: Sequence[T]) -> T | None:
     ref_lower = ref.lower()
     contents = [item.content for item in pool]
     matches = get_close_matches(
-        ref_lower, [c.lower() for c in contents], n=1, cutoff=FUZZY_MATCH_CUTOFF
+        ref_lower, [c.lower() for c in contents], n=10, cutoff=FUZZY_MATCH_CUTOFF
     )
+    if len(matches) > 1:
+        sample = [item.content for item in pool if item.content.lower() in matches][:3]
+        raise AmbiguousError(ref, count=len(matches), sample=sample)
     if matches:
         match_content = matches[0]
         for item in pool:
