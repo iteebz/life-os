@@ -244,16 +244,6 @@ CREATE TABLE sender_stats (
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE snoozed_items (
-    id TEXT PRIMARY KEY,
-    entity_type TEXT NOT NULL,
-    entity_id TEXT NOT NULL,
-    source_id TEXT,
-    snooze_until TEXT NOT NULL,
-    reason TEXT,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    resurfaced_at TEXT
-);
 
 CREATE TABLE messages (
     id          TEXT PRIMARY KEY,
@@ -315,8 +305,6 @@ CREATE INDEX idx_signal_messages_account ON signal_messages(account_phone);
 CREATE INDEX idx_signal_messages_sender ON signal_messages(sender_phone);
 CREATE INDEX idx_signal_messages_timestamp ON signal_messages(timestamp DESC);
 CREATE INDEX idx_sender_stats_sender ON sender_stats(sender);
-CREATE INDEX idx_snoozed_until ON snoozed_items(snooze_until);
-CREATE INDEX idx_snoozed_entity ON snoozed_items(entity_type, entity_id);
 CREATE INDEX idx_messages_channel ON messages(channel);
 CREATE INDEX idx_messages_peer ON messages(peer);
 CREATE INDEX idx_messages_direction ON messages(direction);

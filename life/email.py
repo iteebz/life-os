@@ -224,19 +224,6 @@ def flag(thread_id: str, email: str | None = None):
     print(f"flagged {thread_id}")
 
 
-@cli("life comms email", name="snooze")
-def snooze(thread_id: str, until: str = "tomorrow", email: str | None = None):
-    """Snooze thread"""
-    from .comms import services
-    from .comms import snooze as snooze_module
-
-    full_id = _run_service(services.resolve_thread_id, thread_id, email) or thread_id
-    _, snooze_until = snooze_module.snooze_item(
-        entity_type="thread", entity_id=full_id, until=until, source_id=email
-    )
-    print(f"snoozed until {snooze_until.strftime('%Y-%m-%d %H:%M')}")
-
-
 @cli("life comms email", name="senders")
 def senders(limit: int = 20):
     """Show sender statistics"""
