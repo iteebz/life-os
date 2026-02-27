@@ -4,12 +4,12 @@ from fncli import UsageError, cli
 
 from .core.errors import NotFoundError, ValidationError
 from .core.models import Task
-from .habits import add_habit, check_habit_cmd, rename_habit
+from .habit import add_habit, check_habit_cmd, rename_habit
 from .lib import ansi
 from .lib.format import format_status, render_done_row, render_uncheck_row
 from .lib.parsing import validate_content
 from .lib.resolve import resolve_item, resolve_item_any
-from .tasks import (
+from .task import (
     add_task,
     check_task_cmd,
     delete_task,
@@ -22,7 +22,7 @@ from .tasks import (
 @cli("life", name="done")
 def check(ref: list[str], date: str | None = None) -> None:
     """Toggle done"""
-    from .habits import check_habit, get_checks, toggle_check
+    from .habit import check_habit, get_checks, toggle_check
     from .lib.clock import today
     from .lib.dates import parse_due_date
 
@@ -40,7 +40,7 @@ def check(ref: list[str], date: str | None = None) -> None:
         task, habit = resolve_item_any(item_ref)
         if not habit:
             raise UsageError("--date only applies to habits")
-        from .habits import uncheck_habit
+        from .habit import uncheck_habit
 
         checks = get_checks(habit.id)
         already_checked = any(c.date() == check_on for c in checks)
@@ -76,16 +76,16 @@ def check(ref: list[str], date: str | None = None) -> None:
 
 
 @cli("life", name="rm")
-def rm(ref: list[str]) -> None:
+def rm(ref: list[str], hard: bool = False) -> None:
     """Delete item"""
-    from .habits import delete_habit
+    from .habit import delete_habit
 
     item_ref = " ".join(ref) if ref else ""
     if not item_ref:
         raise UsageError("Usage: life rm <item>")
     task, habit = resolve_item_any(item_ref)
     if task:
-        delete_task(task.id)
+        delete_task(task.id, hard=hard)
         print(ansi.strikethrough(task.content))
     elif habit:
         delete_habit(habit.id)
@@ -160,7 +160,7 @@ def add(
             updates["scheduled_time"] = resolved_time
         update_task(task_id, **updates)
     if done:
-        from .tasks import get_task
+        from .task import get_task
 
         task = get_task(task_id)
         if task:

@@ -201,7 +201,7 @@ def _build_provider_cmd_env(provider: str, prompt: str) -> tuple[list[str], dict
 
 
 def _run_autonomous(provider: str = "claude") -> None:
-    from ..habits import get_habits
+    from ..habit import get_habits
     from ..lib.clock import today
     from ..loop import (
         load_loop_state,
@@ -210,7 +210,7 @@ def _run_autonomous(provider: str = "claude") -> None:
         update_loop_state,
     )
     from ..metrics import build_feedback_snapshot, render_feedback_snapshot
-    from ..tasks import get_all_tasks, get_tasks
+    from ..task import get_all_tasks, get_tasks
 
     tasks_before = get_tasks()
     all_before = get_all_tasks()

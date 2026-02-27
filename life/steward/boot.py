@@ -14,12 +14,12 @@ STEWARD_BIRTHDAY = datetime(2026, 2, 18)
 @cli("steward")
 def boot():
     """Load life state and emit sitrep for interactive session start"""
-    from ..habits import get_habits
+    from ..habit import get_habits
     from ..improvements import get_improvements
     from ..lib.clock import today
     from ..metrics import build_feedback_snapshot, render_feedback_headline
     from ..mood import get_recent_moods
-    from ..tasks import get_all_tasks, get_tasks
+    from ..task import get_all_tasks, get_tasks
 
     age_days = (datetime.now() - STEWARD_BIRTHDAY).days
     now_local = datetime.now()

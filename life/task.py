@@ -271,10 +271,10 @@ def defer_task(task_id: str, reason: str) -> Task | None:
     return task
 
 
-def delete_task(task_id: str, cancel_reason: str | None = None) -> None:
+def delete_task(task_id: str, cancel_reason: str | None = None, hard: bool = False) -> None:
     with db.get_db() as conn:
         row = conn.execute("SELECT id, content FROM tasks WHERE id = ?", (task_id,)).fetchone()
-        if row:
+        if row and not hard:
             tag_rows = conn.execute("SELECT tag FROM tags WHERE task_id = ?", (task_id,)).fetchall()
             tags_str = ",".join(r[0] for r in tag_rows) if tag_rows else None
             if cancel_reason:
@@ -288,6 +288,8 @@ def delete_task(task_id: str, cancel_reason: str | None = None) -> None:
                     (row[0], row[1], tags_str),
                 )
         conn.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+        if hard:
+            conn.execute("DELETE FROM deleted_tasks WHERE task_id = ?", (task_id,))
 
 
 def cancel_task(task_id: str, reason: str) -> None:
@@ -692,3 +694,27 @@ def unschedule(ref: list[str] | None = None, overdue: bool = False) -> None:
 def today(ref: list[str]) -> None:
     """Schedule task for today"""
     _schedule(["today", *ref])
+
+
+@cli("life", flags={"ref": [], "tag": ["-t", "--tag"], "schedule": ["-s", "--schedule"]})
+def task(
+    ref: list[str] | None = None,
+    tag: list[str] | None = None,
+    due: str | None = None,
+    focus: bool = False,
+    schedule: str | None = None,
+) -> None:
+    """List tasks, or create one: `life task "name" -t tag`"""
+    if not ref:
+        from .lib.format import format_task
+
+        tasks = get_tasks()
+        if not tasks:
+            print("no tasks")
+        else:
+            for t in tasks:
+                print(f"  □ {format_task(t, tags=t.tags, show_id=True)}")
+        return
+    from .items import add as _add
+
+    _add(ref, tag=tag, due=due or schedule, focus=focus)

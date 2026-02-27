@@ -4,8 +4,8 @@ from collections.abc import Sequence
 from datetime import date, datetime, timedelta
 
 from life.core.models import Habit, Task, TaskMutation, Weekly
-from life.habits import get_subhabits
-from life.tasks import _task_sort_key
+from life.habit import get_subhabits
+from life.task import _task_sort_key
 
 from .lib import clock
 from .lib.ansi import POOL, _active, bold, dim, gold, gray, green, purple, red, white

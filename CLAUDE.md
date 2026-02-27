@@ -7,10 +7,9 @@ Resolve refs at CLI boundary via `lib/resolve.py`. `resolve_task(ref)` / `resolv
 ```
 life/
   cli.py        — dispatch entry point
-  add.py        — life add subcommands (t, h, o, p, l, a)
   dash.py       — dashboard, status, ls, momentum, stats, view
-  tasks.py      — task CRUD, find_task*, schedule
-  habits.py     — habit CRUD + check tracking
+  task.py       — task CRUD + `life task` command
+  habit.py      — habit CRUD + `life habit` command
   items.py      — done, rm, rename, focus (unified task/habit)
   models.py     — Task, Habit, TaskMutation (no deps)
   db.py         — SQLite + migrations
@@ -29,8 +28,9 @@ Higher imports lower, never upward. `lib/` is clean except `resolve.py` (intenti
 
 ## Key primitives
 
-- `life add t "<name>" -t <tag>` — add task
-- `life add h "<name>" -t <tag>` — add habit
+- `life task "<name>" -t <tag>` — add task (no args = list)
+- `life habit "<name>" -t <tag>` — add habit (no args = list)
+- `life achieve "<name>"` — log achievement (no args = list)
 - `life defer <task> --reason <why>` — defer, logs to task_mutations. Does not reschedule.
 - `life schedule <HH:MM> <task>` — set time only
 - `life now <task>` — due=today, time=now

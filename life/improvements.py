@@ -41,17 +41,20 @@ def get_improvements(done: bool = False) -> list[Improvement]:
         ]
 
 
-def delete_improvement(prefix: str) -> bool:
+def delete_improvement(prefix: str, hard: bool = False) -> bool:
     from .steward import resolve_prefix
 
     imp = resolve_prefix(prefix, get_improvements())
     if not imp:
         return False
     with get_db() as conn:
-        cursor = conn.execute(
-            "UPDATE improvements SET deleted_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now') WHERE uuid = ? AND deleted_at IS NULL",
-            (imp.uuid,),
-        )
+        if hard:
+            cursor = conn.execute("DELETE FROM improvements WHERE uuid = ?", (imp.uuid,))
+        else:
+            cursor = conn.execute(
+                "UPDATE improvements SET deleted_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now') WHERE uuid = ? AND deleted_at IS NULL",
+                (imp.uuid,),
+            )
         return cursor.rowcount > 0
 
 

@@ -314,3 +314,17 @@ def habits() -> None:
     from .render import render_habit_matrix
 
     print(render_habit_matrix(get_habits()))
+
+
+@cli("life", flags={"ref": [], "tag": ["-t", "--tag"]})
+def habit(ref: list[str] | None = None, tag: list[str] | None = None) -> None:
+    """List habits, or create one: `life habit "name" -t tag`"""
+    if not ref:
+        from .render import render_habit_matrix
+
+        print(render_habit_matrix(get_habits()))
+        return
+    name = " ".join(ref)
+    add_habit(name, tags=tag)
+    suffix = " " + " ".join(f"#{t}" for t in tag) if tag else ""
+    print(f"→ {name}{suffix}")

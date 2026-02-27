@@ -113,7 +113,8 @@ def dim(text: str) -> str:
 
 
 def strikethrough(text: str) -> str:
-    return f"{_active.strikethrough}{_active.muted}{text}{_active.reset}"
+    struck = "".join(c + "\u0336" for c in text)
+    return f"{_active.muted}{struck}{_active.reset}"
 
 
 def strip(text: str) -> str:

@@ -49,20 +49,20 @@ def observe(
 
 
 @cli("steward")
-def rm(prefix: str):
-    """Soft-remove any steward item by UUID prefix — observations or improvements"""
+def rm(prefix: str, hard: bool = False):
+    """Remove any steward item by UUID prefix — observations or improvements"""
     from ..improvements import delete_improvement, get_improvements
     from . import resolve_prefix
 
     obs = resolve_prefix(prefix, get_observations(limit=200))
     if obs:
-        delete_observation(obs.uuid)
+        delete_observation(obs.uuid, hard=hard)
         print(f"→ removed: {obs.body[:80]}")
         return
 
     imp = resolve_prefix(prefix, get_improvements())
     if imp:
-        delete_improvement(imp.uuid)
+        delete_improvement(imp.uuid, hard=hard)
         print(f"→ removed: {imp.body[:80]}")
         return
 

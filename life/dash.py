@@ -9,7 +9,7 @@ from .dashboard import (
     get_today_breakdown,
     get_today_completed,
 )
-from .habits import get_habits
+from .habit import get_habits
 from .lib import ansi
 from .lib.ansi import POOL
 from .lib.clock import now, today
@@ -17,7 +17,7 @@ from .lib.format import format_elapsed
 from .metrics import build_feedback_snapshot, render_feedback_snapshot
 from .momentum import weekly_momentum
 from .render import render_dashboard, render_day_summary, render_momentum
-from .tasks import get_all_tasks, get_tasks, last_completion
+from .task import get_all_tasks, get_tasks, last_completion
 
 
 @cli("life")
@@ -146,7 +146,7 @@ def view(date_str: str) -> None:
 
 def _show_day(target: date) -> None:
     from .db import get_db
-    from .habits import get_habits
+    from .habit import get_habits
 
     date_str = target.isoformat()
     completed = get_day_completed(date_str)

@@ -75,15 +75,18 @@ def get_observations(limit: int = 20, tag: str | None = None) -> list[Observatio
         ]
 
 
-def delete_observation(prefix: str) -> bool:
+def delete_observation(prefix: str, hard: bool = False) -> bool:
     obs = resolve_prefix(prefix, get_observations(limit=200))
     if not obs:
         return False
     with get_db() as conn:
-        cursor = conn.execute(
-            "UPDATE observations SET deleted_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now') WHERE uuid = ? AND deleted_at IS NULL",
-            (obs.uuid,),
-        )
+        if hard:
+            cursor = conn.execute("DELETE FROM observations WHERE uuid = ?", (obs.uuid,))
+        else:
+            cursor = conn.execute(
+                "UPDATE observations SET deleted_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now') WHERE uuid = ? AND deleted_at IS NULL",
+                (obs.uuid,),
+            )
         return cursor.rowcount > 0
 
 

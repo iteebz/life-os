@@ -1,8 +1,8 @@
 from . import db
 from .core.models import Habit, Task
-from .habits import get_habits
+from .habit import get_habits
 from .lib import clock
-from .tasks import _fetch_tasks
+from .task import _fetch_tasks
 
 __all__ = [
     "get_day_breakdown",
