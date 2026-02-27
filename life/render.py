@@ -177,10 +177,10 @@ def _row_habit(
     id_str = f" {_GREY}[{habit.id[:8]}]{_R}"
     if habit.id in checked_ids:
         lines = [
-            f"{indent}{purple('✓')} {gray(trend)} {gray(habit.content.lower())}{tags_str}{id_str}"
+            f"{indent}{purple('●')} {gray(trend)} {gray(habit.content.lower())}{tags_str}{id_str}"
         ]
     else:
-        lines = [f"{indent}{purple('□')} {gray(trend)} {habit.content.lower()}{tags_str}{id_str}"]
+        lines = [f"{indent}{purple('○')} {gray(trend)} {habit.content.lower()}{tags_str}{id_str}"]
     for sub in get_subhabits(habit.id):
         lines.extend(_row_habit(sub, checked_ids, ctx, indent="   └ "))
     return lines
@@ -233,7 +233,7 @@ def _section_done(
         if isinstance(item, Habit):
             on_date = [c for c in item.checks if c.date() == target]
             time_str = max(on_date).strftime("%H:%M") if on_date else ""
-            lines.append(f"  {purple('✓')} {_GREY}{time_str}{_R} {content}{tags_str}{id_str}")
+            lines.append(f"  {purple('●')} {_GREY}{time_str}{_R} {content}{tags_str}{id_str}")
         elif item.completed_at:
             time_str = item.completed_at.strftime("%H:%M")
             parent_str = ""
@@ -534,7 +534,7 @@ def render_habit_matrix(habits: list[Habit]) -> str:
     lines += [header, "-" * len(header)]
     for habit in sorted(habits, key=lambda h: h.content.lower()):
         check_dates = {dt.date() for dt in habit.checks}
-        indicators = ["✓" if d in check_dates else "□" for d in dates]
+        indicators = ["●" if d in check_dates else "○" for d in dates]
         lines.append(
             f"{habit.content.lower():<15} {'   '.join(indicators)}   {_GREY}[{habit.id[:8]}]{_R}"
         )
