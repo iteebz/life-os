@@ -2,7 +2,7 @@ import dataclasses
 from datetime import date, datetime
 from typing import TypeVar, cast
 
-from life.models import Habit, Task
+from life.core.models import Habit, Task
 
 T = TypeVar("T", Task, Habit)
 

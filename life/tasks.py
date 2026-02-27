@@ -10,13 +10,13 @@ from fncli import UsageError, cli
 
 from . import db
 from .core.errors import ConflictError, ValidationError
+from .core.models import Task, TaskMutation
 from .core.types import UNSET, Unset
 from .lib import ansi, clock
 from .lib.converters import row_to_task
 from .lib.format import animate_check, format_status
 from .lib.fuzzy import find_in_pool, find_in_pool_exact
 from .lib.parsing import parse_due_and_item
-from .models import Task, TaskMutation
 from .tag import add_tag, hydrate_tags, load_tags_for_tasks
 
 __all__ = [

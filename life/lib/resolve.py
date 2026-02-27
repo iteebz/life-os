@@ -4,8 +4,8 @@ from pathlib import Path
 import yaml
 
 from life.core.errors import NotFoundError
+from life.core.models import Habit, Task
 from life.habits import find_habit, find_habit_exact
-from life.models import Habit, Task
 from life.tasks import find_task, find_task_any, find_task_exact
 
 __all__ = [

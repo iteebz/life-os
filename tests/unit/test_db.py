@@ -7,8 +7,8 @@ from pathlib import Path
 import pytest
 
 from life import db
+from life.core.models import Habit, Task, TaskMutation
 from life.db import load_migrations
-from life.models import Habit, Task, TaskMutation
 
 
 def test_init_creates_schema(tmp_life_dir):

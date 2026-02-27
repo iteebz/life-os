@@ -1,7 +1,7 @@
 from . import db
+from .core.models import Habit, Task
 from .habits import get_habits
 from .lib import clock
-from .models import Habit, Task
 from .tasks import _fetch_tasks
 
 __all__ = [

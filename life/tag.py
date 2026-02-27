@@ -5,9 +5,9 @@ from typing import TypeVar
 from fncli import cli
 
 from . import db
+from .core.models import Habit, Task
 from .lib import ansi
 from .lib.converters import hydrate_tags_onto, row_to_habit, row_to_task
-from .models import Habit, Task
 
 T = TypeVar("T", Task, Habit)
 

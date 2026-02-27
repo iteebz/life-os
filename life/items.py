@@ -4,12 +4,12 @@ from typing import Any
 from fncli import UsageError, cli
 
 from .core.errors import NotFoundError, ValidationError
+from .core.models import Task
 from .habits import add_habit, check_habit_cmd, rename_habit
 from .lib import ansi
 from .lib.format import format_status
 from .lib.parsing import validate_content
 from .lib.resolve import resolve_item, resolve_item_any
-from .models import Task
 from .tasks import (
     add_task,
     check_task,

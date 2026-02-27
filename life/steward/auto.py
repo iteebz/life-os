@@ -8,7 +8,7 @@ from queue import Empty, Queue
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from ..models import Task
+    from ..core.models import Task
 
 from atrace import StreamParser, format_entry
 from atrace.ansi import strip as ansi_strip
@@ -168,8 +168,8 @@ def _run_tail_stream(
 
 
 def _select_required_real_world_task(tasks: list[Any]) -> "Task | None":
+    from ..core.models import Task
     from ..lib.clock import today
-    from ..models import Task
 
     discomfort = {"finance", "legal", "janice"}
     candidates: list[Task] = [

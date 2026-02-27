@@ -3,8 +3,8 @@ import random
 from collections.abc import Sequence
 from datetime import date, datetime, timedelta
 
+from life.core.models import Habit, Task, TaskMutation, Weekly
 from life.habits import get_subhabits
-from life.models import Habit, Task, TaskMutation, Weekly
 from life.tasks import _task_sort_key
 
 from . import clock

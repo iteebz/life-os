@@ -8,11 +8,11 @@ from fncli import UsageError, cli
 
 from . import db
 from .core.errors import ValidationError
+from .core.models import Habit
 from .lib import ansi, clock
 from .lib.converters import row_to_habit
 from .lib.format import animate_check
 from .lib.fuzzy import find_in_pool, find_in_pool_exact
-from .models import Habit
 from .tag import get_tags_for_habit, load_tags_for_habits
 
 __all__ = [

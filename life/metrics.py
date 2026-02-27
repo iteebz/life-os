@@ -3,8 +3,8 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
 from .config import get_partner_tag
+from .core.models import Habit, Task
 from .db import get_db
-from .models import Habit, Task
 
 DISCOMFORT_TAGS = {"finance", "legal", "janice"}
 
