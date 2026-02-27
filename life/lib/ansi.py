@@ -40,6 +40,7 @@ class Theme:
     muted: str = "\033[90m"  # dim gray for secondary text
     bold: str = "\033[1m"
     dim: str = "\033[2m"
+    strikethrough: str = "\033[9m"
     reset: str = "\033[0m"
 
 
@@ -109,6 +110,10 @@ def bold(text: str) -> str:
 
 def dim(text: str) -> str:
     return f"{_active.dim}{text}{_active.reset}"
+
+
+def strikethrough(text: str) -> str:
+    return f"{_active.strikethrough}{_active.muted}{text}{_active.reset}"
 
 
 def strip(text: str) -> str:

@@ -93,10 +93,10 @@ def rm(ref: list[str]) -> None:
     task, habit = resolve_item_any(item_ref)
     if task:
         delete_task(task.id)
-        print(ansi.dim(task.content))
+        print(ansi.strikethrough(task.content))
     elif habit:
         delete_habit(habit.id)
-        print(ansi.dim(habit.content))
+        print(ansi.strikethrough(habit.content))
 
 
 def add(
