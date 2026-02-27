@@ -39,12 +39,12 @@ def get_observations(limit: int = 20, tag: str | None = None) -> list[Observatio
     with get_db() as conn:
         if tag:
             rows = conn.execute(
-                "SELECT id, body, tag, logged_at, about_date FROM observations WHERE tag = ? ORDER BY logged_at DESC LIMIT ?",
+                "SELECT id, body, tag, logged_at, about_date FROM observations WHERE tag = ? AND deleted_at IS NULL ORDER BY logged_at DESC LIMIT ?",
                 (tag, limit),
             ).fetchall()
         else:
             rows = conn.execute(
-                "SELECT id, body, tag, logged_at, about_date FROM observations ORDER BY logged_at DESC LIMIT ?",
+                "SELECT id, body, tag, logged_at, about_date FROM observations WHERE deleted_at IS NULL ORDER BY logged_at DESC LIMIT ?",
                 (limit,),
             ).fetchall()
         return [
@@ -61,7 +61,10 @@ def get_observations(limit: int = 20, tag: str | None = None) -> list[Observatio
 
 def delete_observation(obs_id: int) -> bool:
     with get_db() as conn:
-        cursor = conn.execute("DELETE FROM observations WHERE id = ?", (obs_id,))
+        cursor = conn.execute(
+            "UPDATE observations SET deleted_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now') WHERE id = ? AND deleted_at IS NULL",
+            (obs_id,),
+        )
         return cursor.rowcount > 0
 
 
