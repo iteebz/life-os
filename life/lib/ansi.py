@@ -84,10 +84,14 @@ _COLORS = {
 POOL: list[tuple[str, str]] = [
     ("\033[38;5;209m", "coral"),  # orange-red   ~15°
     ("\033[38;5;215m", "apricot"),  # orange       ~30°
+    ("\033[38;5;185m", "butter"),  # warm yellow  ~65°
     ("\033[38;5;149m", "lime"),  # yellow-green ~80°
+    ("\033[38;5;113m", "spring"),  # spring green ~100°
     ("\033[38;5;158m", "pale-mint"),  # mint-green   ~150°
     ("\033[38;5;116m", "seafoam"),  # teal         ~175°
     ("\033[38;5;81m", "sky"),  # cyan-blue    ~195°
+    ("\033[38;5;69m", "cornflower"),  # periwinkle   ~225°
+    ("\033[38;5;134m", "orchid"),  # violet       ~280°
     ("\033[38;5;204m", "rose"),  # hot pink     ~320°
     ("\033[38;5;217m", "peach"),  # soft pink    ~340°
 ]
