@@ -1,7 +1,9 @@
+from datetime import datetime
+
 from fncli import cli
 
 from ..lib.errors import exit_error
-from . import add_observation, add_session, delete_observation, get_observations
+from . import _rel, add_observation, add_session, delete_observation, get_observations
 
 
 @cli("steward")
@@ -11,13 +13,34 @@ def close(summary: str):
     print("→ session logged")
 
 
-@cli("steward")
+@cli("steward", flags={"body": []})
 def observe(
-    body: str,
+    body: str | None = None,
     tag: str | None = None,
     about: str | None = None,
+    rm: int | None = None,
 ):
     """Log a raw observation — things Tyson says that should persist as context"""
+    if rm is not None:
+        deleted = delete_observation(rm)
+        if deleted:
+            print(f"→ removed #{rm}")
+        else:
+            exit_error(f"no observation with id {rm}")
+        return
+
+    if body is None:
+        observations = get_observations(limit=20, tag=tag)
+        if not observations:
+            print("no observations")
+            return
+        now = datetime.now()
+        for o in observations:
+            rel = _rel((now - o.logged_at).total_seconds())
+            tag_str = f" #{o.tag}" if o.tag else ""
+            print(f"  {o.id:<4} {rel:<10}  {o.body}{tag_str}")
+        return
+
     from datetime import date
 
     from ..lib.dates import parse_due_date

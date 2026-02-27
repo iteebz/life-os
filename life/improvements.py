@@ -39,6 +39,12 @@ def get_improvements(done: bool = False) -> list[Improvement]:
         ]
 
 
+def delete_improvement(imp_id: int) -> bool:
+    with get_db() as conn:
+        cursor = conn.execute("DELETE FROM improvements WHERE id = ?", (imp_id,))
+        return cursor.rowcount > 0
+
+
 def mark_improvement_done(query: str) -> Improvement | None:
     improvements = get_improvements()
     if not improvements:
