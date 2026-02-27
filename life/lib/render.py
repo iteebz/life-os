@@ -119,9 +119,13 @@ def _render_done(
     today_items: list[Task | Habit],
     all_pending: list[Task],
     tag_colors: dict[str, str],
+    target_date: date | None = None,
+    show_header: bool = True,
 ) -> list[str]:
     if not today_items:
         return []
+
+    target = target_date or clock.today()
 
     def _sort_key(item):
         if isinstance(item, Task) and item.completed_at:
@@ -133,7 +137,7 @@ def _render_done(
     sorted_items = sorted(today_items, key=_sort_key)
     pending_by_id = {t.id: t for t in all_pending}
 
-    lines = [bold(green("DONE"))]
+    lines = [bold(green("DONE"))] if show_header else []
     for item in sorted_items:
         tags_str = _fmt_tags(item.tags, tag_colors)
         content = item.content.lower()
@@ -141,9 +145,9 @@ def _render_done(
         if isinstance(item, Habit):
             time_str = ""
             if item.checks:
-                latest_check = max(item.checks)
-                if latest_check.date() == clock.today():
-                    time_str = latest_check.strftime("%H:%M")
+                on_date = [c for c in item.checks if c.date() == target]
+                if on_date:
+                    time_str = max(on_date).strftime("%H:%M")
             lines.append(f"  {gray('✓')} {_GREY}{time_str}{_R} {content}{tags_str}{id_str}")
         elif item.completed_at:
             time_str = item.completed_at.strftime("%H:%M")
@@ -576,9 +580,6 @@ def render_day_summary(
     habits_done, tasks_done, added, deleted = breakdown
     tag_colors = _build_tag_colors(completed_items)
 
-    completed_tasks = [i for i in completed_items if isinstance(i, Task)]
-    completed_habits = [i for i in completed_items if isinstance(i, Habit)]
-
     lines = [
         f"\n{bold(white(target_date.strftime('%a') + ' · ' + target_date.strftime('%-d %b %Y')))}"
     ]
@@ -595,39 +596,16 @@ def render_day_summary(
         label_str = f"  {label}" if label else ""
         lines.append(f"{_GREY}mood:{_R} {bar}  {score}/5{label_str}")
 
-    if not completed_tasks and not completed_habits:
+    if not completed_items:
         lines.append(f"\n  {gray('nothing completed.')}")
         return "\n".join(lines) + "\n"
 
-    if completed_tasks:
-        sorted_tasks = sorted(completed_tasks, key=lambda t: t.completed_at or t.created)
-        lines.append(f"\n{bold(green('DONE'))}")
-        for task in sorted_tasks:
-            tags_str = _fmt_tags(task.tags, tag_colors)
-            content = task.content.lower()
-            id_str = f" {_GREY}[{task.id[:8]}]{_R}"
-            time_str = task.completed_at.strftime("%H:%M") if task.completed_at else ""
-            lines.append(f"  {green('✓')} {_GREY}{time_str}{_R} {content}{tags_str}{id_str}")
-
-    if completed_habits:
-        checked_count = len(completed_habits)
-        total_str = f"/{total_habits}" if total_habits else ""
-        lines.append(f"\n{ANSI.BOLD}{ANSI.GRAY}HABITS ({checked_count}{total_str}){ANSI.RESET}")
-        sorted_habits = sorted(completed_habits, key=lambda h: h.content.lower())
-        for habit in sorted_habits:
-            tags_str = _fmt_tags(habit.tags, tag_colors)
-            content = habit.content.lower()
-            id_str = f" {_GREY}[{habit.id[:8]}]{_R}"
-            time_str = ""
-            if habit.checks:
-                latest = (
-                    max(c for c in habit.checks if c.date() == target_date)
-                    if any(c.date() == target_date for c in habit.checks)
-                    else None
-                )
-                if latest:
-                    time_str = latest.strftime("%H:%M")
-            lines.append(f"  {gray('✓')} {_GREY}{time_str}{_R} {content}{tags_str}{id_str}")
+    done_lines = _render_done(
+        completed_items, [], tag_colors, target_date=target_date, show_header=False
+    )
+    if done_lines:
+        lines.append("")
+        lines.extend(done_lines)
 
     return "\n".join(lines) + "\n"
 
