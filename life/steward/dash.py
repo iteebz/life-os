@@ -14,7 +14,7 @@ def dash():
     if improvements:
         print("IMPROVEMENTS:")
         for i in improvements:
-            print(f"  [{i.id}] {i.body}")
+            print(f"  [{i.uuid[:8]}] {i.body}")
     else:
         print("IMPROVEMENTS: none")
 

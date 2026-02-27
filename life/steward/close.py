@@ -2,8 +2,12 @@ from datetime import datetime
 
 from fncli import cli
 
+from ..lib.ansi import ANSI
 from ..lib.errors import exit_error
 from . import _rel, add_observation, add_session, delete_observation, get_observations
+
+_G = ANSI.GREY
+_R = ANSI.RESET
 
 
 @cli("steward")
@@ -18,15 +22,15 @@ def observe(
     body: str | None = None,
     tag: str | None = None,
     about: str | None = None,
-    rm: int | None = None,
+    rm: str | None = None,
 ):
     """Log a raw observation — things Tyson says that should persist as context"""
     if rm is not None:
         deleted = delete_observation(rm)
         if deleted:
-            print(f"→ removed #{rm}")
+            print(f"→ removed {rm}")
         else:
-            exit_error(f"no observation with id {rm}")
+            exit_error(f"no observation matching '{rm}'")
         return
 
     if body is None:
@@ -38,7 +42,7 @@ def observe(
         for o in observations:
             rel = _rel((now - o.logged_at).total_seconds())
             tag_str = f" #{o.tag}" if o.tag else ""
-            print(f"  {o.id:<4} {rel:<10}  {o.body}{tag_str}")
+            print(f"  {_G}[{o.uuid[:8]}]{_R}  {rel:<10}  {o.body}{tag_str}")
         return
 
     from datetime import date
@@ -60,7 +64,9 @@ def observe(
 def rm(
     query: str | None = None,
 ):
-    """Delete an observation — fuzzy match or latest"""
+    """Delete an observation — UUID prefix, fuzzy match, or latest"""
+    from . import resolve_prefix
+
     observations = get_observations(limit=50)
     if not observations:
         exit_error("no observations to remove")
@@ -68,13 +74,15 @@ def rm(
     if query is None:
         target = observations[0]
     else:
-        q = query.lower()
-        matches = [o for o in observations if q in o.body.lower()]
-        if not matches:
+        target = resolve_prefix(query, observations)
+        if not target:
+            q = query.lower()
+            matches = [o for o in observations if q in o.body.lower()]
+            target = matches[0] if matches else None
+        if not target:
             exit_error(f"no observation matching '{query}'")
-        target = matches[0]
 
-    deleted = delete_observation(target.id)
+    deleted = delete_observation(target.uuid)
     if deleted:
         print(f"→ removed: {target.body[:80]}")
     else:

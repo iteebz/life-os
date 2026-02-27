@@ -2,8 +2,12 @@ from datetime import datetime
 
 from fncli import cli
 
+from ..lib.ansi import ANSI
 from ..lib.errors import exit_error
 from . import _rel
+
+_G = ANSI.GREY
+_R = ANSI.RESET
 
 
 @cli("steward", flags={"body": []})
@@ -11,7 +15,7 @@ def improve(
     body: str | None = None,
     log: bool = False,
     done: str | None = None,
-    rm: int | None = None,
+    rm: str | None = None,
 ):
     """Log a system improvement or mark one done"""
     from ..improvements import (
@@ -24,9 +28,9 @@ def improve(
     if rm is not None:
         deleted = delete_improvement(rm)
         if deleted:
-            print(f"→ removed #{rm}")
+            print(f"→ removed {rm}")
         else:
-            exit_error(f"no improvement with id {rm}")
+            exit_error(f"no improvement matching '{rm}'")
         return
 
     if done is not None:
@@ -45,7 +49,7 @@ def improve(
         now = datetime.now()
         for i in improvements:
             rel = _rel((now - i.logged_at).total_seconds())
-            print(f"  {i.id:<4} {rel:<10}  {i.body}")
+            print(f"  {_G}[{i.uuid[:8]}]{_R}  {rel:<10}  {i.body}")
         return
 
     add_improvement(body)
