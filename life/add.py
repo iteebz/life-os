@@ -1,17 +1,6 @@
 import fncli
 from fncli import cli
 
-from .db import get_db
-
-
-def add_learning(body: str, tags: str | None = None) -> int:
-    with get_db() as conn:
-        cursor = conn.execute(
-            "INSERT INTO learnings (body, tags) VALUES (?, ?)",
-            (body, tags),
-        )
-        return cursor.lastrowid or 0
-
 
 def _log_task(
     content: list[str], tag: list[str] | None = None, due: str | None = None, focus: bool = False
@@ -35,12 +24,6 @@ def _log_pattern(body: str, tag: str | None = None) -> None:
     _add(body, tag=tag)
     suffix = f" #{tag}" if tag else ""
     print(f"~ {body}{suffix}")
-
-
-def _log_learning(body: str, tags: str | None = None) -> None:
-    add_learning(body, tags)
-    suffix = f" [{tags}]" if tags else ""
-    print(f"◆ {body}{suffix}")
 
 
 def _log_achievement(name: str, tags: str | None = None) -> None:
@@ -83,12 +66,6 @@ def add_observation_sub(body: str, tag: str | None = None):
 def add_pattern_sub(body: str, tag: str | None = None):
     """Log a pattern"""
     _log_pattern(body, tag)
-
-
-@cli("life add", name="l", flags={"tags": ["-t", "--tags"]})
-def add_learning_sub(body: str, tags: str | None = None):
-    """Log a steward learning"""
-    _log_learning(body, tags)
 
 
 @cli("life add", name="a", flags={"tags": ["-t", "--tags"]})

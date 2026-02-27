@@ -71,12 +71,6 @@ CREATE TABLE deleted_tasks (
     cancelled INTEGER NOT NULL DEFAULT 0
 );
 
-CREATE TABLE task_links (
-    from_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-    to_id   TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-    created_at TEXT NOT NULL DEFAULT (STRFTIME('%Y-%m-%dT%H:%M:%S', 'now')),
-    PRIMARY KEY (from_id, to_id)
-);
 
 CREATE TABLE patterns (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -131,13 +125,6 @@ CREATE TABLE achievements (
     CHECK (length(name) > 0)
 );
 
-CREATE TABLE learnings (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    body TEXT NOT NULL,
-    tags TEXT,
-    logged_at TEXT NOT NULL DEFAULT (STRFTIME('%Y-%m-%dT%H:%M:%S', 'now')),
-    CHECK (length(body) > 0)
-);
 
 CREATE TABLE accounts (
     id TEXT PRIMARY KEY,
@@ -231,10 +218,8 @@ CREATE INDEX idx_mutations_task ON task_mutations(task_id);
 CREATE INDEX idx_mutations_field ON task_mutations(field);
 CREATE INDEX idx_mutations_at ON task_mutations(mutated_at);
 CREATE INDEX idx_deleted_tasks_at ON deleted_tasks(deleted_at);
-CREATE INDEX idx_task_links_to ON task_links(to_id);
 CREATE INDEX idx_observations_tag ON steward_observations(tag) WHERE tag IS NOT NULL;
 CREATE INDEX idx_achievements_at ON achievements(achieved_at);
-CREATE INDEX idx_learnings_at ON learnings(logged_at);
 CREATE INDEX idx_drafts_approved ON drafts(approved_at);
 CREATE INDEX idx_messages_channel ON messages(channel);
 CREATE INDEX idx_messages_peer ON messages(peer);
