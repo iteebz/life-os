@@ -2,8 +2,8 @@ from datetime import datetime
 
 from fncli import cli
 
+from ..core.errors import NotFoundError
 from ..lib import ansi
-from ..lib.errors import exit_error
 from . import _rel
 
 
@@ -25,7 +25,7 @@ def improve(
         if target:
             print(f"✓ {target.body}")
         else:
-            exit_error(f"no open improvement matching '{done}'")
+            raise NotFoundError(f"no open improvement matching '{done}'")
         return
 
     if log or not body:

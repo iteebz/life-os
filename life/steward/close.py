@@ -2,8 +2,8 @@ from datetime import datetime
 
 from fncli import cli
 
+from ..core.errors import NotFoundError
 from ..lib import ansi
-from ..lib.errors import exit_error
 from . import _rel, add_observation, add_session, delete_observation, get_observations
 
 
@@ -66,4 +66,4 @@ def rm(prefix: str):
         print(f"→ removed: {imp.body[:80]}")
         return
 
-    exit_error(f"no item matching '{prefix}'")
+    raise NotFoundError(f"no item matching '{prefix}'")

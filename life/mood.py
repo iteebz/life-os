@@ -3,8 +3,8 @@ from datetime import UTC, datetime, timedelta
 
 from fncli import cli
 
+from .core.errors import NotFoundError, ValidationError
 from .db import get_db
-from .lib.errors import exit_error
 
 
 @dataclass(frozen=True)
@@ -71,7 +71,7 @@ def delete_latest_mood(within_seconds: int = 3600) -> MoodEntry | None:
 def log(score: int, label: str | None = None):
     """Log energy/mood (1-5) with optional label"""
     if score < 1 or score > 5:
-        exit_error("Score must be 1-5")
+        raise ValidationError("score must be 1-5")
     add_mood(score, label)
     bar = "█" * score + "░" * (5 - score)
     label_str = f"  {label}" if label else ""
@@ -100,8 +100,7 @@ def rm():
     """Remove latest mood entry"""
     entry = delete_latest_mood()
     if not entry:
-        exit_error("no mood entries to remove")
-        return
+        raise NotFoundError("no mood entries to remove")
     bar = "█" * entry.score + "░" * (5 - entry.score)
     label_str = f"  {entry.label}" if entry.label else ""
     print(f"✗ {bar}  {entry.score}/5{label_str}")

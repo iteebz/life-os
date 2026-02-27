@@ -4,6 +4,7 @@ from pathlib import Path
 import fncli
 
 from . import db
+from .core.errors import LifeError
 
 
 def main():
@@ -17,7 +18,11 @@ def main():
         dashboard()
         return
     argv = ["life", *user_args]
-    code = fncli.dispatch(argv)
+    try:
+        code = fncli.dispatch(argv)
+    except LifeError as e:
+        sys.stderr.write(f"{e}\n")
+        sys.exit(1)
     sys.exit(code)
 
 

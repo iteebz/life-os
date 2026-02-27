@@ -4,12 +4,12 @@ import sqlite3
 import uuid
 from datetime import date, datetime
 
-from fncli import cli
+from fncli import UsageError, cli
 
 from . import db
+from .core.errors import ValidationError
 from .lib import ansi, clock
 from .lib.converters import row_to_habit
-from .lib.errors import exit_error
 from .lib.format import animate_check
 from .lib.fuzzy import find_in_pool, find_in_pool_exact
 from .models import Habit
@@ -266,7 +266,7 @@ def toggle_check(habit_id: str) -> Habit | None:
 
 def rename_habit(habit: Habit, to_content: str) -> None:
     if habit.content == to_content:
-        exit_error(f"Error: Cannot rename '{habit.content}' to itself.")
+        raise ValidationError(f"cannot rename '{habit.content}' to itself")
     update_habit(habit.id, content=to_content)
     print(f"\u2192 {to_content}")
 
@@ -299,7 +299,7 @@ def archive(ref: str | None = None, list_archived: bool = False) -> None:
             print(f"{ansi.dim(h.content)}  archived {archived_date}")
         return
     if not ref:
-        exit_error("Usage: life archive <habit>")
+        raise UsageError("Usage: life archive <habit>")
     h = resolve_habit(ref)
     archive_habit(h.id)
     print(f"{ansi.dim(h.content)}  archived")

@@ -1,11 +1,11 @@
 import sys
 from typing import Any
 
-from fncli import cli
+from fncli import UsageError, cli
 
+from .core.errors import NotFoundError, ValidationError
 from .habits import add_habit, check_habit_cmd, rename_habit
 from .lib import ansi
-from .lib.errors import exit_error
 from .lib.format import format_status
 from .lib.parsing import validate_content
 from .lib.resolve import resolve_item, resolve_item_any
@@ -35,18 +35,18 @@ def check(ref: list[str], date: str | None = None) -> None:
 
     item_ref = " ".join(ref) if ref else ""
     if not item_ref:
-        exit_error("Usage: life check <item>")
+        raise UsageError("Usage: life check <item>")
 
     if date is not None:
         from datetime import date as date_type
 
         parsed = parse_due_date(date)
         if not parsed:
-            exit_error(f"Unrecognized date '{date}' — use yesterday, YYYY-MM-DD, etc.")
+            raise UsageError(f"Unrecognized date '{date}' — use yesterday, YYYY-MM-DD, etc.")
         check_on = date_type.fromisoformat(parsed)
         task, habit = resolve_item_any(item_ref)
         if not habit:
-            exit_error("--date only applies to habits")
+            raise UsageError("--date only applies to habits")
         from .habits import uncheck_habit
 
         checks = get_checks(habit.id)
@@ -89,7 +89,7 @@ def rm(ref: list[str]) -> None:
 
     item_ref = " ".join(ref) if ref else ""
     if not item_ref:
-        exit_error("Usage: life rm <item>")
+        raise UsageError("Usage: life rm <item>")
     task, habit = resolve_item_any(item_ref)
     if task:
         delete_task(task.id)
@@ -116,7 +116,7 @@ def add(
     try:
         validate_content(content_str)
     except ValueError as e:
-        exit_error(f"Error: {e}")
+        raise ValidationError(str(e)) from e
 
     if habit:
         from .lib.resolve import resolve_habit
@@ -125,7 +125,7 @@ def add(
         if under:
             parent = resolve_habit(under)
             if not parent:
-                exit_error(f"No habit found matching '{under}'")
+                raise NotFoundError(f"no habit found matching '{under}'")
             parent_id = parent.id
         tags = list(tag) if tag else []
         habit_id = add_habit(content_str, tags=tags, parent_id=parent_id)
@@ -144,11 +144,11 @@ def add(
     if under:
         parent_task = resolve_task(under)
         if parent_task.parent_id:
-            exit_error("Error: subtasks cannot have subtasks")
+            raise ValidationError("subtasks cannot have subtasks")
         parent_id = parent_task.id
     tags = list(tag) if tag else []
     if focus and parent_id:
-        exit_error("Error: cannot focus a subtask — set focus on the parent")
+        raise ValidationError("cannot focus a subtask — set focus on the parent")
     task_id = add_task(
         content_str,
         focus=focus,
@@ -179,11 +179,11 @@ def add(
 def rename(ref: list[str], to: str) -> None:
     """Rename item"""
     if not to:
-        exit_error("Error: 'to' content cannot be empty.")
+        raise ValidationError("'to' content cannot be empty")
     item_ref = " ".join(ref) if ref else ""
     task, habit = resolve_item(item_ref)
     if not task and not habit:
-        exit_error("Error: Item not found.")
+        raise NotFoundError("item not found")
     if isinstance(task, Task):
         rename_task(task, to)
     elif habit:

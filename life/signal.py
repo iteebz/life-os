@@ -6,7 +6,7 @@ from typing import Any
 
 from fncli import cli
 
-from .lib.errors import exit_error
+from .core.errors import LifeError, NotFoundError
 from .lib.resolve import resolve_people_field
 
 SIGNAL_CLI = "signal-cli"
@@ -31,7 +31,7 @@ def resolve_contact(name_or_number: str) -> str:
     if name_or_number.startswith("+") or name_or_number.lstrip("0").isdigit():
         return name_or_number
     result = resolve_people_field(name_or_number, "signal")
-    return result if result else name_or_number
+    return result or name_or_number
 
 
 def send(recipient: str, message: str, attachment: str | None = None) -> tuple[bool, str]:
@@ -363,7 +363,7 @@ def send_cmd(
         display = recipient if number == recipient else f"{recipient} ({number})"
         print(f"sent → {display}")
     else:
-        exit_error(f"failed: {result}")
+        raise LifeError(f"failed: {result}")
 
 
 @cli("life comms signal", name="check")
@@ -383,7 +383,7 @@ def receive_cmd(timeout: int = 5):
     """Receive and store Signal messages"""
     phone = _default_account()
     if not phone:
-        exit_error("no Signal account registered")
+        raise NotFoundError("no Signal account registered")
     msgs = receive(timeout=timeout, phone=phone, store=True)
     if not msgs:
         print("no new messages")
@@ -399,7 +399,7 @@ def signal_inbox():
     """Show Signal conversations"""
     phone = _default_account()
     if not phone:
-        exit_error("no Signal account registered")
+        raise NotFoundError("no Signal account registered")
     conversations = get_conversations(phone)
     if not conversations:
         print("no conversations — run `life comms signal receive` first")
@@ -416,7 +416,7 @@ def signal_history(contact: str, limit: int = 20):
     """Show message history with a contact"""
     phone = _default_account()
     if not phone:
-        exit_error("no Signal account registered")
+        raise NotFoundError("no Signal account registered")
     msgs = get_messages(phone=phone, sender=contact, limit=limit)
     if not msgs:
         print(f"no messages from {contact}")
@@ -433,13 +433,13 @@ def reply_cmd(message_id: str, message: str):
     """Reply to a Signal message"""
     phone = _default_account()
     if not phone:
-        exit_error("no Signal account registered")
+        raise NotFoundError("no Signal account registered")
     success, err, original = reply_to(phone, message_id, message)
     if success and original:
         sender = original.get("peer_name") or original.get("peer", "?")
         print(f"replied to {sender}")
     else:
-        exit_error(f"failed: {err}")
+        raise LifeError(f"failed: {err}")
 
 
 @cli("life comms signal", name="status")
@@ -458,7 +458,7 @@ def contacts_cmd():
     """List Signal contacts"""
     phone = _default_account()
     if not phone:
-        exit_error("no Signal account registered")
+        raise NotFoundError("no Signal account registered")
     contacts = list_contacts_for(phone)
     if not contacts:
         print("no contacts")
@@ -472,7 +472,7 @@ def groups_cmd():
     """List Signal groups"""
     phone = _default_account()
     if not phone:
-        exit_error("no Signal account registered")
+        raise NotFoundError("no Signal account registered")
     groups = list_groups(phone)
     if not groups:
         print("no groups")

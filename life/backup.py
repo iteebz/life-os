@@ -8,7 +8,7 @@ from typing import Any
 from fncli import cli
 
 from . import config
-from .lib.errors import exit_error
+from .core.errors import LifeError
 
 _SKIP_TABLES = {"_migrations"}
 _MIN_ROW_RATIO = 0.5
@@ -232,7 +232,7 @@ def run_prune(
 
 def _print_result(result: dict[str, Any]) -> None:
     if result.get("error"):
-        exit_error(f"backup failed: {result['error']}")
+        raise LifeError(f"backup failed: {result['error']}")
 
     path = result["path"]
     rows = result["rows"]

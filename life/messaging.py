@@ -2,7 +2,7 @@ from fncli import cli
 
 from . import signal as _signal
 from . import telegram as _telegram
-from .lib.errors import exit_error
+from .core.errors import LifeError, ValidationError
 
 
 def _default_channel(name: str) -> str | None:
@@ -35,7 +35,7 @@ def _send_telegram(recipient: str, message: str) -> tuple[bool, str, str]:
 def send_cmd(recipient: str, message: str, signal: bool = False, telegram: bool = False):
     """Send a message via Signal or Telegram"""
     if signal and telegram:
-        exit_error("pick one: --signal or --telegram")
+        raise ValidationError("pick one: --signal or --telegram")
 
     if signal:
         channel = "signal"
@@ -44,7 +44,7 @@ def send_cmd(recipient: str, message: str, signal: bool = False, telegram: bool 
     else:
         channel = _default_channel(recipient)
         if not channel:
-            exit_error(
+            raise ValidationError(
                 f"can't resolve '{recipient}' — add signal: or telegram: to their people profile, or pass --signal/--telegram"
             )
 
@@ -56,7 +56,7 @@ def send_cmd(recipient: str, message: str, signal: bool = False, telegram: bool 
     if success:
         print(f"sent → {display} ({channel})")
     else:
-        exit_error(f"failed: {result}")
+        raise LifeError(f"failed: {result}")
 
 
 @cli("life comms message", name="receive")

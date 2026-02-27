@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from difflib import get_close_matches
 from typing import TypeVar
 
-from life.lib.errors import exit_error
+from life.core.errors import AmbiguousError
 from life.models import Habit, Task
 
 __all__ = ["find_in_pool", "find_in_pool_exact"]
@@ -22,8 +22,8 @@ def _match_uuid_prefix[T: (Task, Habit)](ref: str, pool: Sequence[T]) -> T | Non
         if exact:
             return exact
 
-        sample = ", ".join(item.id[:8] for item in matches[:3])
-        exit_error(f"Ambiguous ref '{ref}' matches multiple items: {sample}")
+        sample = [item.id[:8] for item in matches[:3]]
+        raise AmbiguousError(ref, count=len(matches), sample=sample)
     return None
 
 
@@ -36,8 +36,8 @@ def _match_substring[T: (Task, Habit)](ref: str, pool: Sequence[T]) -> T | None:
     if len(matches) == 1:
         return matches[0]
     if len(matches) > 1:
-        sample = ", ".join(f'"{item.content}"' for item in matches[:3])
-        exit_error(f"Ambiguous match for '{ref}': {sample}")
+        sample = [item.content for item in matches[:3]]
+        raise AmbiguousError(ref, count=len(matches), sample=sample)
     return None
 
 

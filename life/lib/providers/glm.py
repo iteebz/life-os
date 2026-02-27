@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from life.lib.errors import exit_error
+from life.core.errors import LifeError
 
 _DEFAULT_BASE_URL = "https://open.bigmodel.cn/api/anthropic"
 _DEFAULT_ENV_FILE = Path.home() / "life" / ".env"
@@ -26,7 +26,7 @@ def build_env() -> dict[str, str]:
     env = os.environ.copy()
     zai_key = env.get("ZAI_API_KEY") or _read_env_file_value(_DEFAULT_ENV_FILE, "ZAI_API_KEY")
     if not zai_key:
-        exit_error(f"ZAI_API_KEY is not set and was not found in {_DEFAULT_ENV_FILE}")
+        raise LifeError(f"ZAI_API_KEY is not set and was not found in {_DEFAULT_ENV_FILE}")
 
     env["ANTHROPIC_AUTH_TOKEN"] = zai_key
     env["ANTHROPIC_BASE_URL"] = env.get("ANTHROPIC_BASE_URL", _DEFAULT_BASE_URL)

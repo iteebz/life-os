@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from fncli import cli
 
-from .lib.errors import exit_error
+from .core.errors import LifeError, NotFoundError, ValidationError
 
 
 def _run_service(fn, *args, **kwargs):
     try:
         return fn(*args, **kwargs)
     except ValueError as exc:
-        exit_error(str(exc))
+        raise ValidationError(str(exc)) from exc
 
 
 @cli("life comms email", name="inbox")
@@ -85,7 +85,7 @@ def compose(
 ):
     """Compose new email draft"""
     if not body:
-        exit_error("--body required")
+        raise ValidationError("--body required")
     from .comms.services import compose_email_draft
 
     draft_id, from_addr = _run_service(
@@ -99,7 +99,7 @@ def compose(
 def reply(thread_id: str, body: str | None = None, email: str | None = None, all: bool = False):
     """Reply to thread"""
     if not body:
-        exit_error("--body required")
+        raise ValidationError("--body required")
     from .comms.services import reply_to_thread
 
     draft_id, to_addr, _subject, _cc = _run_service(
@@ -125,7 +125,7 @@ def draft_reply(
     print("generating draft...")
     body, reasoning = claude.generate_reply(context, instructions)
     if not body:
-        exit_error(f"failed: {reasoning}")
+        raise LifeError(f"failed: {reasoning}")
 
     draft_id, to_addr, subject, _cc = _run_service(
         services.reply_to_thread, thread_id=full_id, body=body, email=email, reply_all=all
@@ -157,7 +157,7 @@ def draft_show(draft_id: str):
 
     d = get_draft(draft_id)
     if not d:
-        exit_error(f"draft {draft_id} not found")
+        raise NotFoundError(f"draft {draft_id} not found")
     print(f"To: {d.to_addr}")
     if d.cc_addr:
         print(f"Cc: {d.cc_addr}")
@@ -175,7 +175,7 @@ def approve_draft(draft_id: str):
     full_id = drafts_module.resolve_draft_id(draft_id) or draft_id
     d = drafts_module.get_draft(full_id)
     if not d:
-        exit_error(f"draft {draft_id} not found")
+        raise NotFoundError(f"draft {draft_id} not found")
     if d.approved_at:
         print("already approved")
         return
@@ -192,7 +192,7 @@ def send_draft(draft_id: str):
     full_id = drafts_module.resolve_draft_id(draft_id) or draft_id
     d = drafts_module.get_draft(full_id)
     if not d:
-        exit_error(f"draft {draft_id} not found")
+        raise NotFoundError(f"draft {draft_id} not found")
     _run_service(services.send_draft, full_id)
     print(f"sent → {d.to_addr}  |  {d.subject}")
 

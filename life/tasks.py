@@ -9,9 +9,10 @@ from typing import Any
 from fncli import UsageError, cli
 
 from . import db
+from .core.errors import ConflictError, ValidationError
+from .core.types import UNSET, Unset
 from .lib import ansi, clock
 from .lib.converters import row_to_task
-from .lib.errors import exit_error
 from .lib.format import animate_check, format_status
 from .lib.fuzzy import find_in_pool, find_in_pool_exact
 from .lib.parsing import parse_due_and_item
@@ -191,18 +192,15 @@ def _record_mutations(
         _record_mutation(conn, task_id, field, getattr(old, field, None), new_val)
 
 
-UNSET: object = object()
-
-
 def update_task(
     task_id: str,
     content: str | None = None,
     focus: bool | None = None,
-    scheduled_date: str | object = UNSET,
-    scheduled_time: str | object = UNSET,
-    is_deadline: bool | object = UNSET,
-    parent_id: str | object = UNSET,
-    description: str | object = UNSET,
+    scheduled_date: str | None | Unset = UNSET,
+    scheduled_time: str | None | Unset = UNSET,
+    is_deadline: bool | Unset = UNSET,
+    parent_id: str | None | Unset = UNSET,
+    description: str | None | Unset = UNSET,
 ) -> Task | None:
     updates = {}
     if content is not None:
@@ -398,14 +396,14 @@ def last_completion() -> datetime | None:
 
 def rename_task(task: Task, to_content: str) -> None:
     if task.content == to_content:
-        exit_error(f"Error: Cannot rename '{task.content}' to itself.")
+        raise ValidationError(f"cannot rename '{task.content}' to itself")
     update_task(task.id, content=to_content)
     print(f"→ {to_content}")
 
 
 def check_task_cmd(task: Task) -> None:
     if task.completed_at:
-        exit_error(f"'{task.content}' is already done")
+        raise ConflictError(f"'{task.content}' is already done")
     _, parent_completed = check_task(task.id)
     animate_check(task.content.lower())
     if parent_completed:
@@ -427,11 +425,11 @@ def _schedule(args: list[str], remove: bool = False) -> None:
 
     if remove:
         if not args:
-            exit_error("Usage: life schedule --remove <task>")
+            raise UsageError("Usage: life schedule --remove <task>")
         try:
             _, _, item_name = parse_due_and_item(list(args), remove=True)
         except ValueError as e:
-            exit_error(str(e))
+            raise UsageError(str(e)) from e
         t = resolve_task(item_name)
         update_task(t.id, scheduled_date=None, scheduled_time=None, is_deadline=False)
         print(format_status("\u25a1", t.content, t.id))
@@ -439,9 +437,11 @@ def _schedule(args: list[str], remove: bool = False) -> None:
     try:
         date_str, time_str, item_name = parse_due_and_item(list(args))
     except ValueError as e:
-        exit_error(str(e))
+        raise UsageError(str(e)) from e
     if not date_str and not time_str:
-        exit_error("Schedule spec required: today, tomorrow, day name, YYYY-MM-DD, HH:MM, or 'now'")
+        raise UsageError(
+            "Schedule spec required: today, tomorrow, day name, YYYY-MM-DD, HH:MM, or 'now'"
+        )
     t = resolve_task(item_name)
     updates: dict[str, Any] = {"is_deadline": False}
     if date_str:
@@ -466,7 +466,7 @@ def focus(ref: list[str]) -> None:
 
     item_ref = " ".join(ref) if ref else ""
     if not item_ref:
-        exit_error("Usage: life focus <item>")
+        raise UsageError("Usage: life focus <item>")
     t = resolve_task(item_ref)
     toggle_focus(t.id)
     symbol = ansi.bold("\u29bf") if not t.focus else "\u25a1"
@@ -482,14 +482,14 @@ def due(ref: list[str], when: str, remove: bool = False) -> None:
     try:
         date_str, time_str, item_name = parse_due_and_item(args, remove=remove)
     except ValueError as e:
-        exit_error(str(e))
+        raise UsageError(str(e)) from e
     t = resolve_task(item_name)
     if remove:
         update_task(t.id, scheduled_date=None, scheduled_time=None, is_deadline=False)
         print(format_status("\u25a1", t.content, t.id))
         return
     if not date_str and not time_str:
-        exit_error(
+        raise UsageError(
             "Due spec required: today, tomorrow, day name, YYYY-MM-DD, HH:MM, 'now', or -r to clear"
         )
     updates: dict[str, Any] = {"is_deadline": True}
@@ -517,30 +517,32 @@ def set_cmd(
 
     item_ref = " ".join(ref) if ref else ""
     if not item_ref:
-        exit_error("Usage: life set <task> [-p parent] [-c content]")
+        raise UsageError("Usage: life set <task> [-p parent] [-c content]")
     t = resolve_task(item_ref)
     parent_id: str | None = None
     has_update = False
     if parent is not None:
         parent_task = resolve_task(parent)
         if parent_task.parent_id:
-            exit_error("Error: subtasks cannot have subtasks")
+            raise ValidationError("subtasks cannot have subtasks")
         if parent_task.id == t.id:
-            exit_error("Error: a task cannot be its own parent")
+            raise ValidationError("a task cannot be its own parent")
         if t.focus:
-            exit_error("Error: cannot parent a focused task — unfocus first")
+            raise ValidationError("cannot parent a focused task — unfocus first")
         parent_id = parent_task.id
         has_update = True
     if content is not None:
         if not content.strip():
-            exit_error("Error: content cannot be empty")
+            raise ValidationError("content cannot be empty")
         has_update = True
     description: str | None = None
     if desc is not None:
         description = desc if desc != "" else None
         has_update = True
     if not has_update:
-        exit_error("Nothing to set. Use -p for parent, -c for content, or -d for description.")
+        raise UsageError(
+            "Nothing to set. Use -p for parent, -c for content, or -d for description."
+        )
     update_task(
         t.id,
         content=content,
@@ -560,7 +562,7 @@ def show(ref: list[str]) -> None:
 
     item_ref = " ".join(ref) if ref else ""
     if not item_ref:
-        exit_error("Usage: life show <task>")
+        raise UsageError("Usage: life show <task>")
     t = resolve_task(item_ref)
     if t.parent_id:
         parent = get_task(t.parent_id)
@@ -581,7 +583,7 @@ def block(ref: list[str], by: str) -> None:
     t = resolve_task(" ".join(ref))
     blocker = resolve_task(by)
     if blocker.id == t.id:
-        exit_error("A task cannot block itself")
+        raise ValidationError("a task cannot block itself")
     set_blocked_by(t.id, blocker.id)
     print(f"\u2298 {t.content.lower()}  \u2190  {blocker.content.lower()}")
 
@@ -593,7 +595,7 @@ def unblock(ref: list[str]) -> None:
 
     t = resolve_task(" ".join(ref))
     if not t.blocked_by:
-        exit_error(f"'{t.content}' is not blocked")
+        raise ConflictError(f"'{t.content}' is not blocked")
     set_blocked_by(t.id, None)
     print(f"\u25a1 {t.content.lower()}  unblocked")
 

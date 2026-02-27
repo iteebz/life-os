@@ -14,7 +14,7 @@ from atrace import StreamParser, format_entry
 from atrace.ansi import strip as ansi_strip
 from fncli import cli
 
-from ..lib.errors import exit_error
+from ..core.errors import LifeError
 
 _STEWARD_DIR = Path.home() / ".life" / "steward"
 _OFF_SENTINEL = _STEWARD_DIR / "off"
@@ -255,7 +255,7 @@ def _run_autonomous(provider: str = "claude") -> None:
             outcome=f"tail_failed_{rc}",
         )
         save_loop_state(state)
-        exit_error(f"steward loop failed (exit {rc})")
+        raise LifeError(f"steward loop failed (exit {rc})")
 
     all_after = get_all_tasks()
     tasks_after = get_tasks()
@@ -287,7 +287,7 @@ def _run_autonomous(provider: str = "claude") -> None:
 
     print("\n".join(render_feedback_snapshot(snapshot_after)))
     if gate_required and not shipped_life:
-        exit_error("steward gate failed: no real-world task was closed")
+        raise LifeError("steward gate failed: no real-world task was closed")
 
 
 @cli("steward")

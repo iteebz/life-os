@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fncli import cli
 
-from .lib.errors import exit_error
+from .core.errors import AmbiguousError, LifeError, NotFoundError, ValidationError
 
 
 @cli("life comms accounts", name="ls")
@@ -35,23 +35,23 @@ def link(provider: str, client_id: str | None = None, client_secret: str | None 
             email_addr = gmail.init_oauth()
             print(f"oauth completed: {email_addr}")
         except Exception as e:
-            exit_error(f"oauth failed: {e}")
+            raise LifeError(f"oauth failed: {e}") from e
         account_id = accts_module.add_email_account(provider, email_addr)
         ok, err = gmail.test_connection(account_id, email_addr)
         if not ok:
-            exit_error(f"connection failed: {err}")
+            raise LifeError(f"connection failed: {err}")
         print(f"linked gmail: {email_addr}")
 
     elif provider == "outlook":
         from .comms.adapters.email import outlook
 
         if not client_id or not client_secret:
-            exit_error("outlook requires --client-id and --client-secret")
+            raise ValidationError("outlook requires --client-id and --client-secret")
         account_id = accts_module.add_email_account(provider, "")
         outlook.store_credentials("", client_id, client_secret)
         ok, err = outlook.test_connection(account_id, "", client_id, client_secret)
         if not ok:
-            exit_error(f"connection failed: {err}")
+            raise LifeError(f"connection failed: {err}")
         print("linked outlook")
 
     elif provider == "signal":
@@ -61,16 +61,16 @@ def link(provider: str, client_id: str | None = None, client_secret: str | None 
         print("open Signal → Settings → Linked Devices → Link New Device, then scan the QR code")
         ok, err = signal_module.link_device("life-cli")
         if not ok:
-            exit_error(f"link failed: {err}")
+            raise LifeError(f"link failed: {err}")
         accounts = signal_module.list_accounts()
         if not accounts:
-            exit_error("no accounts found after linking")
+            raise LifeError("no accounts found after linking")
         phone = accounts[0]
         accts_module.add_messaging_account("signal", phone)
         print(f"linked signal: {phone}")
 
     else:
-        exit_error(f"unknown provider: {provider}. use: gmail, outlook, signal")
+        raise ValidationError(f"unknown provider: {provider}. use: gmail, outlook, signal")
 
 
 @cli("life comms accounts", name="unlink")
@@ -81,13 +81,13 @@ def unlink(account_id: str):
     accts = accts_module.list_accounts()
     matching = [a for a in accts if a["id"].startswith(account_id) or a["email"] == account_id]
     if not matching:
-        exit_error(f"no account matching: {account_id}")
+        raise NotFoundError(f"no account matching: {account_id}")
     if len(matching) > 1:
         for a in matching:
             print(f"  {a['id'][:8]} {a['provider']} {a['email']}")
-        exit_error("ambiguous — be more specific")
+        raise AmbiguousError(account_id)
     acct = matching[0]
     if accts_module.remove_account(acct["id"]):
         print(f"unlinked {acct['provider']}: {acct['email']}")
     else:
-        exit_error("failed to unlink")
+        raise LifeError("failed to unlink")
