@@ -38,7 +38,7 @@ def render_done_row(
 ) -> None:
     r = ansi._active.reset
     grey = ansi._active.muted
-    check = ansi.gray("✓") if is_habit else ansi.green("✓")
+    check = ansi.purple("✓") if is_habit else ansi.green("✓")
     tag_str = ""
     if tags:
         parts = [f"{ansi.POOL[hash(t) % len(ansi.POOL)]}#{t}{r}" for t in tags]

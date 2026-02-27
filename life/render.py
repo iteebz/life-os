@@ -8,7 +8,7 @@ from life.habits import get_subhabits
 from life.tasks import _task_sort_key
 
 from .lib import clock
-from .lib.ansi import POOL, _active, bold, coral, cyan, dim, gold, gray, green, red, white
+from .lib.ansi import POOL, _active, bold, coral, dim, gold, gray, green, purple, red, white
 from .lib.format import format_habit, format_task
 
 __all__ = [
@@ -176,9 +176,11 @@ def _row_habit(
     trend = "↗" if count_p1 > count_p2 else "↘" if count_p1 < count_p2 else "→"
     id_str = f" {_GREY}[{habit.id[:8]}]{_R}"
     if habit.id in checked_ids:
-        lines = [f"{indent}{gray('✓ ' + trend + ' ' + habit.content.lower())}{tags_str}{id_str}"]
+        lines = [
+            f"{indent}{purple('✓')} {gray(trend)} {gray(habit.content.lower())}{tags_str}{id_str}"
+        ]
     else:
-        lines = [f"{indent}□ {trend} {habit.content.lower()}{tags_str}{id_str}"]
+        lines = [f"{indent}{purple('□')} {gray(trend)} {habit.content.lower()}{tags_str}{id_str}"]
     for sub in get_subhabits(habit.id):
         lines.extend(_row_habit(sub, checked_ids, ctx, indent="   └ "))
     return lines
@@ -195,7 +197,7 @@ def _section_header(
         f"\n{bold(white(today.strftime('%a') + ' · ' + today.strftime('%-d %b %Y') + ' · ' + time_str))}"
     ]
     lines.append(f"{_GREY}tasks:{_R} {green(str(tasks_done))}")
-    lines.append(f"{_GREY}habits:{_R} {cyan(str(habits_done))}{_GREY}/{total_habits}{_R}")
+    lines.append(f"{_GREY}habits:{_R} {purple(str(habits_done))}{_GREY}/{total_habits}{_R}")
     if added:
         lines.append(f"{_GREY}added:{_R} {gold(str(added))}")
     if deleted:
@@ -231,7 +233,7 @@ def _section_done(
         if isinstance(item, Habit):
             on_date = [c for c in item.checks if c.date() == target]
             time_str = max(on_date).strftime("%H:%M") if on_date else ""
-            lines.append(f"  {gray('✓')} {_GREY}{time_str}{_R} {content}{tags_str}{id_str}")
+            lines.append(f"  {purple('✓')} {_GREY}{time_str}{_R} {content}{tags_str}{id_str}")
         elif item.completed_at:
             time_str = item.completed_at.strftime("%H:%M")
             parent_str = ""
@@ -320,7 +322,7 @@ def _section_habits(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) 
     if not visible:
         return []
     checked_count = sum(1 for h in habits if h.id in checked_ids)
-    lines = [f"\n{_active.bold}{_active.gray}HABITS ({checked_count}/{len(habits)}){_R}"]
+    lines = [f"\n{_active.bold}{_active.purple}HABITS ({checked_count}/{len(habits)}){_R}"]
     sorted_habits = sorted(visible, key=lambda h: h.content.lower())
     for habit in [h for h in sorted_habits if h.id not in checked_ids] + [
         h for h in sorted_habits if h.id in checked_ids
@@ -466,7 +468,7 @@ def render_day_summary(
     ]
     lines.append(f"{_GREY}tasks:{_R} {green(str(tasks_done))}")
     habits_total_str = f"{_GREY}/{total_habits}{_R}" if total_habits else ""
-    lines.append(f"{_GREY}habits:{_R} {cyan(str(habits_done))}{habits_total_str}")
+    lines.append(f"{_GREY}habits:{_R} {purple(str(habits_done))}{habits_total_str}")
     if added:
         lines.append(f"{_GREY}added:{_R} {gold(str(added))}")
     if deleted:
