@@ -61,29 +61,21 @@ def observe(
 
 
 @cli("steward")
-def rm(
-    query: str | None = None,
-):
-    """Delete an observation — UUID prefix, fuzzy match, or latest"""
+def rm(prefix: str):
+    """Soft-remove any steward item by UUID prefix — observations or improvements"""
+    from ..improvements import delete_improvement, get_improvements
     from . import resolve_prefix
 
-    observations = get_observations(limit=50)
-    if not observations:
-        exit_error("no observations to remove")
+    obs = resolve_prefix(prefix, get_observations(limit=200))
+    if obs:
+        delete_observation(obs.uuid)
+        print(f"→ removed: {obs.body[:80]}")
+        return
 
-    if query is None:
-        target = observations[0]
-    else:
-        target = resolve_prefix(query, observations)
-        if not target:
-            q = query.lower()
-            matches = [o for o in observations if q in o.body.lower()]
-            target = matches[0] if matches else None
-        if not target:
-            exit_error(f"no observation matching '{query}'")
+    imp = resolve_prefix(prefix, get_improvements())
+    if imp:
+        delete_improvement(imp.uuid)
+        print(f"→ removed: {imp.body[:80]}")
+        return
 
-    deleted = delete_observation(target.uuid)
-    if deleted:
-        print(f"→ removed: {target.body[:80]}")
-    else:
-        exit_error("delete failed")
+    exit_error(f"no item matching '{prefix}'")
