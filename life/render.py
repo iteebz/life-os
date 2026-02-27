@@ -283,11 +283,12 @@ def _section_schedule(
     all_events = events or []
     if not tasks and not all_events:
         if is_today:
-            return [f"\n{bold(white(label + ' (0)'))}", f"  {gray('nothing scheduled.')}"], set()
+            return [f"\n{bold(gold(label + ' (0)'))}", f"  {gray('nothing scheduled.')}"], set()
         return [], set()
 
     count = len(tasks) + len(all_events)
-    lines = [f"\n{bold(white(label + f' ({count})'))}"]
+    header_color = gold if is_today else white
+    lines = [f"\n{bold(header_color(label + f' ({count})'))}"]
     scheduled_ids: set[str] = set()
 
     def _sort(t: Task) -> tuple[int, str, bool]:
