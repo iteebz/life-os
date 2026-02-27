@@ -5,8 +5,6 @@ from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 
-from fncli import cli
-
 from . import config
 
 MIGRATIONS_TABLE = "_migrations"
@@ -226,27 +224,3 @@ def migrate(db_path: Path | None = None) -> None:
     db_path.parent.mkdir(exist_ok=True)
     with get_db(db_path) as conn:
         _apply_migrations(conn, db_path)
-
-
-@cli("life db", name="migrate")
-def db_migrate():
-    """Run pending database migrations"""
-    migrate()
-    print("migrations applied")
-
-
-@cli("life db", name="backup")
-def db_backup():
-    """Create database backup (prefer `life backup`)"""
-    from .backup import _print_result, run_backup
-
-    result = run_backup()
-    _print_result(result)
-
-
-@cli("life db", name="health")
-def db_health():
-    """Check database integrity"""
-    from .health import cli as health_cli
-
-    health_cli()

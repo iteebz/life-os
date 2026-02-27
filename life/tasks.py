@@ -660,10 +660,3 @@ def unschedule(ref: list[str] | None = None, overdue: bool = False) -> None:
 def today(ref: list[str]) -> None:
     """Schedule task for today"""
     _schedule(["today", *ref])
-
-
-@cli("life")
-def tomorrow(ref: list[str] | None = None) -> None:
-    """Schedule task for tomorrow"""
-    if ref:
-        _schedule(["tomorrow", *ref])

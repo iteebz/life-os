@@ -253,10 +253,3 @@ def backup() -> None:
     """Create verified database backup"""
     result = run_backup()
     _print_result(result)
-
-
-@cli("life backup", name="prune")
-def prune(keep_daily: int = 30, keep_hourly: int = 48) -> None:
-    """Prune old backups (keep 1/hour for 48h, 1/day for 30d)"""
-    removed = run_prune(keep_daily_days=keep_daily, keep_hourly_hours=keep_hourly)
-    print(f"pruned {removed} old backup(s)")
