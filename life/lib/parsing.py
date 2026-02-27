@@ -107,10 +107,13 @@ def parse_time(time_str: str) -> str:
 
 
 def parse_due_datetime(due_str: str) -> tuple[str | None, str | None]:
-    """Parse a combined due string like 'monday 10:00', 'today', 'tomorrow 14:30', 'YYYY-MM-DD'.
+    """Parse a combined due string like 'monday 10:00', 'today', 'tomorrow 14:30', 'YYYY-MM-DD', 'HH:MM'.
 
     Returns (date_str, time_str). Either may be None.
+    Time-only input (HH:MM) defaults date to today.
     """
+    from . import clock as _clock
+
     parts = due_str.strip().split()
     date_str: str | None = None
     time_str: str | None = None
@@ -121,5 +124,7 @@ def parse_due_datetime(due_str: str) -> tuple[str | None, str | None]:
             time_str = _try_parse_time(parts[1])
         elif not date_str:
             time_str = _try_parse_time(parts[0])
+            if time_str:
+                date_str = _clock.today().isoformat()
 
     return date_str, time_str

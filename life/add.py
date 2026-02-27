@@ -61,12 +61,16 @@ def add_habit_cmd(content: list[str], tag: list[str] | None = None):
     print(f"→ {name}{suffix}")
 
 
-@cli("life add", name="t", flags={"tag": ["-t", "--tag"]})
+@cli("life add", name="t", flags={"tag": ["-t", "--tag"], "schedule": ["-s", "--schedule"]})
 def add_task_cmd(
-    content: list[str], tag: list[str] | None = None, due: str | None = None, focus: bool = False
+    content: list[str],
+    tag: list[str] | None = None,
+    due: str | None = None,
+    focus: bool = False,
+    schedule: str | None = None,
 ):
-    """Add a task"""
-    _log_task(content, tag=tag, due=due, focus=focus)
+    """Add a task. Use -s HH:MM to schedule at a time today."""
+    _log_task(content, tag=tag, due=due or schedule, focus=focus)
 
 
 @cli("life add", name="o", flags={"tag": ["-t", "--tag"]})
