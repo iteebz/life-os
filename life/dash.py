@@ -12,9 +12,9 @@ from .dashboard import (
 from .habits import get_habits
 from .lib.clock import now, today
 from .lib.format import format_elapsed
-from .lib.render import render_dashboard, render_day_summary, render_momentum
 from .metrics import build_feedback_snapshot, render_feedback_snapshot
 from .momentum import weekly_momentum
+from .render import render_dashboard, render_day_summary, render_momentum
 from .tasks import get_all_tasks, get_tasks, last_completion
 
 

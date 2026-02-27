@@ -1,4 +1,3 @@
-import sys
 from typing import Any
 
 from fncli import UsageError, cli
@@ -7,23 +6,17 @@ from .core.errors import NotFoundError, ValidationError
 from .core.models import Task
 from .habits import add_habit, check_habit_cmd, rename_habit
 from .lib import ansi
-from .lib.format import format_status
+from .lib.format import format_status, render_done_row, render_uncheck_row
 from .lib.parsing import validate_content
 from .lib.resolve import resolve_item, resolve_item_any
 from .tasks import (
     add_task,
-    check_task,
     check_task_cmd,
     delete_task,
     rename_task,
     uncheck_task,
     update_task,
 )
-
-
-def _animate_uncheck(label: str) -> None:
-    sys.stdout.write(f"  \u25a1 {ansi.muted(label)}\n")
-    sys.stdout.flush()
 
 
 @cli("life", name="done")
@@ -53,11 +46,11 @@ def check(ref: list[str], date: str | None = None) -> None:
         already_checked = any(c.date() == check_on for c in checks)
         if already_checked:
             uncheck_habit(habit.id, check_on=check_on)
-            _animate_uncheck(f"{habit.content.lower()} ({parsed})")
+            render_uncheck_row(f"{habit.content.lower()} ({parsed})", habit.tags, habit.id)
         else:
             check_habit(habit.id, check_on=check_on)
-            sys.stdout.write(
-                f"  {ansi.green('✓')} {ansi.muted(habit.content.lower() + ' (' + parsed + ')')}\n"
+            render_done_row(
+                f"{habit.content.lower()} ({parsed})", "", habit.tags, habit.id, is_habit=True
             )
         return
 
@@ -71,13 +64,13 @@ def check(ref: list[str], date: str | None = None) -> None:
             if updated:
                 checked_today = any(c.date() == today() for c in updated.checks)
                 if not checked_today:
-                    _animate_uncheck(habit.content.lower())
+                    render_uncheck_row(habit.content.lower(), habit.tags, habit.id)
         else:
             check_habit_cmd(habit)
     elif task:
         if task.completed_at:
             uncheck_task(task.id)
-            _animate_uncheck(task.content.lower())
+            render_uncheck_row(task.content.lower(), task.tags, task.id)
         else:
             check_task_cmd(task)
 
@@ -167,8 +160,11 @@ def add(
             updates["scheduled_time"] = resolved_time
         update_task(task_id, **updates)
     if done:
-        check_task(task_id)
-        print(format_status("\u2713", content_str, task_id))
+        from .tasks import get_task
+
+        task = get_task(task_id)
+        if task:
+            check_task_cmd(task)
         return
     symbol = ansi.bold("\u29bf") if focus else "\u25a1"
     prefix = "  \u2514 " if parent_id else ""

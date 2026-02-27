@@ -7,9 +7,9 @@ from life.core.models import Habit, Task, TaskMutation, Weekly
 from life.habits import get_subhabits
 from life.tasks import _task_sort_key
 
-from . import clock
-from .ansi import POOL, _active, bold, coral, cyan, dim, gold, gray, green, red, white
-from .format import format_habit, format_task
+from .lib import clock
+from .lib.ansi import POOL, _active, bold, coral, cyan, dim, gold, gray, green, red, white
+from .lib.format import format_habit, format_task
 
 __all__ = [
     "render_dashboard",
@@ -394,7 +394,7 @@ def render_dashboard(
     habits = [i for i in items if isinstance(i, Habit)]
     total_habits = len({h.id for h in habits})
 
-    from .dates import upcoming_dates
+    from .lib.dates import upcoming_dates
 
     upcoming_by_date: dict[date, list[dict[str, object]]] = {}
     for ev in upcoming_dates(within_days=14):

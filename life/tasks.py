@@ -14,7 +14,7 @@ from .core.models import Task, TaskMutation
 from .core.types import UNSET, Unset
 from .lib import ansi, clock
 from .lib.converters import row_to_task
-from .lib.format import animate_check, format_status
+from .lib.format import format_status, render_done_row
 from .lib.fuzzy import find_in_pool, find_in_pool_exact
 from .lib.parsing import parse_due_and_item
 from .tag import add_tag, hydrate_tags, load_tags_for_tasks
@@ -404,10 +404,17 @@ def rename_task(task: Task, to_content: str) -> None:
 def check_task_cmd(task: Task) -> None:
     if task.completed_at:
         raise ConflictError(f"'{task.content}' is already done")
-    _, parent_completed = check_task(task.id)
-    animate_check(task.content.lower())
-    if parent_completed:
-        animate_check(parent_completed.content.lower())
+    completed_task, parent_completed = check_task(task.id)
+    if completed_task and completed_task.completed_at:
+        time_str = completed_task.completed_at.strftime("%H:%M")
+        render_done_row(
+            completed_task.content.lower(), time_str, completed_task.tags, completed_task.id
+        )
+    if parent_completed and parent_completed.completed_at:
+        time_str = parent_completed.completed_at.strftime("%H:%M")
+        render_done_row(
+            parent_completed.content.lower(), time_str, parent_completed.tags, parent_completed.id
+        )
 
 
 def _fmt_date_label(date_str: str) -> str:
@@ -559,8 +566,8 @@ def show(ref: list[str], json: bool = False) -> None:
     """Show full task detail"""
     import json as _json
 
-    from .lib.render import render_task_detail
     from .lib.resolve import resolve_task
+    from .render import render_task_detail
 
     item_ref = " ".join(ref) if ref else ""
     if not item_ref:

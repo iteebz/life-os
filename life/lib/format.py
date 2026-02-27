@@ -4,12 +4,13 @@ from datetime import date, datetime
 from . import ansi
 
 __all__ = [
-    "animate_check",
     "format_due",
     "format_elapsed",
     "format_habit",
     "format_status",
     "format_task",
+    "render_done_row",
+    "render_uncheck_row",
 ]
 
 
@@ -32,8 +33,31 @@ def format_elapsed(dt: datetime, now: datetime | None = None) -> str:
     return dt.strftime("%Y-%m-%d")
 
 
-def animate_check(label: str) -> None:
-    sys.stdout.write(f"  {ansi.green('✓')} {ansi.muted(label)}\n")
+def render_done_row(
+    content: str, time_str: str, tags: list[str], item_id: str, is_habit: bool = False
+) -> None:
+    r = ansi._active.reset
+    grey = ansi._active.muted
+    check = ansi.gray("✓") if is_habit else ansi.green("✓")
+    tag_str = ""
+    if tags:
+        parts = [f"{ansi.POOL[hash(t) % len(ansi.POOL)]}#{t}{r}" for t in tags]
+        tag_str = " " + " ".join(parts)
+    id_str = f" {grey}[{item_id[:8]}]{r}"
+    time_part = f"{grey}{time_str}{r} " if time_str else ""
+    sys.stdout.write(f"  {check} {time_part}{content}{tag_str}{id_str}\n")
+    sys.stdout.flush()
+
+
+def render_uncheck_row(content: str, tags: list[str], item_id: str) -> None:
+    r = ansi._active.reset
+    grey = ansi._active.muted
+    tag_str = ""
+    if tags:
+        parts = [f"{ansi.POOL[hash(t) % len(ansi.POOL)]}#{t}{r}" for t in tags]
+        tag_str = " " + " ".join(parts)
+    id_str = f" {grey}[{item_id[:8]}]{r}"
+    sys.stdout.write(f"  □ {content}{tag_str}{id_str}\n")
     sys.stdout.flush()
 
 

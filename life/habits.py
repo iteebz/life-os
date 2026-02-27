@@ -11,7 +11,7 @@ from .core.errors import ValidationError
 from .core.models import Habit
 from .lib import ansi, clock
 from .lib.converters import row_to_habit
-from .lib.format import animate_check
+from .lib.format import render_done_row
 from .lib.fuzzy import find_in_pool, find_in_pool_exact
 from .tag import get_tags_for_habit, load_tags_for_habits
 
@@ -276,9 +276,12 @@ def check_habit_cmd(habit: Habit) -> None:
 
     updated = toggle_check(habit.id)
     if updated:
-        checked_today = any(c.date() == today() for c in updated.checks)
+        today_date = today()
+        checked_today = any(c.date() == today_date for c in updated.checks)
         if checked_today:
-            animate_check(habit.content.lower())
+            today_checks = [c for c in updated.checks if c.date() == today_date]
+            time_str = max(today_checks).strftime("%H:%M") if today_checks else ""
+            render_done_row(habit.content.lower(), time_str, habit.tags, habit.id, is_habit=True)
 
 
 # ── cli ──────────────────────────────────────────────────────────────────────
@@ -308,6 +311,6 @@ def archive(ref: str | None = None, list_archived: bool = False) -> None:
 @cli("life")
 def habits() -> None:
     """Show habits matrix"""
-    from .lib.render import render_habit_matrix
+    from .render import render_habit_matrix
 
     print(render_habit_matrix(get_habits()))
