@@ -155,7 +155,7 @@ def _render_done(
     return lines
 
 
-def _render_upcoming_dates(today: date) -> list[str]:
+def _render_upcoming_dates() -> list[str]:
     from life.lib.dates import upcoming_dates
 
     try:
@@ -439,7 +439,13 @@ def _render_tasks(
 
 
 def render_dashboard(
-    items, today_breakdown, momentum, context, today_items=None, profile=None, verbose=False
+    items,
+    today_breakdown,
+    momentum,
+    context,
+    today_items=None,
+    profile=None,
+    verbose=False,
 ):
     habits_today, tasks_today, added_today, deleted_today = today_breakdown
     today = clock.today()
@@ -459,12 +465,12 @@ def render_dashboard(
         _render_header(today, tasks_today, habits_today, total_habits, added_today, deleted_today)
     )
 
+    lines.extend(_render_upcoming_dates())
+
     done_lines = _render_done(today_items or [], all_pending, tag_colors)
     if done_lines:
         lines.append("")
         lines.extend(done_lines)
-
-    lines.extend(_render_upcoming_dates(today))
 
     all_subtask_ids = {t.id for t in all_pending if t.parent_id}
     subtasks_by_parent: dict[str, list[Task]] = {}
