@@ -178,56 +178,6 @@ CREATE TABLE send_queue (
     FOREIGN KEY (account_id) REFERENCES accounts(id)
 );
 
-CREATE TABLE audit_log (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    action TEXT NOT NULL,
-    entity_type TEXT NOT NULL,
-    entity_id TEXT NOT NULL,
-    metadata TEXT,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    proposed_action TEXT,
-    user_decision TEXT,
-    reasoning TEXT
-);
-
-CREATE TABLE rules (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    condition TEXT NOT NULL,
-    action TEXT NOT NULL,
-    enabled INTEGER DEFAULT 1,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE proposals (
-    id TEXT PRIMARY KEY,
-    entity_type TEXT NOT NULL,
-    entity_id TEXT NOT NULL,
-    proposed_action TEXT NOT NULL,
-    agent_reasoning TEXT,
-    proposed_by TEXT DEFAULT 'agent',
-    proposed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    approved_at TIMESTAMP,
-    approved_by TEXT,
-    user_reasoning TEXT,
-    executed_at TIMESTAMP,
-    rejected_at TIMESTAMP,
-    status TEXT DEFAULT 'pending',
-    correction TEXT,
-    email TEXT
-);
-
-CREATE TABLE signal_messages (
-    id TEXT PRIMARY KEY,
-    account_phone TEXT NOT NULL,
-    sender_phone TEXT NOT NULL,
-    sender_name TEXT,
-    body TEXT NOT NULL,
-    timestamp INTEGER NOT NULL,
-    group_id TEXT,
-    received_at TEXT NOT NULL,
-    read_at TEXT
-);
 
 CREATE TABLE sender_stats (
     id TEXT PRIMARY KEY,
@@ -263,17 +213,6 @@ CREATE TABLE messages (
     created_at  TEXT DEFAULT (datetime('now'))
 );
 
-CREATE TABLE telegram_messages (
-    id          INTEGER PRIMARY KEY,
-    chat_id     INTEGER NOT NULL,
-    from_id     INTEGER,
-    from_name   TEXT,
-    body        TEXT NOT NULL,
-    timestamp   INTEGER NOT NULL,
-    direction   TEXT NOT NULL DEFAULT 'in',
-    read_at     TEXT,
-    received_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
 
 CREATE INDEX idx_tasks_due ON tasks(scheduled_date) WHERE scheduled_date IS NOT NULL;
 CREATE INDEX idx_tasks_completed_at ON tasks(completed_at) WHERE completed_at IS NOT NULL;
@@ -296,22 +235,12 @@ CREATE INDEX idx_task_links_to ON task_links(to_id);
 CREATE INDEX idx_observations_tag ON steward_observations(tag) WHERE tag IS NOT NULL;
 CREATE INDEX idx_achievements_at ON achievements(achieved_at);
 CREATE INDEX idx_learnings_at ON learnings(logged_at);
-CREATE INDEX idx_send_queue_status ON send_queue(status);
-CREATE INDEX idx_audit_log_timestamp ON audit_log(timestamp);
 CREATE INDEX idx_drafts_approved ON drafts(approved_at);
-CREATE INDEX idx_proposals_status ON proposals(status);
-CREATE INDEX idx_proposals_entity ON proposals(entity_type, entity_id);
-CREATE INDEX idx_signal_messages_account ON signal_messages(account_phone);
-CREATE INDEX idx_signal_messages_sender ON signal_messages(sender_phone);
-CREATE INDEX idx_signal_messages_timestamp ON signal_messages(timestamp DESC);
-CREATE INDEX idx_sender_stats_sender ON sender_stats(sender);
 CREATE INDEX idx_messages_channel ON messages(channel);
 CREATE INDEX idx_messages_peer ON messages(peer);
 CREATE INDEX idx_messages_direction ON messages(direction);
 CREATE INDEX idx_messages_timestamp ON messages(timestamp DESC);
 CREATE INDEX idx_messages_channel_peer_ts ON messages(channel, peer, timestamp DESC);
-CREATE INDEX idx_telegram_messages_chat ON telegram_messages(chat_id);
-CREATE INDEX idx_telegram_messages_ts ON telegram_messages(timestamp);
 
 CREATE VIRTUAL TABLE tasks_fts USING fts5(
     content,
