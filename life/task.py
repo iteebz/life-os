@@ -690,12 +690,6 @@ def unschedule(ref: list[str] | None = None, overdue: bool = False) -> None:
         print(format_status("□", t.content, t.id))
 
 
-@cli("life")
-def today(ref: list[str]) -> None:
-    """Schedule task for today"""
-    _schedule(["today", *ref])
-
-
 @cli("life", flags={"ref": [], "tag": ["-t", "--tag"], "schedule": ["-s", "--schedule"]})
 def task(
     ref: list[str] | None = None,
