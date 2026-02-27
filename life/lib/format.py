@@ -1,7 +1,7 @@
 import sys
 from datetime import date, datetime
 
-from .ansi import ANSI
+from . import ansi
 
 __all__ = [
     "animate_check",
@@ -33,13 +33,13 @@ def format_elapsed(dt: datetime, now: datetime | None = None) -> str:
 
 
 def animate_check(label: str) -> None:
-    sys.stdout.write(f"  {ANSI.GREEN}\u2713{ANSI.RESET} {ANSI.GREY}{label}{ANSI.RESET}\n")
+    sys.stdout.write(f"  {ansi.green('✓')} {ansi.muted(label)}\n")
     sys.stdout.flush()
 
 
 def _format_tags(tags: list[str]) -> str:
     """Format a list of tags for display."""
-    return " ".join(f"{ANSI.GREY}#{tag}{ANSI.RESET}" for tag in tags)
+    return " ".join(ansi.muted(f"#{tag}") for tag in tags)
 
 
 def format_due(due_date: date | str, colorize: bool = True) -> str:
@@ -54,7 +54,7 @@ def format_due(due_date: date | str, colorize: bool = True) -> str:
     date_str = due.strftime("%d/%m")
 
     if colorize:
-        return f"{ANSI.GREY}{date_str}·{ANSI.RESET}"
+        return ansi.muted(f"{date_str}·")
     return f"{date_str}·"
 
 
@@ -63,7 +63,7 @@ def format_task(task, tags: list[str] | None = None, show_id: bool = False) -> s
     parts = []
 
     if task.focus:
-        parts.append(f"{ANSI.BOLD}⦿{ANSI.RESET}")
+        parts.append(ansi.bold("⦿"))
 
     if task.scheduled_date:
         parts.append(format_due(task.scheduled_date, colorize=True))
@@ -74,7 +74,7 @@ def format_task(task, tags: list[str] | None = None, show_id: bool = False) -> s
         parts.append(_format_tags(tags))
 
     if show_id:
-        parts.append(f"{ANSI.GREY}[{task.id[:8]}]{ANSI.RESET}")
+        parts.append(ansi.muted(f"[{task.id[:8]}]"))
 
     return " ".join(parts)
 
@@ -86,7 +86,7 @@ def format_habit(
     parts = []
 
     if checked:
-        parts.append(f"{ANSI.GREY}✓{ANSI.RESET}")
+        parts.append(ansi.muted("✓"))
     else:
         parts.append("□")
 
@@ -96,7 +96,7 @@ def format_habit(
         parts.append(_format_tags(tags))
 
     if show_id:
-        parts.append(f"{ANSI.GREY}[{habit.id[:8]}]{ANSI.RESET}")
+        parts.append(ansi.muted(f"[{habit.id[:8]}]"))
 
     return " ".join(parts)
 
@@ -104,5 +104,5 @@ def format_habit(
 def format_status(symbol: str, content: str, item_id: str | None = None) -> str:
     """Format status message for action confirmations."""
     if item_id:
-        return f"{symbol} {content} {ANSI.GREY}[{item_id[:8]}]{ANSI.RESET}"
+        return f"{symbol} {content} {ansi.muted(f'[{item_id[:8]}]')}"
     return f"{symbol} {content}"

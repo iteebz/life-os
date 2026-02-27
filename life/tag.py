@@ -5,7 +5,7 @@ from typing import TypeVar
 from fncli import cli
 
 from . import db
-from .lib.ansi import ANSI
+from .lib import ansi
 from .lib.converters import hydrate_tags_onto, row_to_habit, row_to_task
 from .models import Habit, Task
 
@@ -149,10 +149,10 @@ def tag_add(ref: str, tag_name: str) -> None:
     task, habit = resolve_item_exact(ref)
     if task:
         add_tag(task.id, None, tag_name)
-        print(f"{task.content} {ANSI.GREY}#{tag_name}{ANSI.RESET}")
+        print(f"{task.content} {ansi.muted('#' + tag_name)}")
     elif habit:
         add_tag(None, habit.id, tag_name)
-        print(f"{habit.content} {ANSI.GREY}#{tag_name}{ANSI.RESET}")
+        print(f"{habit.content} {ansi.muted('#' + tag_name)}")
 
 
 @cli("life tag", name="rm")
@@ -163,10 +163,10 @@ def tag_rm(ref: str, tag_name: str) -> None:
     task, habit = resolve_item_exact(ref)
     if task:
         remove_tag(task.id, None, tag_name)
-        print(f"{task.content} \u2190 {ANSI.GREY}#{tag_name}{ANSI.RESET}")
+        print(f"{task.content} \u2190 {ansi.muted('#' + tag_name)}")
     elif habit:
         remove_tag(None, habit.id, tag_name)
-        print(f"{habit.content} \u2190 {ANSI.GREY}#{tag_name}{ANSI.RESET}")
+        print(f"{habit.content} \u2190 {ansi.muted('#' + tag_name)}")
 
 
 def hydrate_tags[T: (Task, Habit)](items: list[T], tag_map: dict[str, list[str]]) -> list[T]:

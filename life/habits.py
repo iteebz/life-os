@@ -7,8 +7,7 @@ from datetime import date, datetime
 from fncli import cli
 
 from . import db
-from .lib import clock
-from .lib.ansi import ANSI
+from .lib import ansi, clock
 from .lib.converters import row_to_habit
 from .lib.errors import exit_error
 from .lib.format import animate_check
@@ -297,13 +296,13 @@ def archive(ref: str | None = None, list_archived: bool = False) -> None:
             return
         for h in archived_habits:
             archived_date = h.archived_at.strftime("%Y-%m-%d") if h.archived_at else "?"
-            print(f"{ANSI.DIM}{h.content}{ANSI.RESET}  archived {archived_date}")
+            print(f"{ansi.dim(h.content)}  archived {archived_date}")
         return
     if not ref:
         exit_error("Usage: life archive <habit>")
     h = resolve_habit(ref)
     archive_habit(h.id)
-    print(f"{ANSI.DIM}{h.content}{ANSI.RESET}  archived")
+    print(f"{ansi.dim(h.content)}  archived")
 
 
 @cli("life")

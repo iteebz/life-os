@@ -9,8 +9,7 @@ from typing import Any
 from fncli import UsageError, cli
 
 from . import db
-from .lib import clock
-from .lib.ansi import ANSI
+from .lib import ansi, clock
 from .lib.converters import row_to_task
 from .lib.errors import exit_error
 from .lib.format import animate_check, format_status
@@ -451,9 +450,9 @@ def _schedule(args: list[str], remove: bool = False) -> None:
         updates["scheduled_time"] = time_str
     update_task(t.id, **updates)
     if time_str:
-        label = f"{ANSI.GREY}{time_str}{ANSI.RESET}"
+        label = ansi.muted(time_str)
     else:
-        label = f"{ANSI.GREY}{_fmt_date_label(date_str or '')}{ANSI.RESET}"
+        label = ansi.muted(_fmt_date_label(date_str or ""))
     print(format_status(label, t.content, t.id))
 
 
@@ -470,7 +469,7 @@ def focus(ref: list[str]) -> None:
         exit_error("Usage: life focus <item>")
     t = resolve_task(item_ref)
     toggle_focus(t.id)
-    symbol = f"{ANSI.BOLD}\u29bf{ANSI.RESET}" if not t.focus else "\u25a1"
+    symbol = ansi.bold("\u29bf") if not t.focus else "\u25a1"
     print(format_status(symbol, t.content, t.id))
 
 
@@ -500,9 +499,9 @@ def due(ref: list[str], when: str, remove: bool = False) -> None:
         updates["scheduled_time"] = time_str
     update_task(t.id, **updates)
     if time_str:
-        label = f"{ANSI.CORAL}{time_str}{ANSI.RESET}"
+        label = ansi.coral(time_str)
     else:
-        label = f"{ANSI.CORAL}{_fmt_date_label(date_str or '')}{ANSI.RESET}"
+        label = ansi.coral(_fmt_date_label(date_str or ""))
     print(format_status(label, t.content, t.id))
 
 

@@ -1,5 +1,6 @@
 import re
-from typing import ClassVar
+from collections.abc import Callable
+from dataclasses import dataclass
 from zlib import crc32
 
 _ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
@@ -10,56 +11,104 @@ _MD_HEADING_RE = re.compile(r"^#{1,6}\s+", re.MULTILINE)
 _MD_LINK_RE = re.compile(r"\[([^\]]+)\]\([^)]+\)")
 
 
-class ANSI:
-    BOLD = "\033[1m"
-    DIM = "\033[2m"
-    UNDERLINE = "\033[4m"
-    GREY = "\033[90m"
-    RESET = "\033[0m"
-
-    MUTED = "\033[90m"
-    SECONDARY = "\033[38;5;245m"
-
-    LIME = "\033[38;5;155m"
-    TEAL = "\033[38;5;80m"
-    GOLD = "\033[38;5;220m"
-    CORAL = "\033[38;5;209m"
-    PURPLE = "\033[38;5;141m"
-    SKY = "\033[38;5;67m"
-    BLUE = "\033[38;5;111m"
-    GREEN = "\033[38;5;114m"
-    RED = "\033[38;5;203m"
-    GRAY = "\033[38;5;245m"
-    WHITE = "\033[38;5;252m"
-    FOREST = "\033[38;5;65m"
-    SLATE = "\033[38;5;103m"
-    PEACH = "\033[38;5;217m"
-    ORANGE = "\033[38;5;173m"
-    MAGENTA = "\033[38;5;139m"
-    CYAN = "\033[38;5;109m"
-    YELLOW = "\033[38;5;179m"
-    PINK = "\033[38;5;175m"
-    LAVENDER = "\033[38;5;146m"
-    APRICOT = "\033[38;5;216m"
-    MINT = "\033[38;5;122m"
-    BERRY = "\033[38;5;163m"
-    SAGE = "\033[38;5;151m"
-    INDIGO = "\033[38;5;99m"
-
-    POOL: ClassVar[list[str]] = [
-        "\033[38;5;223m",  # pale-gold
-        "\033[38;5;215m",  # apricot
-        "\033[38;5;210m",  # salmon
-        "\033[38;5;219m",  # pale-pink
-        "\033[38;5;177m",  # orchid
-        "\033[38;5;111m",  # cornflower
-        "\033[38;5;158m",  # pale-mint
-        "\033[38;5;116m",  # seafoam
-    ]
+@dataclass(frozen=True)
+class Theme:
+    red: str = "\033[38;5;203m"
+    green: str = "\033[38;5;114m"
+    yellow: str = "\033[38;5;221m"
+    blue: str = "\033[38;5;111m"
+    magenta: str = "\033[38;5;176m"
+    cyan: str = "\033[38;5;117m"
+    gray: str = "\033[38;5;245m"
+    white: str = "\033[38;5;252m"
+    orange: str = "\033[38;5;208m"
+    pink: str = "\033[38;5;212m"
+    lime: str = "\033[38;5;155m"
+    teal: str = "\033[38;5;80m"
+    gold: str = "\033[38;5;220m"
+    coral: str = "\033[38;5;209m"
+    purple: str = "\033[38;5;141m"
+    sky: str = "\033[38;5;67m"
+    mint: str = "\033[38;5;121m"
+    peach: str = "\033[38;5;217m"
+    lavender: str = "\033[38;5;183m"
+    slate: str = "\033[38;5;103m"
+    sage: str = "\033[38;5;108m"
+    forest: str = "\033[38;5;65m"
+    amber: str = "\033[38;5;137m"
+    mauve: str = "\033[38;5;139m"
+    muted: str = "\033[90m"  # dim gray for secondary text
+    bold: str = "\033[1m"
+    dim: str = "\033[2m"
+    reset: str = "\033[0m"
 
 
-_R = ANSI.RESET
-_B = ANSI.BOLD
+DEFAULT = Theme()
+_active: Theme = DEFAULT
+
+
+def use(theme: Theme) -> None:
+    global _active
+    _active = theme
+
+
+_COLORS = {
+    "red",
+    "green",
+    "yellow",
+    "blue",
+    "magenta",
+    "cyan",
+    "gray",
+    "white",
+    "orange",
+    "pink",
+    "lime",
+    "teal",
+    "gold",
+    "coral",
+    "purple",
+    "sky",
+    "mint",
+    "peach",
+    "lavender",
+    "slate",
+    "sage",
+    "forest",
+    "amber",
+    "mauve",
+    "muted",
+}
+
+POOL: list[str] = [
+    "\033[38;5;223m",  # pale-gold
+    "\033[38;5;215m",  # apricot
+    "\033[38;5;210m",  # salmon
+    "\033[38;5;219m",  # pale-pink
+    "\033[38;5;177m",  # orchid
+    "\033[38;5;111m",  # cornflower
+    "\033[38;5;158m",  # pale-mint
+    "\033[38;5;116m",  # seafoam
+]
+
+
+def __getattr__(name: str) -> Callable[[str], str]:
+    if name in _COLORS:
+
+        def _wrap(text: str) -> str:
+            return f"{getattr(_active, name)}{text}{_active.reset}"
+
+        _wrap.__name__ = name
+        return _wrap
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def bold(text: str) -> str:
+    return f"{_active.bold}{text}{_active.reset}"
+
+
+def dim(text: str) -> str:
+    return f"{_active.dim}{text}{_active.reset}"
 
 
 def strip(text: str) -> str:
@@ -72,42 +121,6 @@ def strip_markdown(text: str) -> str:
     text = _MD_CODE_RE.sub(r"\1", text)
     text = _MD_HEADING_RE.sub("", text)
     return _MD_LINK_RE.sub(r"\1", text)
-
-
-def bold(text: str) -> str:
-    return f"{_B}{text}\033[22m{_R}"
-
-
-def dim(text: str) -> str:
-    return f"\033[2m{text}\033[22m{_R}"
-
-
-def gold(text: str) -> str:
-    return f"{ANSI.GOLD}{text}{_R}"
-
-
-def coral(text: str) -> str:
-    return f"{ANSI.CORAL}{text}{_R}"
-
-
-def green(text: str) -> str:
-    return f"{ANSI.GREEN}{text}{_R}"
-
-
-def red(text: str) -> str:
-    return f"{ANSI.RED}{text}{_R}"
-
-
-def gray(text: str) -> str:
-    return f"{ANSI.GRAY}{text}{_R}"
-
-
-def white(text: str) -> str:
-    return f"{ANSI.WHITE}{text}{_R}"
-
-
-def cyan(text: str) -> str:
-    return f"{ANSI.CYAN}{text}{_R}"
 
 
 _REFERENCE_RE = re.compile(r"(?<![a-zA-Z0-9_.:/-])([a-z])/([a-f0-9]{8})(?![a-zA-Z0-9_])")
@@ -173,23 +186,23 @@ def agent_color(identity: str) -> str:
 
 def mention(name: str) -> str:
     color = agent_color(name)
-    return f"{_B}{color}@{name}\033[22m{_R}"
+    return f"{_active.bold}{color}@{name}{_active.reset}"
 
 
 def highlight_references(text: str, base_color: str | None = None) -> str:
-    base = base_color or _R
+    base = base_color or _active.reset
 
     def _color_ref(m: re.Match[str]) -> str:
-        return f"{_B}{ANSI.CYAN}{m.group(1)}/{m.group(2)}\033[22m{base}"
+        return f"{_active.bold}{_active.cyan}{m.group(1)}/{m.group(2)}{_active.reset}{base}"
 
     return _REFERENCE_RE.sub(_color_ref, text)
 
 
 def highlight_path(text: str, base_color: str | None = None) -> str:
-    base = base_color or _R
+    base = base_color or _active.reset
 
     def _color_path(m: re.Match[str]) -> str:
-        return f"{ANSI.BLUE}{m.group(1)}{base}"
+        return f"{_active.blue}{m.group(1)}{base}"
 
     result = _PATH_RE.sub(_color_path, text)
     if base_color:

@@ -4,7 +4,7 @@ from typing import Any
 from fncli import cli
 
 from .habits import add_habit, check_habit_cmd, rename_habit
-from .lib.ansi import ANSI
+from .lib import ansi
 from .lib.errors import exit_error
 from .lib.format import format_status
 from .lib.parsing import validate_content
@@ -22,7 +22,7 @@ from .tasks import (
 
 
 def _animate_uncheck(label: str) -> None:
-    sys.stdout.write(f"  \u25a1 {ANSI.GREY}{label}{ANSI.RESET}\n")
+    sys.stdout.write(f"  \u25a1 {ansi.muted(label)}\n")
     sys.stdout.flush()
 
 
@@ -48,7 +48,6 @@ def check(ref: list[str], date: str | None = None) -> None:
         if not habit:
             exit_error("--date only applies to habits")
         from .habits import uncheck_habit
-        from .lib.ansi import ANSI
 
         checks = get_checks(habit.id)
         already_checked = any(c.date() == check_on for c in checks)
@@ -58,7 +57,7 @@ def check(ref: list[str], date: str | None = None) -> None:
         else:
             check_habit(habit.id, check_on=check_on)
             sys.stdout.write(
-                f"  {ANSI.GREEN}\u2713{ANSI.RESET} {ANSI.GREY}{habit.content.lower()} ({parsed}){ANSI.RESET}\n"
+                f"  {ansi.green('✓')} {ansi.muted(habit.content.lower() + ' (' + parsed + ')')}\n"
             )
         return
 
@@ -94,10 +93,10 @@ def rm(ref: list[str]) -> None:
     task, habit = resolve_item_any(item_ref)
     if task:
         delete_task(task.id)
-        print(f"{ANSI.DIM}{task.content}{ANSI.RESET}")
+        print(ansi.dim(task.content))
     elif habit:
         delete_habit(habit.id)
-        print(f"{ANSI.DIM}{habit.content}{ANSI.RESET}")
+        print(ansi.dim(habit.content))
 
 
 def add(
@@ -171,7 +170,7 @@ def add(
         check_task(task_id)
         print(format_status("\u2713", content_str, task_id))
         return
-    symbol = f"{ANSI.BOLD}\u29bf{ANSI.RESET}" if focus else "\u25a1"
+    symbol = ansi.bold("\u29bf") if focus else "\u25a1"
     prefix = "  \u2514 " if parent_id else ""
     print(f"{prefix}{format_status(symbol, content_str, task_id)}")
 

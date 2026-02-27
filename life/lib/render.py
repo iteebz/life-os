@@ -8,7 +8,7 @@ from life.models import Habit, Task, TaskMutation, Weekly
 from life.tasks import _task_sort_key
 
 from . import clock
-from .ansi import ANSI, bold, coral, cyan, dim, gold, gray, green, red, white
+from .ansi import POOL, _active, bold, coral, cyan, dim, gold, gray, green, red, white
 from .format import format_habit, format_task
 
 __all__ = [
@@ -22,8 +22,8 @@ __all__ = [
 
 TAG_ORDER = ["finance", "legal", "janice", "comms", "home", "income"]
 
-_R = ANSI.RESET
-_GREY = ANSI.MUTED
+_R = _active.reset
+_GREY = _active.muted
 
 
 # ── primitives ────────────────────────────────────────────────────────────────
@@ -37,7 +37,7 @@ def _primary_tag(task: Task) -> str | None:
 
 
 def _fmt_time(t: str) -> str:
-    return f"{ANSI.SECONDARY}{t}{_R}"
+    return f"{_active.gray}{t}{_R}"
 
 
 def _fmt_rel_date(
@@ -69,7 +69,7 @@ def _get_direct_tags(task: Task, pending: list[Task]) -> list[str]:
 
 def _build_tag_colors(items: Sequence[Task | Habit]) -> dict[str, str]:
     tags = sorted({tag for item in items for tag in item.tags})
-    pool = random.sample(ANSI.POOL, len(ANSI.POOL))
+    pool = random.sample(POOL, len(POOL))
     return {tag: pool[i % len(pool)] for i, tag in enumerate(tags)}
 
 
@@ -147,7 +147,7 @@ def _row_task(
         blocker = ctx.id_to_content.get(task.blocked_by, task.blocked_by[:8])
         row = f"{indent}⊘ {_GREY}{date_str}{task.content.lower()}{tags_str}{_R} {dim('← ' + blocker.lower())}{id_str}"
     else:
-        indicator = f"{ANSI.BOLD}🔥{_R} " if task.focus else ""
+        indicator = f"{_active.bold}🔥{_R} " if task.focus else ""
         row = f"{indent}{indicator}{date_str}{task.content.lower()}{tags_str}{id_str}"
 
     rows = [row]
@@ -258,13 +258,13 @@ def _section_dates() -> list[str]:
 
 
 def _section_overdue(tasks: list[Task], ctx: RenderCtx) -> tuple[list[str], set[str]]:
-    lines = [f"\n{ANSI.BOLD}{ANSI.RED}OVERDUE{_R}"]
+    lines = [f"\n{_active.bold}{_active.red}OVERDUE{_R}"]
     scheduled_ids: set[str] = set()
     for task in sorted(tasks, key=_task_sort_key):
         scheduled_ids.add(task.id)
         tags_str = _fmt_tags(task.tags, ctx.tag_colors)
         id_str = f" {_GREY}[{task.id[:8]}]{_R}"
-        fire = f" {ANSI.BOLD}🔥{_R}" if task.focus else ""
+        fire = f" {_active.bold}🔥{_R}" if task.focus else ""
         label = _fmt_rel_date(
             task.scheduled_date or ctx.today, ctx.today, task.scheduled_time, task.is_deadline
         )
@@ -305,7 +305,7 @@ def _section_schedule(
                     f"  ⊘ {time_str}{_GREY}{task.content.lower()}{_R}{tags_str} {dim('← ' + blocker.lower())}{id_str}"
                 )
             else:
-                fire = f" {ANSI.BOLD}🔥{_R}" if task.focus else ""
+                fire = f" {_active.bold}🔥{_R}" if task.focus else ""
                 lines.append(f"  □ {time_str}{task.content.lower()}{tags_str}{fire}{id_str}")
             for sub in sorted(ctx.subtasks.get(task.id, []), key=_task_sort_key):
                 scheduled_ids.add(sub.id)
@@ -328,7 +328,7 @@ def _section_schedule(
             tags_str = _fmt_tags(tags, ctx.tag_colors)
             id_str = f" {_GREY}[{task.id[:8]}]{_R}"
             time_str = f"{_fmt_time(task.scheduled_time)} " if task.scheduled_time else ""
-            fire = f" {ANSI.BOLD}🔥{_R}" if (task.focus or (parent and parent.focus)) else ""
+            fire = f" {_active.bold}🔥{_R}" if (task.focus or (parent and parent.focus)) else ""
             parent_hint = f" {dim('~ ' + parent.content.lower())}" if parent else ""
             lines.append(
                 f"  □ {time_str}{task.content.lower()}{tags_str}{fire}{parent_hint}{id_str}"
@@ -342,7 +342,7 @@ def _section_habits(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) 
     if not visible:
         return []
     checked_count = sum(1 for h in habits if h.id in checked_ids)
-    lines = [f"\n{ANSI.BOLD}{ANSI.GRAY}HABITS ({checked_count}/{len(habits)}){ANSI.RESET}"]
+    lines = [f"\n{_active.bold}{_active.gray}HABITS ({checked_count}/{len(habits)}){_R}"]
     sorted_habits = sorted(visible, key=lambda h: h.content.lower())
     for habit in [h for h in sorted_habits if h.id not in checked_ids] + [
         h for h in sorted_habits if h.id in checked_ids
@@ -370,8 +370,8 @@ def _section_backlog(
     lines: list[str] = []
     for tag in sections:
         label = tag.upper() if tag else "BACKLOG"
-        color = ctx.tag_colors.get(tag, ANSI.WHITE) if tag else ANSI.WHITE
-        lines.append(f"\n{ANSI.BOLD}{color}{label} ({len(groups[tag])}){ANSI.RESET}")
+        color = ctx.tag_colors.get(tag, _active.white) if tag else _active.white
+        lines.append(f"\n{_active.bold}{color}{label} ({len(groups[tag])}){_R}")
         for task in groups[tag]:
             lines.extend(_row_task(task, ctx, completed_subs, tags_override=task.tags))
     return lines
@@ -554,7 +554,7 @@ def _block_task(
     indent: str = "",
 ) -> list[str]:
     tags_str = _fmt_tags(task.tags, ctx.tag_colors)
-    focus_str = f" {ANSI.BOLD}🔥{_R}" if task.focus else ""
+    focus_str = f" {_active.bold}🔥{_R}" if task.focus else ""
     status = gray("✓") if task.completed_at else "□"
     lines = [
         f"{indent}{status} {dim('[' + task.id[:8] + ']')}  {task.content.lower()}{tags_str}{focus_str}"

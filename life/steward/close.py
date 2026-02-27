@@ -2,12 +2,9 @@ from datetime import datetime
 
 from fncli import cli
 
-from ..lib.ansi import ANSI
+from ..lib import ansi
 from ..lib.errors import exit_error
 from . import _rel, add_observation, add_session, delete_observation, get_observations
-
-_G = ANSI.GREY
-_R = ANSI.RESET
 
 
 @cli("steward")
@@ -33,7 +30,7 @@ def observe(
         for o in observations:
             rel = _rel((now - o.logged_at).total_seconds())
             tag_str = f" #{o.tag}" if o.tag else ""
-            print(f"  {_G}[{o.uuid[:8]}]{_R}  {rel:<10}  {o.body}{tag_str}")
+            print(f"  {ansi.muted('[' + o.uuid[:8] + ']')}  {rel:<10}  {o.body}{tag_str}")
         return
 
     from datetime import date

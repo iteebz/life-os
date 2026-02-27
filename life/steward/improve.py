@@ -2,12 +2,9 @@ from datetime import datetime
 
 from fncli import cli
 
-from ..lib.ansi import ANSI
+from ..lib import ansi
 from ..lib.errors import exit_error
 from . import _rel
-
-_G = ANSI.GREY
-_R = ANSI.RESET
 
 
 @cli("steward", flags={"body": []})
@@ -39,7 +36,7 @@ def improve(
         now = datetime.now()
         for i in improvements:
             rel = _rel((now - i.logged_at).total_seconds())
-            print(f"  {_G}[{i.uuid[:8]}]{_R}  {rel:<10}  {i.body}")
+            print(f"  {ansi.muted('[' + i.uuid[:8] + ']')}  {rel:<10}  {i.body}")
         return
 
     add_improvement(body)

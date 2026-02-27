@@ -4,7 +4,8 @@ from datetime import datetime
 from fncli import cli
 
 from .db import get_db
-from .lib.ansi import ANSI, bold, dim, gray, white
+from .lib import ansi
+from .lib.ansi import POOL, bold, dim, gray, white
 
 
 @dataclass(frozen=True)
@@ -57,7 +58,7 @@ def _achievement_tag_colors(entries: list["Achievement"]) -> dict[str, str]:
         if e.tags:
             all_tags.extend(t.strip() for t in e.tags.split(","))
     unique = sorted(set(all_tags))
-    return {tag: ANSI.POOL[i % len(ANSI.POOL)] for i, tag in enumerate(unique)}
+    return {tag: POOL[i % len(POOL)] for i, tag in enumerate(unique)}
 
 
 def update_achievement(
@@ -101,8 +102,6 @@ def ls():
     if not entries:
         print("no achievements yet")
         return
-    _r = ANSI.RESET
-    _grey = ANSI.MUTED
     tag_colors = _achievement_tag_colors(entries)
     print(bold(white("ACHIEVEMENTS:")))
     for e in entries:
@@ -111,7 +110,8 @@ def ls():
         name_str = bold(e.name)
         if e.tags:
             tag_parts = [
-                f"{tag_colors.get(t.strip(), _grey)}#{t.strip()}{_r}" for t in e.tags.split(",")
+                f"{tag_colors.get(t.strip(), ansi._active.muted)}#{t.strip()}{ansi._active.reset}"
+                for t in e.tags.split(",")
             ]
             tags_str = "  " + " ".join(tag_parts)
         else:
