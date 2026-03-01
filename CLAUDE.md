@@ -10,7 +10,7 @@ life/
   dash.py       — dashboard, status, ls, momentum, stats, view
   task.py       — task CRUD + `life task` command
   habit.py      — habit CRUD + `life habit` command
-  items.py      — done, rm, rename, focus (unified task/habit)
+  item.py       — done, rm, rename, focus (unified task/habit)
   models.py     — Task, Habit, TaskMutation (no deps)
   db.py         — SQLite + migrations
   lib/          — shared infrastructure (no domain imports except resolve.py)
@@ -37,11 +37,8 @@ Higher imports lower, never upward. `lib/` is clean except `resolve.py` (intenti
 - `life due <when> <task>` — set deadline
 - `life ls [--tag <tag>] [--overdue]` — filtered task list
 
-Outstanding debt: `~/life/brr/IMPROVEMENTS.md`
-
 ## Commits
 
 - Same logical change → amend, not new commit
-- Visual/aesthetic changes shown for approval → don't commit until confirmed
 - Exploratory work that may be reverted → hold the commit until direction is clear
 - Revert+recommit pairs are always avoidable: verify before committing, not after
