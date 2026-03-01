@@ -8,10 +8,10 @@ from . import _rel, add_observation, add_session, delete_observation, get_observ
 
 
 @cli("steward")
-def close(summary: str):
-    """Write session log and close interactive session"""
-    add_session(summary)
-    print("→ session logged")
+def summary(note: str):
+    """Write handover summary for the next steward — what happened, what's open, what's next"""
+    add_session(note)
+    print("→ summary logged")
 
 
 @cli("steward", flags={"body": []})
