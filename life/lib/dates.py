@@ -6,6 +6,7 @@ from dateutil import parser as dateutil_parser
 from dateutil.parser import ParserError
 
 from . import clock
+from .store import get_db
 
 
 def parse_created_date(created_val: int | float | str) -> date:
@@ -72,10 +73,8 @@ def _days_until(month: int, day: int, today: date) -> int:
 
 def list_dates() -> list[dict[str, Any]]:
     """Get all special dates from DB, sorted by next occurrence."""
-    from life import db
-
     today = clock.today()
-    with db.get_db() as conn:
+    with get_db() as conn:
         rows = conn.execute(
             "SELECT id, name, month, day, type FROM special_dates ORDER BY name"
         ).fetchall()
@@ -93,8 +92,6 @@ def list_dates() -> list[dict[str, Any]]:
 
 def add_date(name: str, date_str: str, type_: str = "other") -> None:
     """Add a special date to DB. date_str is DD-MM."""
-    from life import db
-
     parts = date_str.split("-")
     if len(parts) != 2:
         raise ValueError(f"Invalid date format '{date_str}' — use DD-MM")
@@ -105,7 +102,7 @@ def add_date(name: str, date_str: str, type_: str = "other") -> None:
     if not (1 <= month <= 12) or not (1 <= day <= 31):
         raise ValueError(f"Invalid date '{date_str}'")
 
-    with db.get_db() as conn:
+    with get_db() as conn:
         conn.execute(
             "INSERT INTO special_dates (name, month, day, type) VALUES (?, ?, ?, ?)",
             (name, month, day, type_),
@@ -114,9 +111,7 @@ def add_date(name: str, date_str: str, type_: str = "other") -> None:
 
 def remove_date(name: str) -> None:
     """Remove a special date by name."""
-    from life import db
-
-    with db.get_db() as conn:
+    with get_db() as conn:
         conn.execute("DELETE FROM special_dates WHERE name = ?", (name,))
 
 

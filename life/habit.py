@@ -6,13 +6,13 @@ from datetime import date, datetime
 
 from fncli import UsageError, cli
 
-from . import db
 from .core.errors import ValidationError
 from .core.models import Habit
 from .lib import ansi, clock
 from .lib.converters import row_to_habit
 from .lib.format import render_done_row
 from .lib.fuzzy import find_in_pool, find_in_pool_exact
+from .lib.store import get_db
 from .tag import get_tags_for_habit, load_tags_for_habits
 
 __all__ = [
@@ -77,7 +77,7 @@ def add_habit(
     private: bool = False,
 ) -> str:
     habit_id = str(uuid.uuid4())
-    with db.get_db() as conn:
+    with get_db() as conn:
         try:
             conn.execute(
                 "INSERT INTO habits (id, content, parent_id, private) VALUES (?, ?, ?, ?)",
@@ -97,7 +97,7 @@ def add_habit(
 
 
 def get_habit(habit_id: str) -> Habit | None:
-    with db.get_db() as conn:
+    with get_db() as conn:
         cursor = conn.execute(
             "SELECT id, content, created, archived_at, parent_id, private FROM habits WHERE id = ?",
             (habit_id,),
@@ -116,7 +116,7 @@ def update_habit(habit_id: str, content: str | None = None) -> Habit | None:
     if content is None:
         return get_habit(habit_id)
 
-    with db.get_db() as conn:
+    with get_db() as conn:
         try:
             conn.execute(
                 "UPDATE habits SET content = ? WHERE id = ?",
@@ -129,7 +129,7 @@ def update_habit(habit_id: str, content: str | None = None) -> Habit | None:
 
 
 def delete_habit(habit_id: str) -> None:
-    with db.get_db() as conn:
+    with get_db() as conn:
         conn.execute("DELETE FROM habits WHERE id = ?", (habit_id,))
 
 
@@ -137,13 +137,13 @@ def get_habits(habit_ids: list[str] | None = None, include_private: bool = True)
     if habit_ids is None:
         private_filter = "" if include_private else " AND private = 0"
         where = f"archived_at IS NULL{private_filter}"
-        with db.get_db() as conn:
+        with get_db() as conn:
             return _fetch_habits(conn, f"{where} ORDER BY created DESC")
 
     if not habit_ids:
         return []
     placeholders = ",".join("?" * len(habit_ids))
-    with db.get_db() as conn:
+    with get_db() as conn:
         return _fetch_habits(conn, f"id IN ({placeholders})", tuple(habit_ids))
 
 
@@ -151,7 +151,7 @@ def get_checks(habit_id: str) -> list[datetime]:
     if not habit_id:
         raise ValueError("habit_id cannot be empty")
 
-    with db.get_db() as conn:
+    with get_db() as conn:
         cursor = conn.execute(
             "SELECT completed_at FROM habit_checks WHERE habit_id = ? ORDER BY completed_at DESC",
             (habit_id,),
@@ -186,14 +186,14 @@ def get_streak(habit_id: str) -> int:
 
 
 def get_subhabits(parent_id: str) -> list["Habit"]:
-    with db.get_db() as conn:
+    with get_db() as conn:
         return _fetch_habits(
             conn, "parent_id = ? AND archived_at IS NULL ORDER BY created ASC", (parent_id,)
         )
 
 
 def get_archived_habits() -> list[Habit]:
-    with db.get_db() as conn:
+    with get_db() as conn:
         return _fetch_habits(conn, "archived_at IS NOT NULL ORDER BY archived_at DESC")
 
 
@@ -202,7 +202,7 @@ def archive_habit(habit_id: str) -> Habit | None:
     if not habit:
         return None
     archived_at = datetime.now().isoformat()
-    with db.get_db() as conn:
+    with get_db() as conn:
         conn.execute(
             "UPDATE habits SET archived_at = ? WHERE id = ?",
             (archived_at, habit_id),
@@ -228,7 +228,7 @@ def check_habit(habit_id: str, check_on: date | None = None) -> Habit | None:
     else:
         check_date = clock.today().isoformat()
         completed_at = datetime.now().isoformat()
-    with db.get_db() as conn:
+    with get_db() as conn:
         with contextlib.suppress(sqlite3.IntegrityError):
             conn.execute(
                 "INSERT INTO habit_checks (habit_id, check_date, completed_at) VALUES (?, ?, ?)",
@@ -242,7 +242,7 @@ def uncheck_habit(habit_id: str, check_on: date | None = None) -> Habit | None:
     if not habit:
         return None
     check_date = check_on.isoformat() if check_on is not None else clock.today().isoformat()
-    with db.get_db() as conn:
+    with get_db() as conn:
         conn.execute(
             "DELETE FROM habit_checks WHERE habit_id = ? AND check_date = ?",
             (habit_id, check_date),
@@ -254,7 +254,7 @@ def toggle_check(habit_id: str) -> Habit | None:
     habit = get_habit(habit_id)
     if not habit:
         return None
-    with db.get_db() as conn:
+    with get_db() as conn:
         cursor = conn.execute(
             "SELECT 1 FROM habit_checks WHERE habit_id = ? AND check_date = ?",
             (habit_id, clock.today().isoformat()),

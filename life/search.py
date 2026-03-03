@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 
-from . import db
 from .habit import get_habits
 from .lib.converters import row_to_task
 from .lib.fuzzy import find_in_pool
+from .lib.store import get_db
 from .task import get_tasks
 
 
@@ -21,7 +21,7 @@ def search_tasks(query: str, limit: int = 20) -> list[SearchResult]:
     if not query or not query.strip():
         return []
 
-    with db.get_db() as conn:
+    with get_db() as conn:
         rows = conn.execute(
             """
             SELECT t.id, t.content, t.focus, t.scheduled_date, t.created, t.completed_at,
@@ -50,7 +50,7 @@ def search_habits(query: str, limit: int = 20) -> list[SearchResult]:
     if not query or not query.strip():
         return []
 
-    with db.get_db() as conn:
+    with get_db() as conn:
         rows = conn.execute(
             """
             SELECT h.id, h.content, h.created,
@@ -71,7 +71,7 @@ def search_tags(query: str, limit: int = 20) -> list[SearchResult]:
     if not query or not query.strip():
         return []
 
-    with db.get_db() as conn:
+    with get_db() as conn:
         rows = conn.execute(
             """
             SELECT t.tag, t.task_id, t.habit_id,
@@ -101,7 +101,7 @@ def search_by_tag(tag: str, limit: int = 20) -> list[SearchResult]:
 
     tag = tag.strip().lstrip("#")
 
-    with db.get_db() as conn:
+    with get_db() as conn:
         rows = conn.execute(
             """
             SELECT t.id, t.content, t.focus, t.scheduled_date, t.created, t.completed_at,

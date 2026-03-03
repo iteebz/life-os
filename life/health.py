@@ -6,7 +6,7 @@ from typing import Any
 from fncli import cli
 
 from life import config
-from life.db import get_db
+from life.lib.store import get_db
 
 __all__ = ["score"]
 

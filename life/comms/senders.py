@@ -7,7 +7,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime
 
-from . import db
+from life.lib.store import get_db
 
 
 @dataclass
@@ -40,7 +40,7 @@ def record_received(sender: str) -> None:
     sender_hash = _sender_id(sender)
     now = datetime.now().isoformat()
 
-    with db.get_db() as conn:
+    with get_db() as conn:
         existing = conn.execute(
             "SELECT id FROM sender_stats WHERE id = ?", (sender_hash,)
         ).fetchone()
@@ -78,7 +78,7 @@ def record_action(sender: str, action: str, response_hours: float | None = None)
     if not column:
         return
 
-    with db.get_db() as conn:
+    with get_db() as conn:
         existing = conn.execute(
             "SELECT id, avg_response_hours, replied_count FROM sender_stats WHERE id = ?",
             (sender_hash,),
@@ -108,7 +108,7 @@ def record_action(sender: str, action: str, response_hours: float | None = None)
 def get_sender_stat(sender: str) -> SenderStat | None:
     sender_hash = _sender_id(sender)
 
-    with db.get_db() as conn:
+    with get_db() as conn:
         row = conn.execute("SELECT * FROM sender_stats WHERE id = ?", (sender_hash,)).fetchone()
 
     if not row:
@@ -173,7 +173,7 @@ def _calculate_priority(
 
 
 def get_top_senders(limit: int = 20) -> list[SenderStat]:
-    with db.get_db() as conn:
+    with get_db() as conn:
         rows = conn.execute(
             """SELECT * FROM sender_stats
             WHERE received_count > 0

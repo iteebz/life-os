@@ -1,8 +1,9 @@
 import uuid
 from typing import Any
 
+from life.lib.store import get_db
+
 from .config import add_account as config_add_account
-from .db import get_db
 
 
 def add_email_account(provider: str, email: str) -> str:

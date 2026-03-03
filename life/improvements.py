@@ -2,7 +2,7 @@ import uuid as _uuid
 from dataclasses import dataclass
 from datetime import datetime
 
-from .db import get_db
+from .lib.store import get_db
 
 
 @dataclass(frozen=True)

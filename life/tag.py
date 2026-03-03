@@ -4,10 +4,10 @@ from typing import TypeVar
 
 from fncli import cli
 
-from . import db
 from .core.models import Habit, Task
 from .lib import ansi
 from .lib.converters import hydrate_tags_onto, row_to_habit, row_to_task
+from .lib.store import get_db
 
 T = TypeVar("T", Task, Habit)
 
@@ -36,26 +36,26 @@ def add_tag(task_id: str | None, habit_id: str | None, tag: str, conn=None) -> N
         )
 
     if conn is None:
-        with db.get_db() as c:
+        with get_db() as c:
             _insert(c)
     else:
         _insert(conn)
 
 
 def get_tags_for_task(task_id: str) -> list[str]:
-    with db.get_db() as conn:
+    with get_db() as conn:
         cursor = conn.execute("SELECT tag FROM tags WHERE task_id = ?", (task_id,))
         return [row[0] for row in cursor.fetchall()]
 
 
 def get_tags_for_habit(habit_id: str) -> list[str]:
-    with db.get_db() as conn:
+    with get_db() as conn:
         cursor = conn.execute("SELECT tag FROM tags WHERE habit_id = ?", (habit_id,))
         return [row[0] for row in cursor.fetchall()]
 
 
 def get_tasks_by_tag(tag: str) -> list[Task]:
-    with db.get_db() as conn:
+    with get_db() as conn:
         cursor = conn.execute(
             """
             SELECT DISTINCT t.id, t.content, t.focus, t.scheduled_date, t.created, t.completed_at,
@@ -73,7 +73,7 @@ def get_tasks_by_tag(tag: str) -> list[Task]:
 
 
 def get_habits_by_tag(tag: str) -> list[Habit]:
-    with db.get_db() as conn:
+    with get_db() as conn:
         cursor = conn.execute(
             """
             SELECT DISTINCT h.id, h.content, h.created
@@ -93,7 +93,7 @@ def remove_tag(task_id: str | None, habit_id: str | None, tag: str) -> None:
     if (task_id is None and habit_id is None) or (task_id is not None and habit_id is not None):
         raise ValueError("Exactly one of (task_id, habit_id) must be not None")
 
-    with db.get_db() as conn:
+    with get_db() as conn:
         conn.execute(
             "DELETE FROM tags WHERE (task_id = ? OR habit_id = ?) AND tag = ?",
             (task_id, habit_id, tag.lower()),
@@ -101,7 +101,7 @@ def remove_tag(task_id: str | None, habit_id: str | None, tag: str) -> None:
 
 
 def list_all_tags() -> list[str]:
-    with db.get_db() as conn:
+    with get_db() as conn:
         cursor = conn.execute("SELECT DISTINCT tag FROM tags ORDER BY tag ASC")
         return [row[0] for row in cursor.fetchall()]
 
@@ -125,7 +125,7 @@ def _load_tags_by_column(
 
     if conn is not None:
         return _run(conn)
-    with db.get_db() as c:
+    with get_db() as c:
         return _run(c)
 
 

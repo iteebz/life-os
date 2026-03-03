@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 from fncli import cli
 
 from .core.errors import NotFoundError, ValidationError
-from .db import get_db
+from .lib.store import get_db
 
 
 @dataclass(frozen=True)

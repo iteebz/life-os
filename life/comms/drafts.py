@@ -1,7 +1,9 @@
 import uuid
 from datetime import datetime
 
-from .db import get_db, now_iso
+from life.lib.clock import now_iso
+from life.lib.store import get_db
+
 from .models import Draft
 
 

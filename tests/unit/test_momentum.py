@@ -1,12 +1,12 @@
 from datetime import datetime, time, timedelta
 
-from life import db
+from life.lib.store import get_db
 from life.momentum import weekly_momentum
 
 
 def test_rolling_7day_window(tmp_life_dir, fixed_today):
     """Calculate habits_completed and habits_total for rolling 7-day windows."""
-    with db.get_db() as conn:
+    with get_db() as conn:
         conn.execute(
             "INSERT INTO habits (id, content, created) VALUES (?, ?, ?)",
             (
@@ -62,7 +62,7 @@ def test_rolling_7day_window(tmp_life_dir, fixed_today):
 def test_count_one_per_day(tmp_life_dir, fixed_today):
     """Count habits as 1 check per day for total possible calculations."""
 
-    with db.get_db() as conn:
+    with get_db() as conn:
         conn.execute(
             "INSERT INTO habits (id, content, created) VALUES (?, ?, ?)",
             (

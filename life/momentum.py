@@ -1,9 +1,9 @@
 from datetime import date, timedelta
 
-from . import db
 from .core.models import Weekly
 from .lib import clock
 from .lib.dates import parse_created_date
+from .lib.store import get_db
 
 __all__ = ["weekly_momentum"]
 
@@ -44,7 +44,7 @@ def weekly_momentum():
 
     weeks = {}
 
-    with db.get_db() as conn:
+    with get_db() as conn:
         for week_name, start_date, end_date in [
             ("this_week", this_week_start, this_week_end),
             ("last_week", last_week_start, last_week_end),

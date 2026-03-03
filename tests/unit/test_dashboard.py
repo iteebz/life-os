@@ -1,11 +1,11 @@
 from datetime import datetime, time, timedelta
 
-from life import db
 from life.dash import (
     get_today_breakdown,
     get_today_completed,
 )
 from life.habit import add_habit, get_habits, toggle_check
+from life.lib.store import get_db
 from life.task import add_task, check_task, get_tasks
 
 
@@ -119,7 +119,7 @@ def test_breakdown_mixed(tmp_life_dir, fixed_today):
 def test_today_completed_exclude_yesterday(tmp_life_dir, fixed_today):
     task_id = add_task("task completed yesterday")
 
-    with db.get_db() as conn:
+    with get_db() as conn:
         yesterday = fixed_today - timedelta(days=1)
         conn.execute(
             "UPDATE tasks SET completed_at = ? WHERE id = ?",

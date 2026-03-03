@@ -10,3 +10,7 @@ def today() -> _date:
 
 def now() -> _datetime:
     return _datetime.now()
+
+
+def now_iso() -> str:
+    return _datetime.now().isoformat(timespec="seconds")

@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta
 
 from .config import get_partner_tag
 from .core.models import Habit, Task
-from .db import get_db
+from .lib.store import get_db
 
 DISCOMFORT_TAGS = {"finance", "legal", "janice"}
 

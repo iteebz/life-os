@@ -7,6 +7,7 @@ import pytest
 import life.config
 import life.lib.clock as clock
 from life import db
+from life.lib.store import configure as configure_store
 
 
 class _Result:
@@ -53,6 +54,7 @@ def tmp_life_dir(monkeypatch, tmp_path):
     life.config.Config._data = None
     monkeypatch.setattr("life.config._config", life.config.Config())
 
+    configure_store(db_path)
     db.init(db_path=db_path)
     yield tmp_path
 

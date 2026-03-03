@@ -9,6 +9,7 @@ from fncli import cli
 
 from life.core.errors import LifeError, NotFoundError
 from life.lib.resolve import resolve_people_field
+from life.lib.store import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -125,8 +126,6 @@ def _track_outbound(
     group_id: str | None = None,
     success: bool = True,
 ) -> None:
-    from life.db import get_db
-
     ts = int(datetime.now().timestamp() * 1000)
     msg_id = f"sig-out-{ts}-{peer[-4:] if len(peer) >= 4 else peer}"
     try:
@@ -144,8 +143,6 @@ def _track_outbound(
 
 
 def _store_messages(phone: str, messages: list[dict[str, Any]]) -> int:
-    from life.db import get_db
-
     stored = 0
     with get_db() as conn:
         for msg in messages:
@@ -177,8 +174,6 @@ def get_messages(
     limit: int = 50,
     unread_only: bool = False,
 ) -> list[dict[str, Any]]:
-    from life.db import get_db
-
     query = "SELECT * FROM messages WHERE channel = 'signal' AND direction = 'in'"
     params: list[Any] = []
     if sender:
@@ -195,8 +190,6 @@ def get_messages(
 
 
 def get_conversations(phone: str) -> list[dict[str, Any]]:
-    from life.db import get_db
-
     with get_db() as conn:
         rows = conn.execute(
             """
@@ -214,8 +207,6 @@ def get_conversations(phone: str) -> list[dict[str, Any]]:
 
 
 def mark_read(message_id: str) -> bool:
-    from life.db import get_db
-
     with get_db() as conn:
         conn.execute(
             "UPDATE messages SET read_at = ? WHERE id = ? AND channel = 'signal'",
@@ -225,8 +216,6 @@ def mark_read(message_id: str) -> bool:
 
 
 def get_message(message_id: str) -> dict[str, Any] | None:
-    from life.db import get_db
-
     with get_db() as conn:
         row = conn.execute(
             "SELECT * FROM messages WHERE channel = 'signal' AND (id = ? OR id LIKE ?)",

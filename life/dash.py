@@ -3,13 +3,13 @@ from datetime import date, datetime, timedelta
 
 from fncli import UsageError, cli
 
-from . import db
 from .core.models import Habit, Task
 from .habit import get_habits
 from .lib import ansi, clock
 from .lib.ansi import POOL
 from .lib.clock import now, today
 from .lib.format import format_elapsed
+from .lib.store import get_db
 from .metrics import build_feedback_snapshot, render_feedback_snapshot
 from .momentum import weekly_momentum
 from .render import render_dashboard, render_day_summary, render_momentum
@@ -21,7 +21,7 @@ from .task import _fetch_tasks, get_all_tasks, get_tasks, last_completion
 def _get_checked_today() -> list[Habit]:
     """SELECT habits with checks WHERE check_date = today."""
     today_str = clock.today().isoformat()
-    with db.get_db() as conn:
+    with get_db() as conn:
         rows = conn.execute(
             """
             SELECT DISTINCT h.id
@@ -39,7 +39,7 @@ def _get_checked_today() -> list[Habit]:
 def _get_completed_today() -> list[Task]:
     """SELECT completed tasks from today."""
     today_str = clock.today().isoformat()
-    with db.get_db() as conn:
+    with get_db() as conn:
         return _fetch_tasks(
             conn,
             "date(completed_at) = ? AND completed_at IS NOT NULL",
@@ -49,7 +49,7 @@ def _get_completed_today() -> list[Task]:
 
 def get_day_completed(date_str: str) -> list[Task | Habit]:
     """Get tasks and habits completed on a given date (YYYY-MM-DD)."""
-    with db.get_db() as conn:
+    with get_db() as conn:
         completed_tasks = _fetch_tasks(
             conn,
             "date(completed_at) = ? AND completed_at IS NOT NULL",
@@ -71,7 +71,7 @@ def get_day_completed(date_str: str) -> list[Task | Habit]:
 
 def get_day_breakdown(date_str: str) -> tuple[int, int, int, int]:
     """Get breakdown stats for a given date (YYYY-MM-DD)."""
-    with db.get_db() as conn:
+    with get_db() as conn:
         habits_done = conn.execute(
             "SELECT COUNT(DISTINCT habit_id) FROM habit_checks WHERE DATE(check_date) = DATE(?)",
             (date_str,),
@@ -235,7 +235,6 @@ def view(date_str: str) -> None:
 
 
 def _show_day(target: date) -> None:
-    from .db import get_db
     from .habit import get_habits
 
     date_str = target.isoformat()

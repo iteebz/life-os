@@ -8,7 +8,6 @@ from typing import Any
 
 from fncli import UsageError, cli
 
-from . import db
 from .core.errors import ConflictError, ValidationError
 from .core.models import Task, TaskMutation
 from .core.types import UNSET, Unset
@@ -17,6 +16,7 @@ from .lib.converters import row_to_task
 from .lib.format import format_status, render_done_row
 from .lib.fuzzy import find_in_pool, find_in_pool_exact
 from .lib.parsing import parse_due_and_item
+from .lib.store import get_db
 from .tag import add_tag, hydrate_tags, load_tags_for_tasks
 
 __all__ = [
@@ -106,7 +106,7 @@ def add_task(
     source: str | None = None,
 ) -> str:
     task_id = str(uuid.uuid4())
-    with db.get_db() as conn:
+    with get_db() as conn:
         try:
             conn.execute(
                 "INSERT INTO tasks (id, content, focus, scheduled_date, created, parent_id, notes, steward, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -134,7 +134,7 @@ def add_task(
 
 
 def get_task(task_id: str) -> Task | None:
-    with db.get_db() as conn:
+    with get_db() as conn:
         cursor = conn.execute(
             f"SELECT {_TASK_COLS} FROM tasks WHERE id = ? AND deleted_at IS NULL",  # noqa: S608
             (task_id,),
@@ -150,19 +150,19 @@ def get_task(task_id: str) -> Task | None:
 def get_tasks(include_steward: bool = False) -> list[Task]:
     where = "completed_at IS NULL" if include_steward else "completed_at IS NULL AND steward = 0"
     # deleted_at filter applied in _fetch_tasks
-    with db.get_db() as conn:
+    with get_db() as conn:
         tasks = _fetch_tasks(conn, where)
     return sorted(tasks, key=_task_sort_key)
 
 
 def get_all_tasks() -> list[Task]:
-    with db.get_db() as conn:
+    with get_db() as conn:
         tasks = _fetch_tasks(conn, "steward = 0")
     return sorted(tasks, key=_task_sort_key)
 
 
 def get_subtasks(parent_id: str) -> list[Task]:
-    with db.get_db() as conn:
+    with get_db() as conn:
         return _fetch_tasks(conn, "parent_id = ?", (parent_id,))
 
 
@@ -228,7 +228,7 @@ def update_task(
         values = list(updates.values())
         values.append(task_id)
 
-        with db.get_db() as conn:
+        with get_db() as conn:
             try:
                 conn.execute(
                     f"UPDATE tasks SET {', '.join(set_clauses)} WHERE id = ?",  # noqa: S608
@@ -243,7 +243,7 @@ def update_task(
 
 
 def get_mutations(task_id: str) -> list[TaskMutation]:
-    with db.get_db() as conn:
+    with get_db() as conn:
         rows = conn.execute(
             "SELECT id, task_id, field, old_value, new_value, mutated_at, reason FROM task_mutations WHERE task_id = ? ORDER BY mutated_at DESC",
             (task_id,),
@@ -267,7 +267,7 @@ def defer_task(task_id: str, reason: str) -> Task | None:
     task = get_task(task_id)
     if not task:
         return None
-    with db.get_db() as conn:
+    with get_db() as conn:
         conn.execute(
             "INSERT INTO task_mutations (task_id, field, old_value, new_value, reason) VALUES (?, 'defer', NULL, NULL, ?)",
             (task_id, reason),
@@ -276,7 +276,7 @@ def defer_task(task_id: str, reason: str) -> Task | None:
 
 
 def delete_task(task_id: str, cancel_reason: str | None = None, hard: bool = False) -> None:
-    with db.get_db() as conn:
+    with get_db() as conn:
         if hard:
             conn.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
         elif cancel_reason:
@@ -300,7 +300,7 @@ def check_task(task_id: str) -> tuple[Task | None, Task | None]:
     if not task or task.completed_at:
         return task, None
     completed = clock.now().strftime("%Y-%m-%dT%H:%M:%S")
-    with db.get_db() as conn:
+    with get_db() as conn:
         conn.execute(
             "UPDATE tasks SET completed_at = ? WHERE id = ?",
             (completed, task_id),
@@ -317,7 +317,7 @@ def check_task(task_id: str) -> tuple[Task | None, Task | None]:
         if all(s.completed_at for s in siblings):
             parent = get_task(task.parent_id)
             if parent and not parent.completed_at:
-                with db.get_db() as conn:
+                with get_db() as conn:
                     conn.execute(
                         "UPDATE tasks SET completed_at = ? WHERE id = ?",
                         (completed, task.parent_id),
@@ -331,13 +331,13 @@ def uncheck_task(task_id: str) -> Task | None:
     task = get_task(task_id)
     if not task or not task.completed_at:
         return task
-    with db.get_db() as conn:
+    with get_db() as conn:
         conn.execute("UPDATE tasks SET completed_at = NULL WHERE id = ?", (task_id,))
         _record_mutation(conn, task_id, "completed_at", task.completed_at, None)
     if task.parent_id:
         parent = get_task(task.parent_id)
         if parent and parent.completed_at:
-            with db.get_db() as conn:
+            with get_db() as conn:
                 conn.execute("UPDATE tasks SET completed_at = NULL WHERE id = ?", (task.parent_id,))
                 _record_mutation(conn, task.parent_id, "completed_at", parent.completed_at, None)
     return get_task(task_id)
@@ -371,7 +371,7 @@ def find_task_exact(ref: str) -> Task | None:
 
 
 def set_blocked_by(task_id: str, blocker_id: str | None) -> Task | None:
-    with db.get_db() as conn:
+    with get_db() as conn:
         conn.execute(
             "UPDATE tasks SET blocked_by = ? WHERE id = ?",
             (blocker_id, task_id),
@@ -380,7 +380,7 @@ def set_blocked_by(task_id: str, blocker_id: str | None) -> Task | None:
 
 
 def last_completion() -> datetime | None:
-    with db.get_db() as conn:
+    with get_db() as conn:
         task_row = conn.execute(
             "SELECT completed_at FROM tasks WHERE completed_at IS NOT NULL ORDER BY completed_at DESC LIMIT 1"
         ).fetchone()

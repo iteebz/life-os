@@ -1,7 +1,6 @@
 import shutil
 import sqlite3
 from collections.abc import Callable
-from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 
@@ -62,22 +61,6 @@ _LEGACY_MIGRATIONS = {
     "044_telegram_messages",
     "045_unified_messages",
 }
-
-
-@contextmanager
-def get_db(db_path: Path | None = None):
-    db_path = db_path or config.DB_PATH
-    conn = sqlite3.connect(db_path)
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA foreign_keys = ON;")
-    try:
-        yield conn
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        conn.close()
 
 
 def _schema_sql() -> str:
@@ -238,5 +221,14 @@ def init(db_path: Path | None = None) -> None:
 def migrate(db_path: Path | None = None) -> None:
     db_path = db_path or config.DB_PATH
     db_path.parent.mkdir(exist_ok=True)
-    with get_db(db_path) as conn:
+    conn = sqlite3.connect(db_path)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA foreign_keys = ON")
+    try:
         _apply_migrations(conn, db_path)
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()

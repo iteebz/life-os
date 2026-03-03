@@ -1,6 +1,6 @@
 from datetime import date, datetime, timedelta
 
-from life import db
+from life.lib.store import get_db
 from tests.conftest import FnCLIRunner
 
 
@@ -23,7 +23,7 @@ def test_status_flags_relationship_and_stuck_task(tmp_life_dir):
     runner.invoke(["add", "t", "call bank", "--tag", "finance"])
 
     today = date.today()
-    with db.get_db() as conn:
+    with get_db() as conn:
         conn.execute(
             "UPDATE tasks SET created = ? WHERE content = ?",
             ((today - timedelta(days=4)).isoformat(), "call bank"),
@@ -44,7 +44,7 @@ def test_stats_closure_weighted_by_tag(tmp_life_dir):
     runner.invoke(["done", "invoice jeff"])
 
     yesterday = datetime.combine(today - timedelta(days=1), datetime.min.time())
-    with db.get_db() as conn:
+    with get_db() as conn:
         conn.execute(
             "UPDATE tasks SET scheduled_date = ?, created = ?, completed_at = ? WHERE content = ?",
             (

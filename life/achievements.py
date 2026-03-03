@@ -6,9 +6,9 @@ from difflib import get_close_matches
 from fncli import UsageError, cli
 
 from .core.errors import AmbiguousError
-from .db import get_db
 from .lib import ansi
 from .lib.ansi import POOL, dim, gray, white
+from .lib.store import get_db
 
 
 @dataclass(frozen=True)
