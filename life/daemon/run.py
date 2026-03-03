@@ -93,7 +93,7 @@ def _spawn_claude_tg(message: str, sender_name: str) -> str:
 
 
 def _telegram_thread(stop: threading.Event, interval: int) -> None:
-    from life import telegram as tg
+    from life.comms.messages import telegram as tg
 
     allowed = _load_allowed_tg_chats()
     if not allowed:
@@ -143,7 +143,7 @@ def _get_signal_phones() -> list[str]:
 
 
 def _signal_thread(stop: threading.Event, interval: int) -> None:
-    from life.comms import signal as signal_adapter
+    from life.comms.messages import signal as signal_adapter
 
     phones = _get_signal_phones()
     if not phones:

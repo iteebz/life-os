@@ -168,7 +168,7 @@ class InboxItem:
 
 
 def get_unified_inbox(limit: int = 20) -> list[InboxItem]:
-    from life.comms.signal import get_messages as signal_get_messages
+    from life.comms.messages.signal import get_messages as signal_get_messages
 
     items: list[InboxItem] = []
 

@@ -1,7 +1,7 @@
 from fncli import cli
 
-from . import telegram as _telegram
-from .comms import signal as _signal
+from .comms.messages import signal as _signal
+from .comms.messages import telegram as _telegram
 from .core.errors import LifeError, ValidationError
 
 

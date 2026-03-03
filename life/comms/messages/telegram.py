@@ -4,8 +4,8 @@ from typing import Any
 import keyring
 import requests
 
-from .db import get_db
-from .lib.resolve import resolve_people_field
+from life.db import get_db
+from life.lib.resolve import resolve_people_field
 
 SERVICE = "life-cli-telegram"
 TOKEN_KEY = "bot_token"  # noqa: S105
