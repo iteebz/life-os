@@ -21,6 +21,8 @@ __all__ = [
 ]
 
 TAG_ORDER = ["finance", "legal", "janice", "comms", "home", "income"]
+# Tags that act as auxiliary labels — never primary if another tag exists
+AUX_TAGS = {"comms"}
 
 _R = _active.reset
 _GREY = _active.muted
@@ -30,10 +32,13 @@ _GREY = _active.muted
 
 
 def _primary_tag(task: Task) -> str | None:
+    tags = task.tags or []
+    non_aux = [t for t in tags if t not in AUX_TAGS]
+    candidates = non_aux or tags
     for tag in TAG_ORDER:
-        if tag in task.tags:
+        if tag in candidates:
             return tag
-    return sorted(task.tags)[0] if task.tags else None
+    return sorted(candidates)[0] if candidates else None
 
 
 def _fmt_time(t: str) -> str:
