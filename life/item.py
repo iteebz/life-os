@@ -148,7 +148,7 @@ def add(
         scheduled_date=resolved_due,
         tags=tags,
         parent_id=parent_id,
-        description=desc,
+        notes=desc,
         steward=steward,
         source=source,
     )

@@ -11,10 +11,12 @@ CREATE TABLE tasks (
     parent_id TEXT REFERENCES tasks(id) ON DELETE CASCADE,
     scheduled_time TEXT CHECK (scheduled_time IS NULL OR TIME(scheduled_time) IS NOT NULL),
     blocked_by TEXT REFERENCES tasks(id) ON DELETE SET NULL,
-    description TEXT,
+    notes TEXT,
     steward BOOLEAN NOT NULL DEFAULT 0,
     source TEXT CHECK (source IS NULL OR source IN ('tyson', 'steward', 'scheduled')),
     is_deadline INTEGER NOT NULL DEFAULT 0,
+    deleted_at TEXT,
+    cancel_reason TEXT,
     CHECK (length(content) > 0),
     CHECK (scheduled_date IS NULL OR DATE(scheduled_date) IS NOT NULL)
 );
@@ -61,15 +63,6 @@ CREATE TABLE task_mutations (
     reason TEXT
 );
 
-CREATE TABLE deleted_tasks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    task_id TEXT NOT NULL,
-    content TEXT NOT NULL,
-    tags TEXT,
-    deleted_at TEXT NOT NULL DEFAULT (STRFTIME('%Y-%m-%dT%H:%M:%S', 'now')),
-    cancel_reason TEXT,
-    cancelled INTEGER NOT NULL DEFAULT 0
-);
 
 
 
@@ -197,7 +190,7 @@ CREATE UNIQUE INDEX idx_tags_habit_unique ON tags(habit_id, tag) WHERE habit_id 
 CREATE INDEX idx_mutations_task ON task_mutations(task_id);
 CREATE INDEX idx_mutations_field ON task_mutations(field);
 CREATE INDEX idx_mutations_at ON task_mutations(mutated_at);
-CREATE INDEX idx_deleted_tasks_at ON deleted_tasks(deleted_at);
+CREATE INDEX idx_tasks_deleted_at ON tasks(deleted_at) WHERE deleted_at IS NOT NULL;
 CREATE INDEX idx_observations_tag ON observations(tag) WHERE tag IS NOT NULL;
 CREATE INDEX idx_achievements_at ON achievements(achieved_at);
 CREATE INDEX idx_drafts_approved ON drafts(approved_at);

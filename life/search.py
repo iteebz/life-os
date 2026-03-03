@@ -25,7 +25,7 @@ def search_tasks(query: str, limit: int = 20) -> list[SearchResult]:
         rows = conn.execute(
             """
             SELECT t.id, t.content, t.focus, t.scheduled_date, t.created, t.completed_at,
-                   t.parent_id, t.scheduled_time, t.blocked_by, t.description,
+                   t.parent_id, t.scheduled_time, t.blocked_by, t.notes,
                    t.steward, t.source, t.is_deadline,
                    fts.rank
             FROM tasks_fts fts
@@ -105,7 +105,7 @@ def search_by_tag(tag: str, limit: int = 20) -> list[SearchResult]:
         rows = conn.execute(
             """
             SELECT t.id, t.content, t.focus, t.scheduled_date, t.created, t.completed_at,
-                   t.parent_id, t.scheduled_time, t.blocked_by, t.description,
+                   t.parent_id, t.scheduled_time, t.blocked_by, t.notes,
                    t.steward, t.source, t.is_deadline,
                    0.0 as rank
             FROM tasks t

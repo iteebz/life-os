@@ -45,13 +45,16 @@ __all__ = [
 
 # ── domain ───────────────────────────────────────────────────────────────────
 
-_TASK_COLS = "id, content, focus, scheduled_date, created, completed_at, parent_id, scheduled_time, blocked_by, description, steward, source, is_deadline"
+_TASK_COLS = "id, content, focus, scheduled_date, created, completed_at, parent_id, scheduled_time, blocked_by, notes, steward, source, is_deadline"
 
 
 def _fetch_tasks(
     conn: sqlite3.Connection, where: str, params: tuple[object, ...] = ()
 ) -> list[Task]:
-    cursor = conn.execute(f"SELECT {_TASK_COLS} FROM tasks WHERE {where}", params)  # noqa: S608
+    cursor = conn.execute(
+        f"SELECT {_TASK_COLS} FROM tasks WHERE deleted_at IS NULL AND ({where})",  # noqa: S608
+        params,
+    )
     tasks = [row_to_task(row) for row in cursor.fetchall()]
     task_ids = [t.id for t in tasks]
     tags_map = load_tags_for_tasks(task_ids, conn=conn)
@@ -98,7 +101,7 @@ def add_task(
     scheduled_date: str | None = None,
     tags: list[str] | None = None,
     parent_id: str | None = None,
-    description: str | None = None,
+    notes: str | None = None,
     steward: bool = False,
     source: str | None = None,
 ) -> str:
@@ -106,7 +109,7 @@ def add_task(
     with db.get_db() as conn:
         try:
             conn.execute(
-                "INSERT INTO tasks (id, content, focus, scheduled_date, created, parent_id, description, steward, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO tasks (id, content, focus, scheduled_date, created, parent_id, notes, steward, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     task_id,
                     content,
@@ -114,7 +117,7 @@ def add_task(
                     scheduled_date,
                     clock.today().isoformat(),
                     parent_id,
-                    description,
+                    notes,
                     steward,
                     source,
                 ),
@@ -133,7 +136,7 @@ def add_task(
 def get_task(task_id: str) -> Task | None:
     with db.get_db() as conn:
         cursor = conn.execute(
-            f"SELECT {_TASK_COLS} FROM tasks WHERE id = ?",  # noqa: S608
+            f"SELECT {_TASK_COLS} FROM tasks WHERE id = ? AND deleted_at IS NULL",  # noqa: S608
             (task_id,),
         )
         row = cursor.fetchone()
@@ -146,6 +149,7 @@ def get_task(task_id: str) -> Task | None:
 
 def get_tasks(include_steward: bool = False) -> list[Task]:
     where = "completed_at IS NULL" if include_steward else "completed_at IS NULL AND steward = 0"
+    # deleted_at filter applied in _fetch_tasks
     with db.get_db() as conn:
         tasks = _fetch_tasks(conn, where)
     return sorted(tasks, key=_task_sort_key)
@@ -200,7 +204,7 @@ def update_task(
     scheduled_time: str | None | Unset = UNSET,
     is_deadline: bool | Unset = UNSET,
     parent_id: str | None | Unset = UNSET,
-    description: str | None | Unset = UNSET,
+    notes: str | None | Unset = UNSET,
 ) -> Task | None:
     updates = {}
     if content is not None:
@@ -215,8 +219,8 @@ def update_task(
         updates["is_deadline"] = is_deadline
     if parent_id is not UNSET:
         updates["parent_id"] = parent_id
-    if description is not UNSET:
-        updates["description"] = description
+    if notes is not UNSET:
+        updates["notes"] = notes
 
     if updates:
         old = get_task(task_id)
@@ -273,23 +277,18 @@ def defer_task(task_id: str, reason: str) -> Task | None:
 
 def delete_task(task_id: str, cancel_reason: str | None = None, hard: bool = False) -> None:
     with db.get_db() as conn:
-        row = conn.execute("SELECT id, content FROM tasks WHERE id = ?", (task_id,)).fetchone()
-        if row and not hard:
-            tag_rows = conn.execute("SELECT tag FROM tags WHERE task_id = ?", (task_id,)).fetchall()
-            tags_str = ",".join(r[0] for r in tag_rows) if tag_rows else None
-            if cancel_reason:
-                conn.execute(
-                    "INSERT INTO deleted_tasks (task_id, content, tags, cancel_reason, cancelled) VALUES (?, ?, ?, ?, 1)",
-                    (row[0], row[1], tags_str, cancel_reason),
-                )
-            else:
-                conn.execute(
-                    "INSERT INTO deleted_tasks (task_id, content, tags) VALUES (?, ?, ?)",
-                    (row[0], row[1], tags_str),
-                )
-        conn.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
         if hard:
-            conn.execute("DELETE FROM deleted_tasks WHERE task_id = ?", (task_id,))
+            conn.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+        elif cancel_reason:
+            conn.execute(
+                "UPDATE tasks SET deleted_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now'), cancel_reason = ? WHERE id = ?",
+                (cancel_reason, task_id),
+            )
+        else:
+            conn.execute(
+                "UPDATE tasks SET deleted_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now') WHERE id = ?",
+                (task_id,),
+            )
 
 
 def cancel_task(task_id: str, reason: str) -> None:
@@ -519,9 +518,9 @@ def set_cmd(
     ref: list[str],
     parent: str | None = None,
     content: str | None = None,
-    desc: str | None = None,
+    notes: str | None = None,
 ) -> None:
-    """Set parent, content, or description on task"""
+    """Set parent, content, or notes on task"""
     from .lib.resolve import resolve_task
 
     item_ref = " ".join(ref) if ref else ""
@@ -544,19 +543,17 @@ def set_cmd(
         if not content.strip():
             raise ValidationError("content cannot be empty")
         has_update = True
-    description: str | None = None
-    if desc is not None:
-        description = desc if desc != "" else None
+    task_notes: str | None = None
+    if notes is not None:
+        task_notes = notes if notes != "" else None
         has_update = True
     if not has_update:
-        raise UsageError(
-            "Nothing to set. Use -p for parent, -c for content, or -d for description."
-        )
+        raise UsageError("Nothing to set. Use -p for parent, -c for content, or --notes for notes.")
     update_task(
         t.id,
         content=content,
         parent_id=parent_id if parent is not None else UNSET,
-        description=description if desc is not None else UNSET,
+        notes=task_notes if notes is not None else UNSET,
     )
     updated = resolve_task(content or item_ref)
     prefix = "  \u2514 " if updated.parent_id else ""
@@ -587,7 +584,7 @@ def show(ref: list[str], json: bool = False) -> None:
                     "focus": t.focus,
                     "parent_id": t.parent_id,
                     "blocked_by": t.blocked_by,
-                    "description": t.description,
+                    "notes": t.notes,
                 }
             )
         )

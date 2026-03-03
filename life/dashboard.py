@@ -87,7 +87,7 @@ def get_day_breakdown(date_str: str) -> tuple[int, int, int, int]:
         ).fetchone()[0]
 
         tasks_deleted = conn.execute(
-            "SELECT COUNT(*) FROM deleted_tasks WHERE DATE(deleted_at) = DATE(?)",
+            "SELECT COUNT(*) FROM tasks WHERE DATE(deleted_at) = DATE(?)",
             (date_str,),
         ).fetchone()[0]
 

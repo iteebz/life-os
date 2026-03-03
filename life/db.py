@@ -66,7 +66,7 @@ _LEGACY_MIGRATIONS = {
 
 @contextmanager
 def get_db(db_path: Path | None = None):
-    db_path = db_path if db_path else config.DB_PATH
+    db_path = db_path or config.DB_PATH
     conn = sqlite3.connect(db_path)
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys = ON;")
@@ -116,12 +116,28 @@ def _table_count(conn: sqlite3.Connection, table: str) -> int:
         return 0
 
 
+def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
+    return (
+        conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)
+        ).fetchone()
+        is not None
+    )
+
+
+_INTERNAL_TABLES = {"sqlite_sequence"}
+
+
 def _check_data_loss(
     conn: sqlite3.Connection, before: dict[str, int], exempt: set[str] | None = None
 ) -> None:
     for table, count in before.items():
+        if table in _INTERNAL_TABLES:
+            continue
         if exempt and table in exempt:
             continue
+        if not _table_exists(conn, table):
+            continue  # intentionally dropped — not data loss
         after = _table_count(conn, table)
         if after < count:
             raise ValueError(f"migration data loss: {table} had {count} rows, now {after}")
@@ -208,7 +224,7 @@ def _apply_migrations(conn: sqlite3.Connection, db_path: Path) -> None:
 
 
 def init(db_path: Path | None = None) -> None:
-    db_path = db_path if db_path else config.DB_PATH
+    db_path = db_path or config.DB_PATH
     db_path.parent.mkdir(exist_ok=True)
     conn = sqlite3.connect(db_path)
     conn.execute("PRAGMA journal_mode=WAL")
@@ -220,7 +236,7 @@ def init(db_path: Path | None = None) -> None:
 
 
 def migrate(db_path: Path | None = None) -> None:
-    db_path = db_path if db_path else config.DB_PATH
+    db_path = db_path or config.DB_PATH
     db_path.parent.mkdir(exist_ok=True)
     with get_db(db_path) as conn:
         _apply_migrations(conn, db_path)

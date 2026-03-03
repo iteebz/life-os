@@ -567,8 +567,8 @@ def _block_task(
         if task.scheduled_time:
             date_str += f" {_fmt_time(task.scheduled_time)}"
         lines.append(f"{indent}  {red(label) if task.is_deadline else label}: {date_str}")
-    if task.description:
-        lines.append(f"{indent}  {task.description}")
+    if task.notes:
+        lines.append(f"{indent}  {task.notes}")
     if task.blocked_by:
         lines.append(f"{indent}  blocked by: {task.blocked_by[:8]}")
 

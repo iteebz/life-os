@@ -14,7 +14,7 @@ class Task:
     scheduled_time: str | None = None
     blocked_by: str | None = None
     is_deadline: bool = False
-    description: str | None = None
+    notes: str | None = None
     steward: bool = False
     source: str | None = None
     tags: list[str] = dataclasses.field(default_factory=list, hash=False)

@@ -198,7 +198,7 @@ def ls(tag: str | None = None, overdue: bool = False, json: bool = False) -> Non
                         "focus": t.focus,
                         "parent_id": t.parent_id,
                         "blocked_by": t.blocked_by,
-                        "description": t.description,
+                        "notes": t.notes,
                     }
                     for t in tasks
                 ]
