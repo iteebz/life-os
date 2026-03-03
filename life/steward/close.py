@@ -4,7 +4,8 @@ from fncli import cli
 
 from ..core.errors import NotFoundError
 from ..lib import ansi
-from . import _rel, add_observation, add_session, delete_observation, get_observations
+from ..lib.format import format_elapsed
+from . import add_observation, add_session, delete_observation, get_observations
 
 
 @cli("steward")
@@ -28,7 +29,7 @@ def observe(
             return
         now = datetime.now()
         for o in observations:
-            rel = _rel((now - o.logged_at).total_seconds())
+            rel = format_elapsed(o.logged_at, now)
             tag_str = f" #{o.tag}" if o.tag else ""
             print(f"  {ansi.muted('[' + o.uuid[:8] + ']')}  {rel:<10}  {o.body}{tag_str}")
         return

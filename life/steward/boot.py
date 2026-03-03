@@ -6,7 +6,8 @@ from pathlib import Path
 from fncli import cli
 
 from ..db import init
-from . import _rel, get_observations, get_sessions
+from ..lib.format import format_elapsed
+from . import get_observations, get_sessions
 
 STEWARD_BIRTHDAY = datetime(2026, 2, 18)
 
@@ -44,8 +45,7 @@ def boot():
     if sessions:
         s = sessions[0]
         now = datetime.now()
-        secs = (now - s.logged_at).total_seconds()
-        rel = _rel(secs)
+        rel = format_elapsed(s.logged_at, now)
         print(f"\nLAST SESSION ({rel}): {s.summary}")
 
     now = datetime.now()
@@ -88,7 +88,7 @@ def boot():
                 else:
                     rel = f"in {days_until}d"
             else:
-                rel = _rel((now - o.logged_at).total_seconds())
+                rel = format_elapsed(o.logged_at, now)
             tag_str = f" #{o.tag}" if o.tag else ""
             print(f"  {rel:<10}  {o.body}{tag_str}")
 
@@ -112,8 +112,7 @@ def boot():
     recent_moods = get_recent_moods(hours=24)
     if recent_moods:
         latest = recent_moods[0]
-        secs = (datetime.now() - latest.logged_at).total_seconds()
-        rel = _rel(secs)
+        rel = format_elapsed(latest.logged_at, datetime.now())
         bar = "█" * latest.score + "░" * (5 - latest.score)
         label_str = f"  {latest.label}" if latest.label else ""
         print(f"\nMOOD ({rel}): {bar}  {latest.score}/5{label_str}")

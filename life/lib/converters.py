@@ -55,13 +55,13 @@ def row_to_task(row: TaskRow) -> Task:
         scheduled_date=_parse_date(row[3]),
         created=_parse_datetime(row[4]),
         completed_at=_parse_datetime_optional(row[5]),
-        parent_id=cast(str, row[6]) if len(row) > 6 and row[6] is not None else None,
-        scheduled_time=cast(str, row[7]) if len(row) > 7 and row[7] is not None else None,
-        blocked_by=cast(str, row[8]) if len(row) > 8 and row[8] is not None else None,
-        notes=cast(str, row[9]) if len(row) > 9 and row[9] is not None else None,
-        steward=bool(row[10]) if len(row) > 10 and row[10] is not None else False,
-        source=cast(str, row[11]) if len(row) > 11 and row[11] is not None else None,
-        is_deadline=bool(row[12]) if len(row) > 12 and row[12] is not None else False,
+        parent_id=cast(str, row[6]) if row[6] is not None else None,
+        scheduled_time=cast(str, row[7]) if row[7] is not None else None,
+        blocked_by=cast(str, row[8]) if row[8] is not None else None,
+        notes=cast(str, row[9]) if row[9] is not None else None,
+        steward=bool(row[10]) if row[10] is not None else False,
+        source=cast(str, row[11]) if row[11] is not None else None,
+        is_deadline=bool(row[12]) if row[12] is not None else False,
     )
 
 
@@ -74,9 +74,9 @@ def row_to_habit(row: HabitRow) -> Habit:
         id=cast(str, row[0]),
         content=cast(str, row[1]),
         created=_parse_datetime(row[2]),
-        archived_at=_parse_datetime_optional(row[3]) if len(row) > 3 else None,
-        parent_id=cast(str, row[4]) if len(row) > 4 and row[4] is not None else None,
-        private=bool(row[5]) if len(row) > 5 and row[5] is not None else False,
+        archived_at=_parse_datetime_optional(row[3]),
+        parent_id=cast(str, row[4]) if row[4] is not None else None,
+        private=bool(row[5]) if row[5] is not None else False,
     )
 
 

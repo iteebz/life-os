@@ -55,7 +55,7 @@ def link(provider: str, client_id: str | None = None, client_secret: str | None 
         print("linked outlook")
 
     elif provider == "signal":
-        from . import signal as signal_module
+        from .comms.adapters.messaging import signal as signal_module
 
         print("linking Signal as secondary device...")
         print("open Signal → Settings → Linked Devices → Link New Device, then scan the QR code")

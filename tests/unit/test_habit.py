@@ -1,4 +1,4 @@
-from life.habits import (
+from life.habit import (
     add_habit,
     get_checks,
     get_habits,

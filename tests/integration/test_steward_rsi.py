@@ -1,4 +1,4 @@
-from life.tasks import add_task
+from life.task import add_task
 from tests.conftest import FnCLIRunner
 
 runner = FnCLIRunner()

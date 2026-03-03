@@ -4,7 +4,7 @@ from fncli import cli
 
 from ..core.errors import NotFoundError
 from ..lib import ansi
-from . import _rel
+from ..lib.format import format_elapsed
 
 
 @cli("steward", flags={"body": []})
@@ -35,7 +35,7 @@ def improve(
             return
         now = datetime.now()
         for i in improvements:
-            rel = _rel((now - i.logged_at).total_seconds())
+            rel = format_elapsed(i.logged_at, now)
             print(f"  {ansi.muted('[' + i.uuid[:8] + ']')}  {rel:<10}  {i.body}")
         return
 

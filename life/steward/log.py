@@ -2,7 +2,8 @@ from datetime import UTC, datetime
 
 from fncli import cli
 
-from . import _rel, get_sessions
+from ..lib.format import format_elapsed
+from . import get_sessions
 
 
 @cli("steward")
@@ -16,5 +17,5 @@ def log(
         return
     now = datetime.now(UTC).replace(tzinfo=None)
     for s in sessions:
-        rel = _rel((now - s.logged_at).total_seconds())
+        rel = format_elapsed(s.logged_at, now)
         print(f"{rel:<10}  {s.summary}")

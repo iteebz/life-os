@@ -66,25 +66,3 @@ def get_profile() -> str:
 def set_profile(profile: str) -> None:
     """Set current profile"""
     _config.set("profile", profile)
-
-
-def get_dates() -> list[dict[str, str]]:
-    """Get list of dates from config."""
-    val = _config.get("dates")
-    return val if isinstance(val, list) else []
-
-
-def add_date(name: str, date: str, emoji: str = "📌") -> None:
-    """Add a date to config."""
-    val = _config.get("dates")
-    dates: list[dict[str, str]] = val if isinstance(val, list) else []
-    dates.append({"name": name, "date": date, "emoji": emoji})
-    _config.set("dates", dates)
-
-
-def remove_date(name: str) -> None:
-    """Remove a date from config."""
-    val = _config.get("dates")
-    dates: list[dict[str, str]] = val if isinstance(val, list) else []
-    filtered = [d for d in dates if d.get("name") != name]
-    _config.set("dates", filtered)

@@ -47,7 +47,7 @@ def compose_email_draft(
 
 def _extract_email(addr: str) -> str:
     if "<" in addr and ">" in addr:
-        return addr.split("<")[1].split(">")[0].strip()
+        return addr.split("<")[1].split(">", maxsplit=1)[0].strip()
     return addr.strip()
 
 
@@ -168,7 +168,7 @@ class InboxItem:
 
 
 def get_unified_inbox(limit: int = 20) -> list[InboxItem]:
-    from life.signal import get_messages as signal_get_messages
+    from life.comms.adapters.messaging.signal import get_messages as signal_get_messages
 
     items: list[InboxItem] = []
 

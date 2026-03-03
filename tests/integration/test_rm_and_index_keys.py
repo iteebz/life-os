@@ -1,5 +1,5 @@
-from life.habits import add_habit
-from life.tasks import add_task
+from life.habit import add_habit
+from life.task import add_task
 from tests.conftest import FnCLIRunner
 
 

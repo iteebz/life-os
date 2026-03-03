@@ -2,7 +2,8 @@ from datetime import datetime
 
 from fncli import cli
 
-from . import _rel, get_observations, get_sessions
+from ..lib.format import format_elapsed
+from . import get_observations, get_sessions
 
 
 @cli("steward")
@@ -23,7 +24,7 @@ def dash():
         print("\nRECENT OBSERVATIONS:")
         now = datetime.now()
         for o in observations:
-            rel = _rel((now - o.logged_at).total_seconds())
+            rel = format_elapsed(o.logged_at, now)
             tag_str = f" #{o.tag}" if o.tag else ""
             print(f"  {rel:<10}  {o.body}{tag_str}")
 
@@ -32,5 +33,5 @@ def dash():
         print("\nRECENT SESSIONS:")
         now_dt = datetime.now()
         for s in sessions:
-            rel = _rel((now_dt - s.logged_at).total_seconds())
+            rel = format_elapsed(s.logged_at, now_dt)
             print(f"  {rel:<10}  {s.summary[:90]}")

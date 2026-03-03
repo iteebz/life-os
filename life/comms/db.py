@@ -14,7 +14,7 @@ def now_iso() -> str:
 
 @contextmanager
 def get_db(db_path: Path | None = None):
-    db_path = db_path if db_path else config.DB_PATH
+    db_path = db_path or config.DB_PATH
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON;")
@@ -52,7 +52,7 @@ def _sqlite_backup(src: Path, dst: Path) -> None:
 
 
 def backup_db(db_path: Path | None = None) -> Path | None:
-    db_path = db_path if db_path else config.DB_PATH
+    db_path = db_path or config.DB_PATH
 
     if not db_path.exists():
         return None
@@ -71,7 +71,7 @@ def backup_db(db_path: Path | None = None) -> Path | None:
 
 
 def init(db_path: Path | None = None):
-    db_path = db_path if db_path else config.DB_PATH
+    db_path = db_path or config.DB_PATH
 
     if db_path.exists() and db_path.stat().st_size > 0:
         backup_db(db_path)

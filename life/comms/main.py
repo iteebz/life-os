@@ -1,9 +1,9 @@
 import sys
 
 import life.accounts as _accounts
+import life.comms.adapters.messaging.signal as _signal
 import life.email as _email
 import life.messaging as _messaging
-import life.signal as _signal
 
 _ = (_accounts, _email, _messaging, _signal)
 

@@ -1,10 +1,9 @@
-from life.tasks import (
+from life.task import (
     add_task,
+    check_task,
     delete_task,
-    get_focus,
     get_task,
     get_tasks,
-    toggle_completed,
     update_task,
 )
 
@@ -45,15 +44,15 @@ def test_pending_tasks_sort_order(tmp_life_dir):
 
 def test_complete_task(tmp_life_dir):
     task_id = add_task("task to complete")
-    toggle_completed(task_id)
+    check_task(task_id)
     pending = get_tasks()
-    assert not any(t.id == task_id for t in pending if t.completed is None)
+    assert not any(t.id == task_id for t in pending)
 
 
 def test_get_focus_tasks(tmp_life_dir):
     task_id = add_task("focused", focus=True)
     add_task("unfocused", focus=False)
-    focus_tasks = get_focus()
+    focus_tasks = [t for t in get_tasks() if t.focus]
     assert len(focus_tasks) == 1
     assert focus_tasks[0].id == task_id
 

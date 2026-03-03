@@ -102,20 +102,11 @@ def get_sessions(limit: int = 10) -> list[StewardSession]:
         ]
 
 
-def _rel(secs: float) -> str:
-    if secs < 3600:
-        return f"{int(secs // 60)}m ago"
-    if secs < 86400:
-        return f"{int(secs // 3600)}h ago"
-    return f"{int(secs // 86400)}d ago"
-
-
 from . import auto, boot, close, dash, improve, log  # noqa: E402
 
 __all__ = [
     "Observation",
     "StewardSession",
-    "_rel",
     "add_observation",
     "add_session",
     "auto",
