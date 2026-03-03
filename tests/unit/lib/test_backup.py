@@ -75,8 +75,9 @@ def test_backup_validates_row_counts(tmp_life_dir):
 
 
 def test_validate_backup_catches_empty(tmp_life_dir):
-    from life import config
     from life.tasks import add_task
+
+    from life import config
 
     add_task("data")
     empty = tmp_life_dir / "empty.db"
@@ -88,8 +89,9 @@ def test_validate_backup_catches_empty(tmp_life_dir):
 
 
 def test_validate_backup_catches_massive_loss(tmp_life_dir):
-    from life import config
     from life.tasks import add_task
+
+    from life import config
 
     for i in range(10):
         add_task(f"task {i}")
