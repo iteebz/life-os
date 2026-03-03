@@ -143,7 +143,7 @@ def _get_signal_phones() -> list[str]:
 
 
 def _signal_thread(stop: threading.Event, interval: int) -> None:
-    from life.comms.adapters.messaging import signal as signal_adapter
+    from life.comms import signal as signal_adapter
 
     phones = _get_signal_phones()
     if not phones:

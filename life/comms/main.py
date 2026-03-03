@@ -1,7 +1,7 @@
 import sys
 
 import life.accounts as _accounts
-import life.comms.adapters.messaging.signal as _signal
+import life.comms.signal as _signal
 import life.email as _email
 import life.messaging as _messaging
 

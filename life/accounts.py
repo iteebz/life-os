@@ -29,7 +29,7 @@ def link(provider: str, client_id: str | None = None, client_secret: str | None 
     from .comms import accounts as accts_module
 
     if provider == "gmail":
-        from .comms.adapters.email import gmail
+        from .comms.email import gmail
 
         try:
             email_addr = gmail.init_oauth()
@@ -43,7 +43,7 @@ def link(provider: str, client_id: str | None = None, client_secret: str | None 
         print(f"linked gmail: {email_addr}")
 
     elif provider == "outlook":
-        from .comms.adapters.email import outlook
+        from .comms.email import outlook
 
         if not client_id or not client_secret:
             raise ValidationError("outlook requires --client-id and --client-secret")
@@ -55,7 +55,7 @@ def link(provider: str, client_id: str | None = None, client_secret: str | None 
         print("linked outlook")
 
     elif provider == "signal":
-        from .comms.adapters.messaging import signal as signal_module
+        from .comms import signal as signal_module
 
         print("linking Signal as secondary device...")
         print("open Signal → Settings → Linked Devices → Link New Device, then scan the QR code")
