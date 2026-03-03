@@ -141,32 +141,26 @@ def load_tags_for_habits(
     return _load_tags_by_column("habit_id", habit_ids, conn)
 
 
-@cli("life tag", name="add")
-def tag_add(ref: str, tag_name: str) -> None:
-    """Add tag to item"""
+@cli("life", name="tag", flags={"remove": ["-r"]})
+def tag_cmd(ref: str, tag_name: str, remove: bool = False) -> None:
+    """Add or remove a tag from an item (-r to remove)"""
     from .lib.resolve import resolve_item_exact
 
     task, habit = resolve_item_exact(ref)
     if task:
-        add_tag(task.id, None, tag_name)
-        print(f"{task.content} {ansi.muted('#' + tag_name)}")
+        if remove:
+            remove_tag(task.id, None, tag_name)
+            print(f"{task.content} ← {ansi.muted('#' + tag_name)}")
+        else:
+            add_tag(task.id, None, tag_name)
+            print(f"{task.content} {ansi.muted('#' + tag_name)}")
     elif habit:
-        add_tag(None, habit.id, tag_name)
-        print(f"{habit.content} {ansi.muted('#' + tag_name)}")
-
-
-@cli("life tag", name="rm")
-def tag_rm(ref: str, tag_name: str) -> None:
-    """Remove tag from item"""
-    from .lib.resolve import resolve_item_exact
-
-    task, habit = resolve_item_exact(ref)
-    if task:
-        remove_tag(task.id, None, tag_name)
-        print(f"{task.content} \u2190 {ansi.muted('#' + tag_name)}")
-    elif habit:
-        remove_tag(None, habit.id, tag_name)
-        print(f"{habit.content} \u2190 {ansi.muted('#' + tag_name)}")
+        if remove:
+            remove_tag(None, habit.id, tag_name)
+            print(f"{habit.content} ← {ansi.muted('#' + tag_name)}")
+        else:
+            add_tag(None, habit.id, tag_name)
+            print(f"{habit.content} {ansi.muted('#' + tag_name)}")
 
 
 def hydrate_tags[T: (Task, Habit)](items: list[T], tag_map: dict[str, list[str]]) -> list[T]:
