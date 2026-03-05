@@ -18,7 +18,7 @@ class MoodEntry:
 def add_mood(score: int, label: str | None = None) -> int:
     with get_db() as conn:
         cursor = conn.execute(
-            "INSERT INTO mood_log (score, label) VALUES (?, ?)",
+            "INSERT INTO moods (score, label) VALUES (?, ?)",
             (score, label),
         )
         return cursor.lastrowid or 0
@@ -28,7 +28,7 @@ def get_recent_moods(hours: int = 24) -> list[MoodEntry]:
     cutoff = datetime.now(UTC) - timedelta(hours=hours)
     with get_db() as conn:
         rows = conn.execute(
-            "SELECT id, score, label, logged_at FROM mood_log "
+            "SELECT id, score, label, logged_at FROM moods "
             "WHERE logged_at > ? ORDER BY logged_at DESC",
             (cutoff.isoformat(),),
         ).fetchall()
@@ -41,7 +41,7 @@ def get_recent_moods(hours: int = 24) -> list[MoodEntry]:
 def get_latest_mood() -> MoodEntry | None:
     with get_db() as conn:
         row = conn.execute(
-            "SELECT id, score, label, logged_at FROM mood_log ORDER BY logged_at DESC LIMIT 1"
+            "SELECT id, score, label, logged_at FROM moods ORDER BY logged_at DESC LIMIT 1"
         ).fetchone()
     if not row:
         return None
@@ -53,7 +53,7 @@ def get_latest_mood() -> MoodEntry | None:
 def delete_latest_mood(within_seconds: int = 3600) -> MoodEntry | None:
     with get_db() as conn:
         row = conn.execute(
-            "SELECT id, score, label, logged_at FROM mood_log ORDER BY logged_at DESC LIMIT 1"
+            "SELECT id, score, label, logged_at FROM moods ORDER BY logged_at DESC LIMIT 1"
         ).fetchone()
         if not row:
             return None
@@ -64,7 +64,7 @@ def delete_latest_mood(within_seconds: int = 3600) -> MoodEntry | None:
         age = (datetime.now(UTC) - entry.logged_at).total_seconds()
         if age > within_seconds:
             raise ValueError(f"latest entry is {int(age // 60)}m old — too old to remove")
-        conn.execute("DELETE FROM mood_log WHERE id = ?", (row[0],))
+        conn.execute("DELETE FROM moods WHERE id = ?", (row[0],))
     return entry
 
 

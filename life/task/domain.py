@@ -197,7 +197,7 @@ def _record_mutation(conn: sqlite3.Connection, task_id: str, field: str, old_val
     if old_str == new_str:
         return
     conn.execute(
-        "INSERT INTO task_mutations (task_id, field, old_value, new_value) VALUES (?, ?, ?, ?)",
+        "INSERT INTO mutations (task_id, field, old_value, new_value) VALUES (?, ?, ?, ?)",
         (task_id, field, old_str, new_str),
     )
 
@@ -259,7 +259,7 @@ def get_mutations(task_id: str) -> list[TaskMutation]:
     with get_db() as conn:
         rows = conn.execute(
             "SELECT id, task_id, field, old_value, new_value, "
-            "mutated_at, reason FROM task_mutations "
+            "mutated_at, reason FROM mutations "
             "WHERE task_id = ? ORDER BY mutated_at DESC",
             (task_id,),
         ).fetchall()
@@ -284,7 +284,7 @@ def defer_task(task_id: str, reason: str) -> Task | None:
         return None
     with get_db() as conn:
         conn.execute(
-            "INSERT INTO task_mutations "
+            "INSERT INTO mutations "
             "(task_id, field, old_value, new_value, reason) "
             "VALUES (?, 'defer', NULL, NULL, ?)",
             (task_id, reason),

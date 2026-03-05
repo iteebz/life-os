@@ -37,7 +37,7 @@ def resolve_prefix[T: _HasUUID](prefix: str, pool: Sequence[T]) -> T | None:
 
 def add_session(summary: str) -> int:
     with get_db() as conn:
-        cursor = conn.execute("INSERT INTO steward_sessions (summary) VALUES (?)", (summary,))
+        cursor = conn.execute("INSERT INTO sessions (summary) VALUES (?)", (summary,))
         return cursor.lastrowid or 0
 
 
@@ -101,7 +101,7 @@ def delete_observation(prefix: str, hard: bool = False) -> bool:
 def get_sessions(limit: int = 10) -> list[StewardSession]:
     with get_db() as conn:
         rows = conn.execute(
-            "SELECT id, summary, logged_at FROM steward_sessions ORDER BY logged_at DESC LIMIT ?",
+            "SELECT id, summary, logged_at FROM sessions ORDER BY logged_at DESC LIMIT ?",
             (limit,),
         ).fetchall()
         return [

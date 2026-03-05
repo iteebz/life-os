@@ -54,7 +54,7 @@ CREATE TABLE tags (
     UNIQUE(task_id, habit_id, tag)
 );
 
-CREATE TABLE task_mutations (
+CREATE TABLE mutations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
     field TEXT NOT NULL,
@@ -67,7 +67,7 @@ CREATE TABLE task_mutations (
 
 
 
-CREATE TABLE steward_sessions (
+CREATE TABLE sessions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     summary TEXT NOT NULL,
     logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -81,7 +81,7 @@ CREATE TABLE observations (
     about_date DATE
 );
 
-CREATE TABLE mood_log (
+CREATE TABLE moods (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     score INTEGER NOT NULL CHECK (score BETWEEN 1 AND 5),
     label TEXT,
@@ -197,9 +197,9 @@ CREATE INDEX idx_tags_habit ON tags(habit_id);
 CREATE INDEX idx_tags_name ON tags(tag);
 CREATE UNIQUE INDEX idx_tags_task_unique ON tags(task_id, tag) WHERE task_id IS NOT NULL;
 CREATE UNIQUE INDEX idx_tags_habit_unique ON tags(habit_id, tag) WHERE habit_id IS NOT NULL;
-CREATE INDEX idx_mutations_task ON task_mutations(task_id);
-CREATE INDEX idx_mutations_field ON task_mutations(field);
-CREATE INDEX idx_mutations_at ON task_mutations(mutated_at);
+CREATE INDEX idx_mutations_task ON mutations(task_id);
+CREATE INDEX idx_mutations_field ON mutations(field);
+CREATE INDEX idx_mutations_at ON mutations(mutated_at);
 CREATE INDEX idx_tasks_deleted_at ON tasks(deleted_at) WHERE deleted_at IS NOT NULL;
 CREATE INDEX idx_observations_tag ON observations(tag) WHERE tag IS NOT NULL;
 CREATE INDEX idx_achievements_at ON achievements(achieved_at);

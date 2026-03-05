@@ -8,7 +8,6 @@ import pytest
 
 from life import db
 from life.core.models import Habit, Task, TaskMutation
-from life.db import load_migrations
 from life.lib.store import get_db
 
 
@@ -20,7 +19,7 @@ def test_init_creates_schema(tmp_life_dir):
         table_names = {t[0] for t in tables}
         assert "tasks" in table_names
         assert "habits" in table_names
-        assert "checks" in table_names
+        assert "habit_checks" in table_names
         assert "tags" in table_names
 
 
@@ -76,23 +75,16 @@ def test_db_init(tmp_life_dir):
 
 _MODEL_TABLE_MAP: dict[type, tuple[str, set[str], set[str]]] = {
     Task: ("tasks", {"tags"}, set()),
-    Habit: ("habits", {"tags", "checks"}, set()),
-    TaskMutation: ("task_mutations", set(), set()),
+    Habit: ("habits", {"tags", "habit_checks"}, set()),
+    TaskMutation: ("mutations", set(), set()),
 }
 
 
 def test_models_match_schema():
+    schema_sql = (Path(__file__).parent.parent.parent / "life" / "schema.sql").read_text()
     conn = sqlite3.connect(":memory:")
     conn.execute("PRAGMA foreign_keys = ON;")
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS _migrations "
-        "(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
-    )
-    for _name, migration in load_migrations():
-        if callable(migration):
-            migration(conn)
-        else:
-            conn.executescript(migration)
+    conn.executescript(schema_sql)
 
     for model_cls, (table, model_excludes, db_excludes) in _MODEL_TABLE_MAP.items():
         db_cols = {
@@ -112,16 +104,10 @@ def test_models_match_schema():
 
 
 def test_no_phantom_table_references():
+    schema_sql = (Path(__file__).parent.parent.parent / "life" / "schema.sql").read_text()
     conn = sqlite3.connect(":memory:")
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS _migrations "
-        "(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
-    )
-    for _name, migration in load_migrations():
-        if callable(migration):
-            migration(conn)
-        else:
-            conn.executescript(migration)
+    conn.execute("PRAGMA foreign_keys = ON;")
+    conn.executescript(schema_sql)
 
     tables_in_schema = {
         r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()

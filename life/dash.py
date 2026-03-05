@@ -235,7 +235,7 @@ def _show_day(target: date) -> None:
     mood = None
     with get_db() as conn:
         row = conn.execute(
-            "SELECT score, label FROM mood_log "
+            "SELECT score, label FROM moods "
             "WHERE DATE(logged_at) = DATE(?) "
             "ORDER BY logged_at DESC LIMIT 1",
             (date_str,),

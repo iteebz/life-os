@@ -157,6 +157,8 @@ def _apply_migrations(conn: sqlite3.Connection, db_path: Path) -> None:
         conn.executescript(_schema_sql())
         for name in _LEGACY_MIGRATIONS:
             conn.execute(f"INSERT OR IGNORE INTO {MIGRATIONS_TABLE} (name) VALUES (?)", (name,))  # noqa: S608
+        for name, _ in load_migrations():
+            conn.execute(f"INSERT OR IGNORE INTO {MIGRATIONS_TABLE} (name) VALUES (?)", (name,))  # noqa: S608
         conn.commit()
         return
 
