@@ -75,10 +75,12 @@ CREATE TABLE sessions (
 
 CREATE TABLE observations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    uuid TEXT,
     body TEXT NOT NULL,
     logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     tag TEXT,
-    about_date DATE
+    about_date DATE,
+    deleted_at TIMESTAMP
 );
 
 CREATE TABLE moods (
@@ -99,13 +101,16 @@ CREATE TABLE special_dates (
 
 CREATE TABLE improvements (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    uuid TEXT,
     body TEXT NOT NULL,
     logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    done_at TIMESTAMP
+    done_at TIMESTAMP,
+    deleted_at TIMESTAMP
 );
 
 CREATE TABLE achievements (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    uuid TEXT,
     name TEXT NOT NULL,
     description TEXT,
     tags TEXT,
@@ -149,7 +154,7 @@ CREATE TABLE drafts (
     from_addr TEXT
 );
 
-CREATE TABLE sender_stats (
+CREATE TABLE senders (
     id TEXT PRIMARY KEY,
     sender TEXT NOT NULL UNIQUE,
     received_count INTEGER DEFAULT 0,

@@ -41,13 +41,11 @@ def record_received(sender: str) -> None:
     now = datetime.now().isoformat()
 
     with get_db() as conn:
-        existing = conn.execute(
-            "SELECT id FROM sender_stats WHERE id = ?", (sender_hash,)
-        ).fetchone()
+        existing = conn.execute("SELECT id FROM senders WHERE id = ?", (sender_hash,)).fetchone()
 
         if existing:
             conn.execute(
-                """UPDATE sender_stats
+                """UPDATE senders
                 SET received_count = received_count + 1,
                     last_received_at = ?,
                     updated_at = ?
@@ -56,7 +54,7 @@ def record_received(sender: str) -> None:
             )
         else:
             conn.execute(
-                """INSERT INTO sender_stats
+                """INSERT INTO senders
                 (id, sender, received_count, last_received_at, updated_at)
                 VALUES (?, ?, 1, ?, ?)""",
                 (sender_hash, normalized_sender, now, now),
@@ -81,7 +79,7 @@ def record_action(sender: str, action: str, response_hours: float | None = None)
 
     with get_db() as conn:
         existing = conn.execute(
-            "SELECT id, avg_response_hours, replied_count FROM sender_stats WHERE id = ?",
+            "SELECT id, avg_response_hours, replied_count FROM senders WHERE id = ?",
             (sender_hash,),
         ).fetchone()
 
@@ -91,20 +89,20 @@ def record_action(sender: str, action: str, response_hours: float | None = None)
                 old_count: int = existing["replied_count"] or 0
                 new_avg = ((old_avg * old_count) + response_hours) / (old_count + 1)
                 conn.execute(
-                    f"UPDATE sender_stats SET {column} = {column} + 1, "  # noqa: S608
+                    f"UPDATE senders SET {column} = {column} + 1, "  # noqa: S608
                     "avg_response_hours = ?, last_action_at = ?, "
                     "updated_at = ? WHERE id = ?",
                     (new_avg, now, now, sender_hash),
                 )
             else:
                 conn.execute(
-                    f"UPDATE sender_stats SET {column} = {column} + 1, "  # noqa: S608
+                    f"UPDATE senders SET {column} = {column} + 1, "  # noqa: S608
                     "last_action_at = ?, updated_at = ? WHERE id = ?",
                     (now, now, sender_hash),
                 )
         else:
             conn.execute(
-                f"INSERT INTO sender_stats (id, sender, {column}, "  # noqa: S608
+                f"INSERT INTO senders (id, sender, {column}, "  # noqa: S608
                 "last_action_at, updated_at) VALUES (?, ?, 1, ?, ?)",
                 (sender_hash, normalized_sender, now, now),
             )
@@ -114,7 +112,7 @@ def get_sender_stat(sender: str) -> SenderStat | None:
     sender_hash = _sender_id(sender)
 
     with get_db() as conn:
-        row = conn.execute("SELECT * FROM sender_stats WHERE id = ?", (sender_hash,)).fetchone()
+        row = conn.execute("SELECT * FROM senders WHERE id = ?", (sender_hash,)).fetchone()
 
     if not row:
         return None
@@ -180,7 +178,7 @@ def _calculate_priority(
 def get_top_senders(limit: int = 20) -> list[SenderStat]:
     with get_db() as conn:
         rows = conn.execute(
-            """SELECT * FROM sender_stats
+            """SELECT * FROM senders
             WHERE received_count > 0
             ORDER BY received_count DESC
             LIMIT ?""",
