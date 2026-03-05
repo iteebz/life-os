@@ -74,8 +74,8 @@ def test_db_init(tmp_life_dir):
 
 
 _MODEL_TABLE_MAP: dict[type, tuple[str, set[str], set[str]]] = {
-    Task: ("tasks", {"tags"}, set()),
-    Habit: ("habits", {"tags", "habit_checks"}, set()),
+    Task: ("tasks", {"tags"}, {"cancel_reason", "deleted_at"}),
+    Habit: ("habits", {"tags", "habit_checks", "checks"}, set()),
     TaskMutation: ("mutations", set(), set()),
 }
 

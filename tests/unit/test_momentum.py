@@ -20,7 +20,7 @@ def test_rolling_7day_window(tmp_life_dir, fixed_today):
         for i in range(7):
             check_date = fixed_today - timedelta(days=i)
             conn.execute(
-                "INSERT INTO checks (habit_id, check_date, completed_at) VALUES (?, ?, ?)",
+                "INSERT INTO habit_checks (habit_id, check_date, completed_at) VALUES (?, ?, ?)",
                 ("habit_all_weeks", check_date.isoformat(), check_date.isoformat()),
             )
 
@@ -28,7 +28,7 @@ def test_rolling_7day_window(tmp_life_dir, fixed_today):
         for i in range(7, 14):
             check_date = fixed_today - timedelta(days=i)
             conn.execute(
-                "INSERT INTO checks (habit_id, check_date, completed_at) VALUES (?, ?, ?)",
+                "INSERT INTO habit_checks (habit_id, check_date, completed_at) VALUES (?, ?, ?)",
                 ("habit_all_weeks", check_date.isoformat(), check_date.isoformat()),
             )
 
@@ -36,7 +36,7 @@ def test_rolling_7day_window(tmp_life_dir, fixed_today):
         for i in range(14, 21):
             check_date = fixed_today - timedelta(days=i)
             conn.execute(
-                "INSERT INTO checks (habit_id, check_date, completed_at) VALUES (?, ?, ?)",
+                "INSERT INTO habit_checks (habit_id, check_date, completed_at) VALUES (?, ?, ?)",
                 ("habit_all_weeks", check_date.isoformat(), check_date.isoformat()),
             )
         conn.commit()

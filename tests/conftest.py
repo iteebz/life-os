@@ -7,6 +7,7 @@ import pytest
 import life.config
 import life.lib.clock as clock
 from life import db
+from life.core.errors import LifeError
 from life.lib.store import configure as configure_store
 
 
@@ -18,23 +19,50 @@ class _Result:
 
 
 class FnCLIRunner:
+    _discovered = False
+
     def invoke(self, argv: list[str]) -> _Result:
+        from pathlib import Path
+
+        import fncli
         from fncli import dispatch
 
-        import life.cli  # noqa: F401 — registers fncli commands
+        if not FnCLIRunner._discovered:
+            import life.cli  # noqa: F401 — registers fncli commands
+
+            fncli.autodiscover(Path(__file__).parent.parent / "life", "life")
+            FnCLIRunner._discovered = True
+
         from life.dash import dashboard
+
+        # @cli wraps functions — call the raw function to avoid sys.argv leakage
+        _dashboard = getattr(dashboard, "__wrapped__", dashboard)
 
         out_buf = io.StringIO()
         err_buf = io.StringIO()
         try:
             with redirect_stdout(out_buf), redirect_stderr(err_buf):
                 if not argv or argv == ["-v"] or argv == ["--verbose"]:
-                    dashboard(verbose="--verbose" in argv or "-v" in argv)
+                    _dashboard()
                     code = 0
                 else:
-                    code = dispatch(["life", *argv])
+                    # Try "life <cmd>" first; fall back to bare argv for
+                    # commands not registered under the "life" namespace
+                    trial_err = io.StringIO()
+                    with redirect_stderr(trial_err):
+                        prefixed_code = fncli.try_dispatch(["life", *argv])
+                    if prefixed_code == 1 and "Unknown command" in trial_err.getvalue():
+                        code = dispatch(argv)
+                    elif prefixed_code is None:
+                        code = dispatch(["life", *argv])
+                    else:
+                        err_buf.write(trial_err.getvalue())
+                        code = prefixed_code
         except SystemExit as e:
             code = int(e.code) if e.code is not None else 1
+        except LifeError as e:
+            err_buf.write(f"{e}\n")
+            code = 1
         return _Result(code, out_buf.getvalue(), err_buf.getvalue())
 
 

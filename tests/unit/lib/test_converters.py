@@ -82,6 +82,8 @@ def test_parse_datetime_optional_none():
 
 
 def test_row_to_task_complete():
+    # id, content, focus, scheduled_date, created, completed_at, parent_id,
+    # scheduled_time, blocked_by, notes, steward, source, is_deadline
     row = (
         "task-1",
         "Buy milk",
@@ -89,6 +91,13 @@ def test_row_to_task_complete():
         "2025-10-31",
         "2025-10-30T10:00:00",
         "2025-10-30T15:00:00",
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
     )
     task = row_to_task(row)
     assert task.id == "task-1"
@@ -106,6 +115,13 @@ def test_row_to_task_no_focus():
         None,
         "2025-10-30T10:00:00",
         None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
     )
     task = row_to_task(row)
     assert task.focus is False
@@ -114,10 +130,15 @@ def test_row_to_task_no_focus():
 
 
 def test_row_to_habit_complete():
+    # id, content, created, archived_at, parent_id, private, cadence
     row = (
         "habit-1",
         "Morning run",
         "2025-10-30T06:00:00",
+        None,
+        None,
+        None,
+        "daily",
     )
     habit = row_to_habit(row)
     assert habit.id == "habit-1"

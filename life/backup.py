@@ -253,3 +253,10 @@ def backup() -> None:
     """Create verified database backup"""
     result = run_backup()
     _print_result(result)
+
+
+@cli("life backup", name="prune")
+def prune() -> None:
+    """Remove old backups, keeping recent daily and hourly snapshots"""
+    n = run_prune()
+    print(f"pruned {n} snapshot(s)")

@@ -64,7 +64,7 @@ def test_backup_missing_source_returns_error(tmp_life_dir, monkeypatch):
 
 
 def test_backup_validates_row_counts(tmp_life_dir):
-    from life.tasks import add_task
+    from life.task import add_task
 
     add_task("safety test 1")
     add_task("safety test 2")
@@ -75,9 +75,8 @@ def test_backup_validates_row_counts(tmp_life_dir):
 
 
 def test_validate_backup_catches_empty(tmp_life_dir):
-    from life.tasks import add_task
-
     from life import config
+    from life.task import add_task
 
     add_task("data")
     empty = tmp_life_dir / "empty.db"
@@ -89,9 +88,8 @@ def test_validate_backup_catches_empty(tmp_life_dir):
 
 
 def test_validate_backup_catches_massive_loss(tmp_life_dir):
-    from life.tasks import add_task
-
     from life import config
+    from life.task import add_task
 
     for i in range(10):
         add_task(f"task {i}")
@@ -99,7 +97,11 @@ def test_validate_backup_catches_massive_loss(tmp_life_dir):
     partial = tmp_life_dir / "partial.db"
     conn = sqlite3.connect(partial)
     conn.execute(
-        "CREATE TABLE tasks (id TEXT, content TEXT, focus INTEGER, scheduled_date TEXT, created TEXT, completed_at TEXT, parent_id TEXT, scheduled_time TEXT, blocked_by TEXT, description TEXT, steward INTEGER DEFAULT 0, source TEXT, is_deadline INTEGER DEFAULT 0)"
+        "CREATE TABLE tasks ("
+        "id TEXT, content TEXT, focus INTEGER, scheduled_date TEXT, "
+        "created TEXT, completed_at TEXT, parent_id TEXT, scheduled_time TEXT, "
+        "blocked_by TEXT, description TEXT, steward INTEGER DEFAULT 0, "
+        "source TEXT, is_deadline INTEGER DEFAULT 0)"
     )
     conn.execute("INSERT INTO tasks (id, content) VALUES ('x', 'only one')")
     conn.commit()

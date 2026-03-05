@@ -4,7 +4,7 @@ from life.lib.ansi import DEFAULT, POOL, Theme, bold, dim, strip, strip_markdown
 def test_theme_defaults():
     assert DEFAULT.bold == "\033[1m"
     assert DEFAULT.reset == "\033[0m"
-    assert len(POOL) == 8
+    assert len(POOL) == 12
 
 
 def test_theme_colors():

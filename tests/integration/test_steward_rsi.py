@@ -23,7 +23,7 @@ def test_observe_tag_filters_on_boot(tmp_life_dir):
 
 
 def test_steward_close_persists_session(tmp_life_dir):
-    result = runner.invoke(["steward", "close", "closed tax loop, mood 3"])
+    result = runner.invoke(["steward", "summary", "closed tax loop, mood 3"])
     assert result.exit_code == 0
 
     result = runner.invoke(["steward", "boot"])
@@ -32,10 +32,10 @@ def test_steward_close_persists_session(tmp_life_dir):
 
 
 def test_pattern_write_retrieve_roundtrip(tmp_life_dir):
-    result = runner.invoke(["pattern", "add", "Decision fatigue disengages him"])
+    result = runner.invoke(["steward", "observe", "Decision fatigue disengages him"])
     assert result.exit_code == 0
 
-    result = runner.invoke(["pattern", "log"])
+    result = runner.invoke(["steward", "observe"])
     assert result.exit_code == 0
     assert "Decision fatigue" in result.stdout
 
