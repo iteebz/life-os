@@ -70,7 +70,7 @@ def row_to_task(row: TaskRow) -> Task:
 def row_to_habit(row: HabitRow) -> Habit:
     """
     Converts a raw database row from habits table into a Habit object.
-    Expected row format: (id, content, created, archived_at, parent_id, private)
+    Expected row format: (id, content, created, archived_at, parent_id, private, cadence)
     """
     return Habit(
         id=cast(str, row[0]),
@@ -79,6 +79,7 @@ def row_to_habit(row: HabitRow) -> Habit:
         archived_at=_parse_datetime_optional(row[3]),
         parent_id=cast(str, row[4]) if row[4] is not None else None,
         private=bool(row[5]) if row[5] is not None else False,
+        cadence=cast(str, row[6]) if len(row) > 6 and row[6] is not None else "daily",
     )
 
 

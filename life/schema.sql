@@ -28,6 +28,7 @@ CREATE TABLE habits (
     archived_at TIMESTAMP NULL,
     parent_id TEXT REFERENCES habits(id) ON DELETE CASCADE,
     private BOOLEAN NOT NULL DEFAULT 0,
+    cadence TEXT NOT NULL DEFAULT 'daily' CHECK (cadence IN ('daily', 'weekly')),
     CHECK (length(content) > 0)
 );
 
@@ -112,6 +113,15 @@ CREATE TABLE achievements (
     CHECK (length(name) > 0)
 );
 
+
+CREATE TABLE contacts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    cadence_days INTEGER NOT NULL DEFAULT 30,
+    last_contact_at TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    deleted_at TEXT
+);
 
 CREATE TABLE accounts (
     id TEXT PRIMARY KEY,

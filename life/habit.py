@@ -38,7 +38,7 @@ __all__ = [
 # ── domain ───────────────────────────────────────────────────────────────────
 
 
-_HABIT_COLS = "id, content, created, archived_at, parent_id, private"
+_HABIT_COLS = "id, content, created, archived_at, parent_id, private, cadence"
 
 
 def _hydrate_habit(habit: Habit, checks: list[datetime], tags: list[str]) -> Habit:
@@ -75,13 +75,15 @@ def add_habit(
     tags: list[str] | None = None,
     parent_id: str | None = None,
     private: bool = False,
+    cadence: str = "daily",
 ) -> str:
     habit_id = str(uuid.uuid4())
     with get_db() as conn:
         try:
             conn.execute(
-                "INSERT INTO habits (id, content, parent_id, private) VALUES (?, ?, ?, ?)",
-                (habit_id, content, parent_id, int(private)),
+                "INSERT INTO habits (id, content, parent_id, private, cadence)"
+                " VALUES (?, ?, ?, ?, ?)",
+                (habit_id, content, parent_id, int(private), cadence),
             )
         except sqlite3.IntegrityError as e:
             raise ValueError(f"Failed to add habit: {e}") from e
@@ -99,7 +101,7 @@ def add_habit(
 def get_habit(habit_id: str) -> Habit | None:
     with get_db() as conn:
         cursor = conn.execute(
-            "SELECT id, content, created, archived_at, parent_id, private FROM habits WHERE id = ?",
+            f"SELECT {_HABIT_COLS} FROM habits WHERE id = ?",  # noqa: S608
             (habit_id,),
         )
         row = cursor.fetchone()
@@ -163,14 +165,42 @@ def get_streak(habit_id: str) -> int:
     if not habit_id:
         raise ValueError("habit_id cannot be empty")
 
-    checks = get_checks(habit_id)
+    habit = get_habit(habit_id)
+    if not habit:
+        return 0
 
+    checks = get_checks(habit_id)
     if not checks:
         return 0
 
-    streak = 1
     today = clock.today()
 
+    if habit.cadence == "weekly":
+        check_dates = sorted({c.date() for c in checks}, reverse=True)
+        # Convert dates to Monday-based week start for reliable comparison
+        week_starts = sorted(
+            {d - timedelta(days=d.weekday()) for d in check_dates},
+            reverse=True,
+        )
+        if not week_starts:
+            return 0
+        current_week_start = today - timedelta(days=today.weekday())
+        # Allow current or previous week to count as "active"
+        if week_starts[0] not in (
+            current_week_start,
+            current_week_start - timedelta(weeks=1),
+        ):
+            return 0
+        streak = 1
+        for i in range(len(week_starts) - 1):
+            gap = (week_starts[i] - week_starts[i + 1]).days
+            if gap == 7:
+                streak += 1
+            else:
+                break
+        return streak
+
+    streak = 1
     for i in range(len(checks) - 1):
         current = checks[i].date()
         next_date = checks[i + 1].date()
@@ -309,21 +339,51 @@ def archive(ref: str | None = None, list_archived: bool = False) -> None:
 
 
 def _render_habit_matrix(habits: list[Habit]) -> str:
-    lines = ["HABIT TRACKER (last 7 days)\n"]
     if not habits:
         return "No habits found."
     today = clock.today()
-    day_names = [(today - timedelta(days=i)).strftime("%a").lower() for i in range(6, -1, -1)]
-    dates = [(today - timedelta(days=i)) for i in range(6, -1, -1)]
-    header = "habit           " + " ".join(day_names) + "   key"
-    lines += [header, "-" * len(header)]
+    daily = [h for h in habits if h.cadence == "daily"]
+    weekly = [h for h in habits if h.cadence == "weekly"]
     muted = ansi.theme.muted
     reset = ansi.theme.reset
-    for h in sorted(habits, key=lambda h: h.content.lower()):
-        check_dates = {dt.date() for dt in h.checks}
-        indicators = ["●" if d in check_dates else "○" for d in dates]
-        cells = "   ".join(indicators)
-        lines.append(f"{h.content.lower():<15} {cells}   {muted}[{h.id[:8]}]{reset}")
+    lines: list[str] = []
+
+    if daily:
+        lines.append("HABIT TRACKER (last 7 days)\n")
+        day_names = [(today - timedelta(days=i)).strftime("%a").lower() for i in range(6, -1, -1)]
+        dates = [(today - timedelta(days=i)) for i in range(6, -1, -1)]
+        header = "habit           " + " ".join(day_names) + "   key"
+        lines += [header, "-" * len(header)]
+        for h in sorted(daily, key=lambda h: h.content.lower()):
+            check_dates = {dt.date() for dt in h.checks}
+            indicators = ["●" if d in check_dates else "○" for d in dates]
+            cells = "   ".join(indicators)
+            lines.append(f"{h.content.lower():<15} {cells}   {muted}[{h.id[:8]}]{reset}")
+
+    if weekly:
+        if daily:
+            lines.append("")
+        lines.append("WEEKLY (last 4 weeks)\n")
+        week_ranges: list[tuple[date, date]] = []
+        for i in range(3, -1, -1):
+            end = today - timedelta(days=today.weekday()) - timedelta(weeks=i) + timedelta(days=6)
+            start = end - timedelta(days=6)
+            if i == 0:
+                end = today
+                start = today - timedelta(days=today.weekday())
+            week_ranges.append((start, end))
+        week_labels = [f"w{i + 1}" for i in range(4)]
+        header = "habit           " + "  ".join(f"{w:>3}" for w in week_labels) + "   key"
+        lines += [header, "-" * len(header)]
+        for h in sorted(weekly, key=lambda h: h.content.lower()):
+            check_dates = {dt.date() for dt in h.checks}
+            indicators = []
+            for start, end in week_ranges:
+                hit = any(start <= d <= end for d in check_dates)
+                indicators.append(" ● " if hit else " ○ ")
+            cells = "  ".join(indicators)
+            lines.append(f"{h.content.lower():<15} {cells}   {muted}[{h.id[:8]}]{reset}")
+
     return "\n".join(lines)
 
 
@@ -334,12 +394,14 @@ def habits() -> None:
 
 
 @cli("life", flags={"ref": [], "tag": ["-t", "--tag"]})
-def habit(ref: list[str] | None = None, tag: list[str] | None = None) -> None:
+def habit(ref: list[str] | None = None, tag: list[str] | None = None, weekly: bool = False) -> None:
     """List habits, or create one: `life habit "name" -t tag`"""
     if not ref:
         print(_render_habit_matrix(get_habits()))
         return
     name = " ".join(ref)
-    add_habit(name, tags=tag)
+    cadence = "weekly" if weekly else "daily"
+    add_habit(name, tags=tag, cadence=cadence)
+    cadence_str = " (weekly)" if weekly else ""
     suffix = " " + " ".join(f"#{t}" for t in tag) if tag else ""
-    print(f"→ {name}{suffix}")
+    print(f"→ {name}{suffix}{cadence_str}")

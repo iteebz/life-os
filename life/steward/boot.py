@@ -104,6 +104,18 @@ def boot():
             type_str = f"  [{d['type']}]" if d["type"] != "other" else ""
             print(f"  {when:<10}  {d['name']}{type_str}")
 
+    from life.contacts import get_stale_contacts
+
+    stale = get_stale_contacts()
+    if stale:
+        print("\nCONTACTS (overdue):")
+        for contact, days in stale:
+            if days is None:
+                label = "never"
+            else:
+                label = f"{days}d ago"
+            print(f"  {contact.name:<12} {label:<10}  (every {contact.cadence_days}d)")
+
     open_improvements = get_improvements()
     if open_improvements:
         print("\nIMPROVEMENTS:")

@@ -172,19 +172,35 @@ def _row_habit(
     habit: Habit, checked_ids: set[str], ctx: RenderCtx, indent: str = "  "
 ) -> list[str]:
     tags_str = _fmt_tags(habit.tags, ctx.tag_colors)
-    p1_start = ctx.today - timedelta(days=6)
-    p2_start = ctx.today - timedelta(days=13)
-    p2_end = p1_start - timedelta(days=1)
-    count_p1 = sum(1 for dt in habit.checks if p1_start <= dt.date() <= ctx.today)
-    count_p2 = sum(1 for dt in habit.checks if p2_start <= dt.date() <= p2_end)
-    trend = "↗" if count_p1 > count_p2 else "↘" if count_p1 < count_p2 else "→"
     id_str = f" {_GREY}[{habit.id[:8]}]{_R}"
-    if habit.id in checked_ids:
-        lines = [
-            f"{indent}{purple('●')} {gray(trend)} {gray(habit.content.lower())}{tags_str}{id_str}"
-        ]
+
+    if habit.cadence == "weekly":
+        # Trend: last 4 weeks vs prior 4 weeks
+        def _weeks_hit(start: date, end: date) -> int:
+            dates = {dt.date() for dt in habit.checks if start <= dt.date() <= end}
+            return len({d.isocalendar()[1] for d in dates})
+
+        p1_start = ctx.today - timedelta(weeks=4)
+        p2_start = ctx.today - timedelta(weeks=8)
+        p2_end = p1_start - timedelta(days=1)
+        count_p1 = _weeks_hit(p1_start, ctx.today)
+        count_p2 = _weeks_hit(p2_start, p2_end)
+        cadence_label = f" {dim('(weekly)')}"
     else:
-        lines = [f"{indent}{purple('○')} {gray(trend)} {habit.content.lower()}{tags_str}{id_str}"]
+        p1_start = ctx.today - timedelta(days=6)
+        p2_start = ctx.today - timedelta(days=13)
+        p2_end = p1_start - timedelta(days=1)
+        count_p1 = sum(1 for dt in habit.checks if p1_start <= dt.date() <= ctx.today)
+        count_p2 = sum(1 for dt in habit.checks if p2_start <= dt.date() <= p2_end)
+        cadence_label = ""
+
+    trend = "↗" if count_p1 > count_p2 else "↘" if count_p1 < count_p2 else "→"
+    if habit.id in checked_ids:
+        label = f"{gray(habit.content.lower())}{cadence_label}{tags_str}"
+        lines = [f"{indent}{purple('●')} {gray(trend)} {label}{id_str}"]
+    else:
+        label = f"{habit.content.lower()}{cadence_label}{tags_str}"
+        lines = [f"{indent}{purple('○')} {gray(trend)} {label}{id_str}"]
     for sub in get_subhabits(habit.id):
         lines.extend(_row_habit(sub, checked_ids, ctx, indent="   └ "))
     return lines

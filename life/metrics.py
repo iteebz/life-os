@@ -127,8 +127,17 @@ def build_feedback_snapshot(
     defer_count = _count_defers(window_start, today)
     overdue_resets = _count_overdue_resets(window_start, today)
 
-    habit_possible = len(habits) * window_days
-    habit_checked = sum(1 for h in habits for c in h.checks if window_start <= c.date() <= today)
+    daily_habits = [h for h in habits if h.cadence == "daily"]
+    weekly_habits = [h for h in habits if h.cadence == "weekly"]
+    weeks_in_window = max(1, window_days // 7)
+    habit_possible = len(daily_habits) * window_days + len(weekly_habits) * weeks_in_window
+    habit_checked = sum(
+        1 for h in daily_habits for c in h.checks if window_start <= c.date() <= today
+    )
+    for h in weekly_habits:
+        week_dates = {c.date() for c in h.checks if window_start <= c.date() <= today}
+        weeks_hit = len({d.isocalendar()[1] for d in week_dates})
+        habit_checked += min(weeks_hit, weeks_in_window)
     habit_rate = habit_checked / habit_possible if habit_possible else 0.0
 
     tracked_tags = set(TAG_WEIGHT.keys())

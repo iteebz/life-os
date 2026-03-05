@@ -10,7 +10,11 @@ __all__ = ["weekly_momentum"]
 
 def _calculate_total_possible(active_items_data, week_start_date, week_end_date):
     total_possible = 0
-    for _item_id, created_val in active_items_data:
+    for row in active_items_data:
+        _item_id = row[0]
+        created_val = row[1]
+        cadence = row[2] if len(row) > 2 else "daily"
+
         created_date = parse_created_date(created_val)
 
         if created_date > week_end_date:
@@ -21,10 +25,11 @@ def _calculate_total_possible(active_items_data, week_start_date, week_end_date)
         if effective_start_date > week_end_date:
             continue
 
-        days_active = (week_end_date - effective_start_date).days + 1
-
-        per_day_target = 1
-        total_possible += days_active * per_day_target
+        if cadence == "weekly":
+            total_possible += 1
+        else:
+            days_active = (week_end_date - effective_start_date).days + 1
+            total_possible += days_active
 
     return total_possible
 
@@ -89,7 +94,8 @@ def weekly_momentum():
                 """
                 SELECT DISTINCT
                     h.id,
-                    h.created
+                    h.created,
+                    h.cadence
                 FROM habits h"""
             )
             active_habits_data = cursor.fetchall()
