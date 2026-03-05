@@ -28,7 +28,8 @@ def get_recent_moods(hours: int = 24) -> list[MoodEntry]:
     cutoff = datetime.now(UTC) - timedelta(hours=hours)
     with get_db() as conn:
         rows = conn.execute(
-            "SELECT id, score, label, logged_at FROM mood_log WHERE logged_at > ? ORDER BY logged_at DESC",
+            "SELECT id, score, label, logged_at FROM mood_log "
+            "WHERE logged_at > ? ORDER BY logged_at DESC",
             (cutoff.isoformat(),),
         ).fetchall()
     return [

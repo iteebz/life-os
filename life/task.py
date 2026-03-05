@@ -45,7 +45,10 @@ __all__ = [
 
 # ── domain ───────────────────────────────────────────────────────────────────
 
-_TASK_COLS = "id, content, focus, scheduled_date, created, completed_at, parent_id, scheduled_time, blocked_by, notes, steward, source, is_deadline"
+_TASK_COLS = (
+    "id, content, focus, scheduled_date, created, completed_at, "
+    "parent_id, scheduled_time, blocked_by, notes, steward, source, is_deadline"
+)
 
 
 def _fetch_tasks(
@@ -109,7 +112,10 @@ def add_task(
     with get_db() as conn:
         try:
             conn.execute(
-                "INSERT INTO tasks (id, content, focus, scheduled_date, created, parent_id, notes, steward, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO tasks "
+                "(id, content, focus, scheduled_date, created, "
+                "parent_id, notes, steward, source) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     task_id,
                     content,
@@ -245,7 +251,9 @@ def update_task(
 def get_mutations(task_id: str) -> list[TaskMutation]:
     with get_db() as conn:
         rows = conn.execute(
-            "SELECT id, task_id, field, old_value, new_value, mutated_at, reason FROM task_mutations WHERE task_id = ? ORDER BY mutated_at DESC",
+            "SELECT id, task_id, field, old_value, new_value, "
+            "mutated_at, reason FROM task_mutations "
+            "WHERE task_id = ? ORDER BY mutated_at DESC",
             (task_id,),
         ).fetchall()
 
@@ -269,7 +277,9 @@ def defer_task(task_id: str, reason: str) -> Task | None:
         return None
     with get_db() as conn:
         conn.execute(
-            "INSERT INTO task_mutations (task_id, field, old_value, new_value, reason) VALUES (?, 'defer', NULL, NULL, ?)",
+            "INSERT INTO task_mutations "
+            "(task_id, field, old_value, new_value, reason) "
+            "VALUES (?, 'defer', NULL, NULL, ?)",
             (task_id, reason),
         )
     return task
@@ -281,7 +291,8 @@ def delete_task(task_id: str, cancel_reason: str | None = None, hard: bool = Fal
             conn.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
         elif cancel_reason:
             conn.execute(
-                "UPDATE tasks SET deleted_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now'), cancel_reason = ? WHERE id = ?",
+                "UPDATE tasks SET deleted_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now'), "
+                "cancel_reason = ? WHERE id = ?",
                 (cancel_reason, task_id),
             )
         else:
@@ -382,7 +393,9 @@ def set_blocked_by(task_id: str, blocker_id: str | None) -> Task | None:
 def last_completion() -> datetime | None:
     with get_db() as conn:
         task_row = conn.execute(
-            "SELECT completed_at FROM tasks WHERE completed_at IS NOT NULL ORDER BY completed_at DESC LIMIT 1"
+            "SELECT completed_at FROM tasks "
+            "WHERE completed_at IS NOT NULL "
+            "ORDER BY completed_at DESC LIMIT 1"
         ).fetchone()
         check_row = conn.execute(
             "SELECT completed_at FROM habit_checks ORDER BY completed_at DESC LIMIT 1"
@@ -648,7 +661,10 @@ def defer(ref: list[str], reason: str) -> None:
 @cli(
     "life",
     help={
-        "ref": "[DATE] [TIME] <task>  e.g. '14:00 call jeff', 'tomorrow 14:00 call jeff', '2026-03-01 09:00 dentist'"
+        "ref": (
+            "[DATE] [TIME] <task>  e.g. '14:00 call jeff', "
+            "'tomorrow 14:00 call jeff', '2026-03-01 09:00 dentist'"
+        )
     },
 )
 def schedule(ref: list[str], remove: bool = False) -> None:

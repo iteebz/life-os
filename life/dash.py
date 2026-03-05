@@ -171,7 +171,8 @@ def status(json: bool = False) -> None:
 
     lines = []
     lines.append(
-        f"tasks: {len(tasks)}  habits: {len(habits)}  focused: {len(focused)}  last check: {last_check_str}"
+        f"tasks: {len(tasks)}  habits: {len(habits)}  "
+        f"focused: {len(focused)}  last check: {last_check_str}"
     )
     lines.append("\nHEALTH:")
     lines.append(f"  untagged: {len(untagged)}")
@@ -245,7 +246,9 @@ def _show_day(target: date) -> None:
     mood = None
     with get_db() as conn:
         row = conn.execute(
-            "SELECT score, label FROM mood_log WHERE DATE(logged_at) = DATE(?) ORDER BY logged_at DESC LIMIT 1",
+            "SELECT score, label FROM mood_log "
+            "WHERE DATE(logged_at) = DATE(?) "
+            "ORDER BY logged_at DESC LIMIT 1",
             (date_str,),
         ).fetchone()
         if row:

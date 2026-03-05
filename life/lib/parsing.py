@@ -107,7 +107,7 @@ def parse_time(time_str: str) -> str:
 
 
 def parse_due_datetime(due_str: str) -> tuple[str | None, str | None]:
-    """Parse a combined due string like 'monday 10:00', 'today', 'tomorrow 14:30', 'YYYY-MM-DD', 'HH:MM'.
+    """Parse a combined due string like 'monday 10:00', 'today', etc.
 
     Returns (date_str, time_str). Either may be None.
     Time-only input (HH:MM) defaults date to today.

@@ -55,7 +55,9 @@ def _store_outgoing(chat_id: int, body: str, message_id: int, ts: int) -> None:
     try:
         with get_db() as conn:
             conn.execute(
-                "INSERT OR IGNORE INTO messages (id, channel, direction, peer, peer_name, body, timestamp, success) VALUES (?, 'telegram', 'out', ?, 'steward', ?, ?, 1)",
+                "INSERT OR IGNORE INTO messages "
+                "(id, channel, direction, peer, peer_name, body, timestamp, success) "
+                "VALUES (?, 'telegram', 'out', ?, 'steward', ?, ?, 1)",
                 (f"tg-{message_id}", str(chat_id), body, ts),
             )
     except Exception:  # noqa: S110
@@ -109,7 +111,9 @@ def _store_incoming(msg: dict[str, Any]) -> None:
     try:
         with get_db() as conn:
             conn.execute(
-                "INSERT OR IGNORE INTO messages (id, channel, direction, peer, peer_name, body, timestamp) VALUES (?, 'telegram', 'in', ?, ?, ?, ?)",
+                "INSERT OR IGNORE INTO messages "
+                "(id, channel, direction, peer, peer_name, body, timestamp) "
+                "VALUES (?, 'telegram', 'in', ?, ?, ?, ?)",
                 (
                     f"tg-{msg['id']}",
                     str(msg["chat_id"]),

@@ -2,9 +2,10 @@ from datetime import datetime
 
 from fncli import cli
 
-from ..core.errors import NotFoundError
-from ..lib import ansi
-from ..lib.format import format_elapsed
+from life.core.errors import NotFoundError
+from life.lib import ansi
+from life.lib.format import format_elapsed
+
 from . import add_observation, add_session, delete_observation, get_observations
 
 
@@ -36,7 +37,7 @@ def observe(
 
     from datetime import date
 
-    from ..lib.dates import parse_due_date
+    from life.lib.dates import parse_due_date
 
     about_date: date | None = None
     if about:
@@ -52,7 +53,8 @@ def observe(
 @cli("steward")
 def rm(prefix: str, hard: bool = False):
     """Remove any steward item by UUID prefix — observations or improvements"""
-    from ..improvements import delete_improvement, get_improvements
+    from life.improvements import delete_improvement, get_improvements
+
     from . import resolve_prefix
 
     obs = resolve_prefix(prefix, get_observations(limit=200))

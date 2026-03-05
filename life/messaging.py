@@ -45,7 +45,8 @@ def send_cmd(recipient: str, message: str, signal: bool = False, telegram: bool 
         channel = _default_channel(recipient)
         if not channel:
             raise ValidationError(
-                f"can't resolve '{recipient}' — add signal: or telegram: to their people profile, or pass --signal/--telegram"
+                f"can't resolve '{recipient}' — add signal: or telegram: "
+                "to their people profile, or pass --signal/--telegram"
             )
 
     if channel == "signal":

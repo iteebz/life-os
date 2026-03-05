@@ -236,7 +236,8 @@ def senders(limit: int = 20):
     for s in top:
         resp = f"{s.response_rate:.0%}" if s.received_count > 0 else "n/a"
         print(
-            f"  {s.sender[:30]:30} | recv:{s.received_count:3} resp:{resp:4} pri:{s.priority_score:.2f}"
+            f"  {s.sender[:30]:30} | recv:{s.received_count:3} "
+            f"resp:{resp:4} pri:{s.priority_score:.2f}"
         )
 
 

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Protocol
 
-from ..lib.store import get_db
+from life.lib.store import get_db
 
 
 class _HasUUID(Protocol):
@@ -55,12 +55,18 @@ def get_observations(limit: int = 20, tag: str | None = None) -> list[Observatio
     with get_db() as conn:
         if tag:
             rows = conn.execute(
-                "SELECT uuid, body, tag, logged_at, about_date FROM observations WHERE tag = ? AND deleted_at IS NULL ORDER BY logged_at DESC LIMIT ?",
+                "SELECT uuid, body, tag, logged_at, about_date "
+                "FROM observations WHERE tag = ? "
+                "AND deleted_at IS NULL "
+                "ORDER BY logged_at DESC LIMIT ?",
                 (tag, limit),
             ).fetchall()
         else:
             rows = conn.execute(
-                "SELECT uuid, body, tag, logged_at, about_date FROM observations WHERE deleted_at IS NULL ORDER BY logged_at DESC LIMIT ?",
+                "SELECT uuid, body, tag, logged_at, about_date "
+                "FROM observations "
+                "WHERE deleted_at IS NULL "
+                "ORDER BY logged_at DESC LIMIT ?",
                 (limit,),
             ).fetchall()
         return [
@@ -84,7 +90,9 @@ def delete_observation(prefix: str, hard: bool = False) -> bool:
             cursor = conn.execute("DELETE FROM observations WHERE uuid = ?", (obs.uuid,))
         else:
             cursor = conn.execute(
-                "UPDATE observations SET deleted_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now') WHERE uuid = ? AND deleted_at IS NULL",
+                "UPDATE observations "
+                "SET deleted_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now') "
+                "WHERE uuid = ? AND deleted_at IS NULL",
                 (obs.uuid,),
             )
         return cursor.rowcount > 0

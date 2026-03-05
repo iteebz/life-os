@@ -8,13 +8,13 @@ from queue import Empty, Queue
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from ..core.models import Task
+    from life.core.models import Task
 
 from atrace import StreamParser, format_entry
 from atrace.ansi import strip as ansi_strip
 from fncli import cli
 
-from ..core.errors import LifeError
+from life.core.errors import LifeError
 
 _STEWARD_DIR = Path.home() / ".life" / "steward"
 _OFF_SENTINEL = _STEWARD_DIR / "off"
@@ -32,10 +32,12 @@ If you can close a life task, do that before touching code.
 
 Orient: `life steward boot`, then `life dash`. Evidence over assumption.
 Forage: stale admin, untagged tasks, low completion, outdated tracking — these are your signals.
-Close: every spawn either completes a real-world task or improves the system that prevents completion.
+Close: every spawn either completes a real-world task or improves the system
+that prevents completion.
 
 CLI errors are yours to fix:
-- If a `life` command fails with "Unknown command" or bad usage, fix `~/life/life-os/` — don't work around it.
+- If a `life` command fails with "Unknown command" or bad usage,
+  fix `~/life/life-os/` — don't work around it.
 - You own the CLI. Broken tooling is your bug. Patch it, commit it, then continue.
 - Run `uv run pyright life/` from `~/life/life-os/` after any code change.
 
@@ -168,8 +170,8 @@ def _run_tail_stream(
 
 
 def _select_required_real_world_task(tasks: list[Any]) -> "Task | None":
-    from ..core.models import Task
-    from ..lib.clock import today
+    from life.core.models import Task
+    from life.lib.clock import today
 
     discomfort = {"finance", "legal", "janice"}
     candidates: list[Task] = [
@@ -183,7 +185,7 @@ def _select_required_real_world_task(tasks: list[Any]) -> "Task | None":
 
 
 def _build_provider_cmd_env(provider: str, prompt: str) -> tuple[list[str], dict[str, str]]:
-    from ..lib.providers import claude, glm
+    from life.lib.providers import claude, glm
 
     if provider == "glm":
         env = glm.build_env()
@@ -201,16 +203,16 @@ def _build_provider_cmd_env(provider: str, prompt: str) -> tuple[list[str], dict
 
 
 def _run_autonomous(provider: str = "claude") -> None:
-    from ..habit import get_habits
-    from ..lib.clock import today
-    from ..loop import (
+    from life.habit import get_habits
+    from life.lib.clock import today
+    from life.loop import (
         load_loop_state,
         require_real_world_closure,
         save_loop_state,
         update_loop_state,
     )
-    from ..metrics import build_feedback_snapshot, render_feedback_snapshot
-    from ..task import get_all_tasks, get_tasks
+    from life.metrics import build_feedback_snapshot, render_feedback_snapshot
+    from life.task import get_all_tasks, get_tasks
 
     tasks_before = get_tasks()
     all_before = get_all_tasks()

@@ -2,14 +2,15 @@ from datetime import datetime
 
 from fncli import cli
 
-from ..lib.format import format_elapsed
+from life.lib.format import format_elapsed
+
 from . import get_observations, get_sessions
 
 
 @cli("steward")
 def dash():
     """Steward dashboard — improvements, patterns, observations, sessions"""
-    from ..improvements import get_improvements
+    from life.improvements import get_improvements
 
     improvements = get_improvements()
     if improvements:

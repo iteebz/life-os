@@ -46,7 +46,9 @@ def _load_allowed_tg_chats() -> set[int]:
 
 
 def _build_tg_prompt(message: str, sender_name: str) -> str:
-    return f"""You are Steward responding via Telegram. Be concise — this is a chat message, not a terminal session.
+    return f"""\
+You are Steward responding via Telegram. \
+Be concise — this is a chat message, not a terminal session.
 
 Sender: {sender_name}
 Message: {message}

@@ -56,7 +56,8 @@ def record_received(sender: str) -> None:
             )
         else:
             conn.execute(
-                """INSERT INTO sender_stats (id, sender, received_count, last_received_at, updated_at)
+                """INSERT INTO sender_stats
+                (id, sender, received_count, last_received_at, updated_at)
                 VALUES (?, ?, 1, ?, ?)""",
                 (sender_hash, normalized_sender, now, now),
             )
@@ -90,17 +91,21 @@ def record_action(sender: str, action: str, response_hours: float | None = None)
                 old_count: int = existing["replied_count"] or 0
                 new_avg = ((old_avg * old_count) + response_hours) / (old_count + 1)
                 conn.execute(
-                    f"UPDATE sender_stats SET {column} = {column} + 1, avg_response_hours = ?, last_action_at = ?, updated_at = ? WHERE id = ?",  # noqa: S608
+                    f"UPDATE sender_stats SET {column} = {column} + 1, "  # noqa: S608
+                    "avg_response_hours = ?, last_action_at = ?, "
+                    "updated_at = ? WHERE id = ?",
                     (new_avg, now, now, sender_hash),
                 )
             else:
                 conn.execute(
-                    f"UPDATE sender_stats SET {column} = {column} + 1, last_action_at = ?, updated_at = ? WHERE id = ?",  # noqa: S608
+                    f"UPDATE sender_stats SET {column} = {column} + 1, "  # noqa: S608
+                    "last_action_at = ?, updated_at = ? WHERE id = ?",
                     (now, now, sender_hash),
                 )
         else:
             conn.execute(
-                f"INSERT INTO sender_stats (id, sender, {column}, last_action_at, updated_at) VALUES (?, ?, 1, ?, ?)",  # noqa: S608
+                f"INSERT INTO sender_stats (id, sender, {column}, "  # noqa: S608
+                "last_action_at, updated_at) VALUES (?, ?, 1, ?, ?)",
                 (sender_hash, normalized_sender, now, now),
             )
 

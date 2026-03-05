@@ -46,7 +46,9 @@ def _parse_datetime_optional(val) -> datetime | None:
 def row_to_task(row: TaskRow) -> Task:
     """
     Converts a raw database row from tasks table into a Task object.
-    Expected row format: (id, content, focus, scheduled_date, created, completed, parent_id, scheduled_time, blocked_by, notes, steward, source, is_deadline)
+    Expected row format: (id, content, focus, scheduled_date, created,
+    completed, parent_id, scheduled_time, blocked_by, notes, steward,
+    source, is_deadline)
     """
     return Task(
         id=cast(str, row[0]),

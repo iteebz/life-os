@@ -58,8 +58,9 @@ def get_tasks_by_tag(tag: str) -> list[Task]:
     with get_db() as conn:
         cursor = conn.execute(
             """
-            SELECT DISTINCT t.id, t.content, t.focus, t.scheduled_date, t.created, t.completed_at,
-                   t.parent_id, t.scheduled_time, t.blocked_by, t.notes, t.steward, t.source, t.is_deadline
+            SELECT DISTINCT t.id, t.content, t.focus, t.scheduled_date,
+                   t.created, t.completed_at, t.parent_id, t.scheduled_time,
+                   t.blocked_by, t.notes, t.steward, t.source, t.is_deadline
             FROM tasks t
             INNER JOIN tags tg ON t.id = tg.task_id
             WHERE tg.tag = ?

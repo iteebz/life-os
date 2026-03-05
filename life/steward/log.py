@@ -2,7 +2,8 @@ from datetime import UTC, datetime
 
 from fncli import cli
 
-from ..lib.format import format_elapsed
+from life.lib.format import format_elapsed
+
 from . import get_sessions
 
 

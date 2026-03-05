@@ -5,8 +5,9 @@ from pathlib import Path
 
 from fncli import cli
 
-from ..db import init
-from ..lib.format import format_elapsed
+from life.db import init
+from life.lib.format import format_elapsed
+
 from . import get_observations, get_sessions
 
 STEWARD_BIRTHDAY = datetime(2026, 2, 18)
@@ -15,12 +16,12 @@ STEWARD_BIRTHDAY = datetime(2026, 2, 18)
 @cli("steward")
 def boot():
     """Load life state and emit sitrep for interactive session start"""
-    from ..habit import get_habits
-    from ..improvements import get_improvements
-    from ..lib.clock import today
-    from ..metrics import build_feedback_snapshot, render_feedback_headline
-    from ..mood import get_recent_moods
-    from ..task import get_all_tasks, get_tasks
+    from life.habit import get_habits
+    from life.improvements import get_improvements
+    from life.lib.clock import today
+    from life.metrics import build_feedback_snapshot, render_feedback_headline
+    from life.mood import get_recent_moods
+    from life.task import get_all_tasks, get_tasks
 
     age_days = (datetime.now() - STEWARD_BIRTHDAY).days
     now_local = datetime.now()
@@ -92,7 +93,7 @@ def boot():
             tag_str = f" #{o.tag}" if o.tag else ""
             print(f"  {rel:<10}  {o.body}{tag_str}")
 
-    from ..lib.dates import list_dates
+    from life.lib.dates import list_dates
 
     upcoming_dates = [d for d in list_dates() if 0 <= d["days_until"] <= 30]
     if upcoming_dates:
@@ -192,12 +193,12 @@ def boot():
             print(f"    {label:<12}  (error)")
 
     try:
-        from ..comms.accounts import list_accounts
-        from ..comms.drafts import list_pending_drafts
+        from life.comms.accounts import list_accounts
+        from life.comms.drafts import list_pending_drafts
 
         email_accounts = list_accounts("email")
         if email_accounts:
-            from ..comms.services import _get_email_adapter
+            from life.comms.services import _get_email_adapter
 
             total_inbox = 0
             flagged_lines: list[str] = []

@@ -128,7 +128,9 @@ def _check_data_loss(
 
 def _is_fresh(conn: sqlite3.Connection) -> bool:
     row = conn.execute(
-        "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name != '_migrations' AND name != 'sqlite_sequence'"
+        "SELECT COUNT(*) FROM sqlite_master "
+        "WHERE type='table' AND name != '_migrations' "
+        "AND name != 'sqlite_sequence'"
     ).fetchone()
     return row[0] == 0
 
@@ -146,7 +148,8 @@ def load_migrations() -> list[Migration]:
 def _apply_migrations(conn: sqlite3.Connection, db_path: Path) -> None:
     conn.execute(
         f"CREATE TABLE IF NOT EXISTS {MIGRATIONS_TABLE} "
-        "(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
+        "(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, "
+        "applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
     )
     conn.commit()
 
@@ -179,7 +182,9 @@ def _apply_migrations(conn: sqlite3.Connection, db_path: Path) -> None:
         tables = [
             row[0]
             for row in conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name != ? AND name NOT LIKE '%_fts%'",
+                "SELECT name FROM sqlite_master "
+                "WHERE type='table' AND name != ? "
+                "AND name NOT LIKE '%_fts%'",
                 (MIGRATIONS_TABLE,),
             ).fetchall()
         ]

@@ -24,11 +24,14 @@ def get_improvements(done: bool = False) -> list[Improvement]:
     with get_db() as conn:
         if done:
             rows = conn.execute(
-                "SELECT uuid, body, logged_at, done_at FROM improvements WHERE deleted_at IS NULL ORDER BY logged_at DESC"
+                "SELECT uuid, body, logged_at, done_at FROM improvements "
+                "WHERE deleted_at IS NULL ORDER BY logged_at DESC"
             ).fetchall()
         else:
             rows = conn.execute(
-                "SELECT uuid, body, logged_at, done_at FROM improvements WHERE done_at IS NULL AND deleted_at IS NULL ORDER BY logged_at DESC"
+                "SELECT uuid, body, logged_at, done_at FROM improvements "
+                "WHERE done_at IS NULL AND deleted_at IS NULL "
+                "ORDER BY logged_at DESC"
             ).fetchall()
         return [
             Improvement(
@@ -52,7 +55,9 @@ def delete_improvement(prefix: str, hard: bool = False) -> bool:
             cursor = conn.execute("DELETE FROM improvements WHERE uuid = ?", (imp.uuid,))
         else:
             cursor = conn.execute(
-                "UPDATE improvements SET deleted_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now') WHERE uuid = ? AND deleted_at IS NULL",
+                "UPDATE improvements "
+                "SET deleted_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now') "
+                "WHERE uuid = ? AND deleted_at IS NULL",
                 (imp.uuid,),
             )
         return cursor.rowcount > 0

@@ -150,7 +150,9 @@ def _row_task(
 
     if task.blocked_by:
         blocker = ctx.id_to_content.get(task.blocked_by, task.blocked_by[:8])
-        row = f"{indent}⊘ {_GREY}{date_str}{task.content.lower()}{tags_str}{_R} {dim('← ' + blocker.lower())}{id_str}"
+        blocker_str = dim("← " + blocker.lower())
+        content = f"{_GREY}{date_str}{task.content.lower()}{tags_str}{_R}"
+        row = f"{indent}⊘ {content} {blocker_str}{id_str}"
     else:
         fire = f"{_active.bold}🔥{_R} " if task.focus else ""
         row = f"{indent}□ {fire}{date_str}{task.content.lower()}{tags_str}{id_str}"
@@ -198,9 +200,8 @@ def _section_header(
     today: date, tasks_done: int, habits_done: int, total_habits: int, added: int, deleted: int
 ) -> list[str]:
     time_str = clock.now().strftime("%H:%M")
-    lines = [
-        f"\n{bold(white(today.strftime('%a') + ' · ' + today.strftime('%-d %b %Y') + ' · ' + time_str))}"
-    ]
+    header = today.strftime("%a") + " · " + today.strftime("%-d %b %Y") + " · " + time_str
+    lines = [f"\n{bold(white(header))}"]
     lines.append(f"{_GREY}tasks:{_R} {green(str(tasks_done))}")
     lines.append(f"{_GREY}habits:{_R} {purple(str(habits_done))}{_GREY}/{total_habits}{_R}")
     if added:
@@ -307,7 +308,8 @@ def _section_schedule(
         if task.blocked_by:
             blocker = ctx.id_to_content.get(task.blocked_by, task.blocked_by[:8])
             lines.append(
-                f"  ⊘ {time_str}{_GREY}{task.content.lower()}{_R}{tags_str} {dim('← ' + blocker.lower())}{id_str}"
+                f"  ⊘ {time_str}{_GREY}{task.content.lower()}{_R}"
+                f"{tags_str} {dim('← ' + blocker.lower())}{id_str}"
             )
         else:
             fire = f"{_active.bold}🔥{_R} " if task.focus else ""
@@ -508,12 +510,11 @@ def render_momentum(momentum: dict[str, Weekly]) -> str:
         lines.append(f"    habits: {w.habits_completed}/{w.habits_total} ({habits_rate:.0f}%)")
     if "this_week" in momentum and "last_week" in momentum:
         lines.append(f"\n{bold(white('TRENDS (vs. Last Week):'))}")
-        lines.append(
-            f"  Tasks: {_get_trend(momentum['this_week'].tasks_completed, momentum['last_week'].tasks_completed)}"
-        )
-        lines.append(
-            f"  Habits: {_get_trend(momentum['this_week'].habits_completed, momentum['last_week'].habits_completed)}"
-        )
+        tw, lw = momentum["this_week"], momentum["last_week"]
+        task_trend = _get_trend(tw.tasks_completed, lw.tasks_completed)
+        habit_trend = _get_trend(tw.habits_completed, lw.habits_completed)
+        lines.append(f"  Tasks: {task_trend}")
+        lines.append(f"  Habits: {habit_trend}")
     return "\n".join(lines)
 
 
@@ -558,7 +559,8 @@ def _block_task(
     focus_str = f"{_active.bold}🔥{_R} " if task.focus else ""
     status = gray("✓") if task.completed_at else "□"
     lines = [
-        f"{indent}{status} {focus_str}{dim('[' + task.id[:8] + ']')}  {task.content.lower()}{tags_str}"
+        f"{indent}{status} {focus_str}{dim('[' + task.id[:8] + ']')}  "
+        f"{task.content.lower()}{tags_str}"
     ]
 
     if task.scheduled_date:
@@ -577,7 +579,8 @@ def _block_task(
         sub_tags_str = _fmt_tags(_get_direct_tags(sub, ctx.pending), ctx.tag_colors)
         time_str = f"{dim(_fmt_time(sub.scheduled_time))} " if sub.scheduled_time else ""
         lines.append(
-            f"{indent}  └ {sub_status} {dim('[' + sub.id[:8] + ']')}  {time_str}{sub.content.lower()}{sub_tags_str}"
+            f"{indent}  └ {sub_status} {dim('[' + sub.id[:8] + ']')}  "
+            f"{time_str}{sub.content.lower()}{sub_tags_str}"
         )
 
     deferrals = [m for m in (mutations or []) if m.field == "defer" or m.reason == "overdue_reset"]

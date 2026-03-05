@@ -73,7 +73,9 @@ def _format_ratio(done: int, total: int) -> str:
 def _count_defers(window_start: date, window_end: date) -> int:
     with get_db() as conn:
         row = conn.execute(
-            "SELECT COUNT(*) FROM task_mutations WHERE field = 'defer' AND date(mutated_at) >= ? AND date(mutated_at) <= ?",
+            "SELECT COUNT(*) FROM task_mutations "
+            "WHERE field = 'defer' "
+            "AND date(mutated_at) >= ? AND date(mutated_at) <= ?",
             (window_start.isoformat(), window_end.isoformat()),
         ).fetchone()
         return row[0] if row else 0
@@ -82,7 +84,9 @@ def _count_defers(window_start: date, window_end: date) -> int:
 def _count_overdue_resets(window_start: date, window_end: date) -> int:
     with get_db() as conn:
         row = conn.execute(
-            "SELECT COUNT(*) FROM task_mutations WHERE reason = 'overdue_reset' AND date(mutated_at) >= ? AND date(mutated_at) <= ?",
+            "SELECT COUNT(*) FROM task_mutations "
+            "WHERE reason = 'overdue_reset' "
+            "AND date(mutated_at) >= ? AND date(mutated_at) <= ?",
             (window_start.isoformat(), window_end.isoformat()),
         ).fetchone()
         return row[0] if row else 0
@@ -171,14 +175,17 @@ def render_feedback_snapshot(snapshot: FeedbackSnapshot) -> list[str]:
     partner_total = snapshot.partner_done + snapshot.partner_open
     lines = [
         "STATS (7d):",
-        f"  closure:  {_format_pct(snapshot.closure_score)} ({snapshot.closure_earned:.0f}/{snapshot.closure_possible:.0f} pts)",
+        f"  closure:  {_format_pct(snapshot.closure_score)} "
+        f"({snapshot.closure_earned:.0f}/{snapshot.closure_possible:.0f} pts)",
     ]
     if snapshot.partner_tag and partner_total:
         lines.append(
-            f"  partner:  {_format_ratio(snapshot.partner_done, partner_total)} ({snapshot.partner_done}/{partner_total})"
+            f"  partner:  {_format_ratio(snapshot.partner_done, partner_total)} "
+            f"({snapshot.partner_done}/{partner_total})"
         )
     lines += [
-        f"  rhythm:   {snapshot.habit_rate:.0%} ({snapshot.habit_checked}/{snapshot.habit_possible})",
+        f"  rhythm:   {snapshot.habit_rate:.0%} "
+        f"({snapshot.habit_checked}/{snapshot.habit_possible})",
         f"  dodges:   {snapshot.defer_count}",
         f"  slips:    {snapshot.overdue_resets}",
     ]

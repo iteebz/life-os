@@ -22,7 +22,10 @@ def create_draft(
     with get_db() as conn:
         conn.execute(
             """
-            INSERT INTO drafts (id, thread_id, to_addr, cc_addr, subject, body, claude_reasoning, from_account_id, from_addr)
+            INSERT INTO drafts (
+                id, thread_id, to_addr, cc_addr, subject,
+                body, claude_reasoning, from_account_id, from_addr
+            )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
