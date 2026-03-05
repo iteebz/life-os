@@ -3,6 +3,7 @@ from datetime import datetime
 from fncli import cli
 
 from life.lib.format import format_elapsed
+from life.lib.ids import short
 
 from . import get_observations, get_sessions
 
@@ -16,7 +17,7 @@ def dash():
     if improvements:
         print("IMPROVEMENTS:")
         for i in improvements:
-            print(f"  [{i.uuid[:8]}] {i.body}")
+            print(f"  [{short('i', i.id)}] {i.body}")
     else:
         print("IMPROVEMENTS: none")
 

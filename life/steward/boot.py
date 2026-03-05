@@ -7,6 +7,7 @@ from fncli import cli
 
 from life.db import init
 from life.lib.format import format_elapsed
+from life.lib.ids import short
 
 from . import get_observations, get_sessions
 
@@ -60,17 +61,17 @@ def boot():
     active_tags = {tag for t in tasks for tag in (getattr(t, "tags", None) or [])}
     tagged_obs = []
     tag_horizon = 86400 * 3
-    seen_ids: set[str] = {o.uuid for o in recent_obs} | {o.uuid for o in upcoming_obs}
+    seen_ids: set[str] = {o.id for o in recent_obs} | {o.id for o in upcoming_obs}
     for tag in active_tags:
         for o in get_observations(limit=5, tag=tag):
-            if o.uuid in seen_ids:
+            if o.id in seen_ids:
                 continue
             if o.about_date and o.about_date < today_d:
                 continue
             if not o.about_date and (now - o.logged_at).total_seconds() > tag_horizon:
                 continue
             tagged_obs.append(o)
-            seen_ids.add(o.uuid)
+            seen_ids.add(o.id)
 
     upcoming_obs_sorted = sorted(upcoming_obs, key=lambda o: o.about_date or today_d)
     all_obs = upcoming_obs_sorted + sorted(
@@ -120,7 +121,7 @@ def boot():
     if open_improvements:
         print("\nIMPROVEMENTS:")
         for i in open_improvements[:5]:
-            print(f"  [{i.uuid[:8]}] {i.body}")
+            print(f"  [{short('i', i.id)}] {i.body}")
 
     recent_moods = get_recent_moods(hours=24)
     if recent_moods:

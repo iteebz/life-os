@@ -7,17 +7,17 @@ from .lib.store import get_db
 
 @dataclass(frozen=True)
 class Improvement:
-    uuid: str
+    id: str
     body: str
     logged_at: datetime
     done_at: datetime | None = None
 
 
 def add_improvement(body: str) -> str:
-    imp_uuid = str(_uuid.uuid4())
+    imp_id = str(_uuid.uuid4())
     with get_db() as conn:
-        conn.execute("INSERT INTO improvements (id, body) VALUES (?, ?)", (imp_uuid, body))
-    return imp_uuid
+        conn.execute("INSERT INTO improvements (id, body) VALUES (?, ?)", (imp_id, body))
+    return imp_id
 
 
 def get_improvements(done: bool = False) -> list[Improvement]:
@@ -35,7 +35,7 @@ def get_improvements(done: bool = False) -> list[Improvement]:
             ).fetchall()
         return [
             Improvement(
-                uuid=row[0],
+                id=row[0],
                 body=row[1],
                 logged_at=datetime.fromisoformat(row[2]),
                 done_at=datetime.fromisoformat(row[3]) if row[3] else None,
@@ -52,13 +52,13 @@ def delete_improvement(prefix: str, hard: bool = False) -> bool:
         return False
     with get_db() as conn:
         if hard:
-            cursor = conn.execute("DELETE FROM improvements WHERE id = ?", (imp.uuid,))
+            cursor = conn.execute("DELETE FROM improvements WHERE id = ?", (imp.id,))
         else:
             cursor = conn.execute(
                 "UPDATE improvements "
                 "SET deleted_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now') "
                 "WHERE id = ? AND deleted_at IS NULL",
-                (imp.uuid,),
+                (imp.id,),
             )
         return cursor.rowcount > 0
 
@@ -78,6 +78,6 @@ def mark_improvement_done(query: str) -> Improvement | None:
     with get_db() as conn:
         conn.execute(
             "UPDATE improvements SET done_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now') WHERE id = ?",
-            (imp.uuid,),
+            (imp.id,),
         )
     return imp

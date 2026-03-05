@@ -8,6 +8,7 @@ from fncli import UsageError, cli
 from .core.errors import AmbiguousError
 from .lib import ansi
 from .lib.ansi import POOL, dim, gray, white
+from .lib.ids import parse_ref, short
 from .lib.store import get_db
 
 
@@ -47,8 +48,9 @@ def get_achievements() -> list[Achievement]:
 
 def find_achievement(ref: str, pool: list[Achievement] | None = None) -> Achievement:
     entries = pool if pool is not None else get_achievements()
-    ref_lower = ref.lower()
-    # UUID prefix
+    _, fragment = parse_ref(ref)
+    ref_lower = fragment.lower()
+    # ID prefix
     uuid_matches = [e for e in entries if e.id.startswith(ref_lower)]
     if len(uuid_matches) == 1:
         return uuid_matches[0]
@@ -91,7 +93,7 @@ def _print_achievements(entries: list[Achievement]) -> None:
     for e in entries:
         date_str = dim(e.achieved_at.strftime("%d/%m/%y").lower())
         dot = gray("·")
-        uuid_str = ansi.muted(f"[{e.id[:8]}]")
+        uuid_str = ansi.muted(f"[{short('a', e.id)}]")
         if e.tags:
             tag_parts = [
                 f"{tag_colors.get(t.strip(), ansi.theme.muted)}#{t.strip()}{ansi.theme.reset}"

@@ -5,6 +5,7 @@ from fncli import cli
 from life.core.errors import NotFoundError
 from life.lib import ansi
 from life.lib.format import format_elapsed
+from life.lib.ids import short
 
 
 @cli("steward", flags={"body": []})
@@ -32,7 +33,7 @@ def improve(
         now = datetime.now()
         for i in improvements:
             rel = format_elapsed(i.logged_at, now)
-            print(f"  {ansi.muted('[' + i.uuid[:8] + ']')}  {rel:<10}  {i.body}")
+            print(f"  {ansi.muted('[' + short('i', i.id) + ']')}  {rel:<10}  {i.body}")
         return
 
     add_improvement(body)

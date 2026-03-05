@@ -5,6 +5,7 @@ from fncli import cli
 from life.core.errors import NotFoundError
 from life.lib import ansi
 from life.lib.format import format_elapsed
+from life.lib.ids import short
 
 from . import add_observation, add_session, delete_observation, get_observations
 
@@ -32,7 +33,7 @@ def observe(
         for o in observations:
             rel = format_elapsed(o.logged_at, now)
             tag_str = f" #{o.tag}" if o.tag else ""
-            print(f"  {ansi.muted('[' + o.uuid[:8] + ']')}  {rel:<10}  {o.body}{tag_str}")
+            print(f"  {ansi.muted('[' + short('o', o.id) + ']')}  {rel:<10}  {o.body}{tag_str}")
         return
 
     from datetime import date
@@ -59,13 +60,13 @@ def rm(prefix: str, hard: bool = False):
 
     obs = resolve_prefix(prefix, get_observations(limit=200))
     if obs:
-        delete_observation(obs.uuid, hard=hard)
+        delete_observation(obs.id, hard=hard)
         print(f"→ removed: {obs.body[:80]}")
         return
 
     imp = resolve_prefix(prefix, get_improvements())
     if imp:
-        delete_improvement(imp.uuid, hard=hard)
+        delete_improvement(imp.id, hard=hard)
         print(f"→ removed: {imp.body[:80]}")
         return
 

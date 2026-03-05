@@ -4,12 +4,13 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Protocol
 
+from life.lib.ids import parse_ref
 from life.lib.store import get_db
 
 
-class _HasUUID(Protocol):
+class _HasId(Protocol):
     @property
-    def uuid(self) -> str: ...
+    def id(self) -> str: ...
 
 
 @dataclass(frozen=True)
@@ -21,17 +22,18 @@ class StewardSession:
 
 @dataclass(frozen=True)
 class Observation:
-    uuid: str
+    id: str
     body: str
     tag: str | None
     logged_at: datetime
     about_date: date | None = None
 
 
-def resolve_prefix[T: _HasUUID](prefix: str, pool: Sequence[T]) -> T | None:
-    """Resolve any steward item by UUID prefix. Works on any sequence with .uuid attribute."""
-    p = prefix.lower()
-    matches = [item for item in pool if item.uuid.startswith(p)]
+def resolve_prefix[T: _HasId](prefix: str, pool: Sequence[T]) -> T | None:
+    """Resolve any item by ID prefix. Works on any sequence with .id attribute."""
+    _, fragment = parse_ref(prefix)
+    p = fragment.lower()
+    matches = [item for item in pool if item.id.startswith(p)]
     return matches[0] if matches else None
 
 
@@ -42,13 +44,13 @@ def add_session(summary: str) -> int:
 
 
 def add_observation(body: str, tag: str | None = None, about_date: date | None = None) -> str:
-    obs_uuid = str(_uuid.uuid4())
+    obs_id = str(_uuid.uuid4())
     with get_db() as conn:
         conn.execute(
             "INSERT INTO observations (id, body, tag, about_date) VALUES (?, ?, ?, ?)",
-            (obs_uuid, body, tag, about_date.isoformat() if about_date else None),
+            (obs_id, body, tag, about_date.isoformat() if about_date else None),
         )
-    return obs_uuid
+    return obs_id
 
 
 def get_observations(limit: int = 20, tag: str | None = None) -> list[Observation]:
@@ -71,7 +73,7 @@ def get_observations(limit: int = 20, tag: str | None = None) -> list[Observatio
             ).fetchall()
         return [
             Observation(
-                uuid=row[0],
+                id=row[0],
                 body=row[1],
                 tag=row[2],
                 logged_at=datetime.fromisoformat(row[3]),
@@ -87,13 +89,13 @@ def delete_observation(prefix: str, hard: bool = False) -> bool:
         return False
     with get_db() as conn:
         if hard:
-            cursor = conn.execute("DELETE FROM observations WHERE id = ?", (obs.uuid,))
+            cursor = conn.execute("DELETE FROM observations WHERE id = ?", (obs.id,))
         else:
             cursor = conn.execute(
                 "UPDATE observations "
                 "SET deleted_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now') "
                 "WHERE id = ? AND deleted_at IS NULL",
-                (obs.uuid,),
+                (obs.id,),
             )
         return cursor.rowcount > 0
 
