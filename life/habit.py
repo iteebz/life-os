@@ -2,7 +2,7 @@ import contextlib
 import dataclasses
 import sqlite3
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from fncli import UsageError, cli
 
@@ -308,21 +308,36 @@ def archive(ref: str | None = None, list_archived: bool = False) -> None:
     print(f"{ansi.dim(h.content)}  archived")
 
 
+def _render_habit_matrix(habits: list[Habit]) -> str:
+    lines = ["HABIT TRACKER (last 7 days)\n"]
+    if not habits:
+        return "No habits found."
+    today = clock.today()
+    day_names = [(today - timedelta(days=i)).strftime("%a").lower() for i in range(6, -1, -1)]
+    dates = [(today - timedelta(days=i)) for i in range(6, -1, -1)]
+    header = "habit           " + " ".join(day_names) + "   key"
+    lines += [header, "-" * len(header)]
+    muted = ansi.theme.muted
+    reset = ansi.theme.reset
+    for h in sorted(habits, key=lambda h: h.content.lower()):
+        check_dates = {dt.date() for dt in h.checks}
+        indicators = ["●" if d in check_dates else "○" for d in dates]
+        cells = "   ".join(indicators)
+        lines.append(f"{h.content.lower():<15} {cells}   {muted}[{h.id[:8]}]{reset}")
+    return "\n".join(lines)
+
+
 @cli("life")
 def habits() -> None:
     """Show habits matrix"""
-    from .render import render_habit_matrix
-
-    print(render_habit_matrix(get_habits()))
+    print(_render_habit_matrix(get_habits()))
 
 
 @cli("life", flags={"ref": [], "tag": ["-t", "--tag"]})
 def habit(ref: list[str] | None = None, tag: list[str] | None = None) -> None:
     """List habits, or create one: `life habit "name" -t tag`"""
     if not ref:
-        from .render import render_habit_matrix
-
-        print(render_habit_matrix(get_habits()))
+        print(_render_habit_matrix(get_habits()))
         return
     name = " ".join(ref)
     add_habit(name, tags=tag)

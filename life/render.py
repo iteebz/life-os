@@ -9,13 +9,10 @@ from life.task import task_sort_key
 
 from .lib import clock
 from .lib.ansi import POOL, bold, dim, gold, gray, green, purple, red, theme, white
-from .lib.format import format_habit, format_task
 
 __all__ = [
     "render_dashboard",
     "render_day_summary",
-    "render_habit_matrix",
-    "render_item_list",
     "render_momentum",
     "render_task_detail",
 ]
@@ -515,36 +512,6 @@ def render_momentum(momentum: dict[str, Weekly]) -> str:
         habit_trend = _get_trend(tw.habits_completed, lw.habits_completed)
         lines.append(f"  Tasks: {task_trend}")
         lines.append(f"  Habits: {habit_trend}")
-    return "\n".join(lines)
-
-
-def render_item_list(items: list[Task | Habit]) -> str:
-    if not items:
-        return "No pending items."
-    lines = []
-    for item in items:
-        if isinstance(item, Task):
-            lines.append(format_task(item, tags=item.tags, show_id=True))
-        else:
-            lines.append(format_habit(item, tags=item.tags, show_id=True))
-    return "\n".join(lines)
-
-
-def render_habit_matrix(habits: list[Habit]) -> str:
-    lines = ["HABIT TRACKER (last 7 days)\n"]
-    if not habits:
-        return "No habits found."
-    today = clock.today()
-    day_names = [(today - timedelta(days=i)).strftime("%a").lower() for i in range(6, -1, -1)]
-    dates = [(today - timedelta(days=i)) for i in range(6, -1, -1)]
-    header = "habit           " + " ".join(day_names) + "   key"
-    lines += [header, "-" * len(header)]
-    for habit in sorted(habits, key=lambda h: h.content.lower()):
-        check_dates = {dt.date() for dt in habit.checks}
-        indicators = ["●" if d in check_dates else "○" for d in dates]
-        lines.append(
-            f"{habit.content.lower():<15} {'   '.join(indicators)}   {_GREY}[{habit.id[:8]}]{_R}"
-        )
     return "\n".join(lines)
 
 
