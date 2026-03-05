@@ -15,7 +15,7 @@ def _resolve_email_account(email: str | None) -> dict[str, Any]:
     raise ValueError(error or "No email account found")
 
 
-def _get_email_adapter(provider: str):
+def get_email_adapter(provider: str):
     if provider == "gmail":
         return gmail
     if provider == "outlook":
@@ -88,7 +88,7 @@ def reply_to_thread(
     reply_all: bool = False,
 ) -> tuple[str, str, str, str | None]:
     account = _resolve_email_account(email)
-    adapter = _get_email_adapter(account["provider"])
+    adapter = get_email_adapter(account["provider"])
     from_addr = account["email"]
 
     messages = adapter.fetch_thread_messages(thread_id, from_addr)
@@ -130,7 +130,7 @@ def send_draft(draft_id: str) -> None:
     if not account:
         raise ValueError(f"Account not found: {d.from_account_id}")
 
-    adapter = _get_email_adapter(account["provider"])
+    adapter = get_email_adapter(account["provider"])
     success = adapter.send_message(account["id"], d.from_addr, d)
 
     if not success:
@@ -147,7 +147,7 @@ def list_threads(label: str) -> list[dict[str, Any]]:
     results = []
     for account in accounts:
         try:
-            adapter = _get_email_adapter(account["provider"])
+            adapter = get_email_adapter(account["provider"])
             threads = adapter.list_threads(account["email"], label=label)
             results.append({"account": account, "threads": threads})
         except ValueError:
@@ -175,7 +175,7 @@ def get_unified_inbox(limit: int = 20) -> list[InboxItem]:
     email_accounts = accts_module.list_accounts("email")
     for account in email_accounts:
         try:
-            adapter = _get_email_adapter(account["provider"])
+            adapter = get_email_adapter(account["provider"])
             threads = adapter.list_threads(account["email"], label="inbox", max_results=limit)
             items.extend(
                 [
@@ -221,7 +221,7 @@ def get_unified_inbox(limit: int = 20) -> list[InboxItem]:
 
 def fetch_thread(thread_id: str, email: str | None) -> list[dict[str, Any]]:
     account = _resolve_email_account(email)
-    adapter = _get_email_adapter(account["provider"])
+    adapter = get_email_adapter(account["provider"])
     messages = adapter.fetch_thread_messages(thread_id, account["email"])
     if not messages:
         raise ValueError(f"Thread not found: {thread_id}")
@@ -230,7 +230,7 @@ def fetch_thread(thread_id: str, email: str | None) -> list[dict[str, Any]]:
 
 def resolve_thread_id(prefix: str, email: str | None) -> str | None:
     account = _resolve_email_account(email)
-    adapter = _get_email_adapter(account["provider"])
+    adapter = get_email_adapter(account["provider"])
     if len(prefix) >= 16:
         return prefix
 
@@ -244,7 +244,7 @@ def resolve_thread_id(prefix: str, email: str | None) -> str | None:
 
 def thread_action(action: str, thread_id: str, email: str | None) -> None:
     account = _resolve_email_account(email)
-    adapter = _get_email_adapter(account["provider"])
+    adapter = get_email_adapter(account["provider"])
     action_fn = _get_thread_action(adapter, action)
     if not action_fn:
         raise ValueError(f"Unknown action: {action}")

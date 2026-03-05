@@ -13,7 +13,7 @@ from .lib.store import get_db
 from .metrics import build_feedback_snapshot, render_feedback_snapshot
 from .momentum import weekly_momentum
 from .render import render_dashboard, render_day_summary, render_momentum
-from .task import _fetch_tasks, get_all_tasks, get_tasks, last_completion
+from .task import fetch_tasks, get_all_tasks, get_completed_today, get_tasks, last_completion
 
 # --- dashboard queries (inlined from dashboard.py) ---
 
@@ -36,21 +36,10 @@ def _get_checked_today() -> list[Habit]:
     return get_habits(habit_ids=habit_ids)
 
 
-def _get_completed_today() -> list[Task]:
-    """SELECT completed tasks from today."""
-    today_str = clock.today().isoformat()
-    with get_db() as conn:
-        return _fetch_tasks(
-            conn,
-            "date(completed_at) = ? AND completed_at IS NOT NULL",
-            (today_str,),
-        )
-
-
 def get_day_completed(date_str: str) -> list[Task | Habit]:
     """Get tasks and habits completed on a given date (YYYY-MM-DD)."""
     with get_db() as conn:
-        completed_tasks = _fetch_tasks(
+        completed_tasks = fetch_tasks(
             conn,
             "date(completed_at) = ? AND completed_at IS NOT NULL",
             (date_str,),
@@ -102,7 +91,7 @@ def get_day_breakdown(date_str: str) -> tuple[int, int, int, int]:
 
 def get_today_completed() -> list[Task | Habit]:
     """Get tasks and habits completed today."""
-    return [*_get_completed_today(), *_get_checked_today()]
+    return [*get_completed_today(), *_get_checked_today()]
 
 
 def get_today_breakdown() -> tuple[int, int, int, int]:
@@ -307,19 +296,19 @@ def ls(tag: str | None = None, overdue: bool = False, json: bool = False) -> Non
 @cli("life")
 def colors() -> None:
     """Show the color palette"""
-    r = ansi._active.reset
-    grey = ansi._active.muted
+    r = ansi.theme.reset
+    grey = ansi.theme.muted
     lines = [f"\n{ansi.bold(ansi.white('POOL (tag colors)'))}\n"]
     for code, name in POOL:
         lines.append(f"  {code}██{r}  {name}")
     lines.append(f"\n{ansi.bold(ansi.white('RESERVED'))}\n")
     reserved = [
-        (ansi._active.green, "tasks", "green"),
-        (ansi._active.purple, "habits", "purple"),
-        (ansi._active.gold, "added", "gold"),
-        (ansi._active.red, "removed + deadlines", "red"),
-        (ansi._active.white, "headers", "white"),
-        (ansi._active.muted, "muted", "gray"),
+        (ansi.theme.green, "tasks", "green"),
+        (ansi.theme.purple, "habits", "purple"),
+        (ansi.theme.gold, "added", "gold"),
+        (ansi.theme.red, "removed + deadlines", "red"),
+        (ansi.theme.white, "headers", "white"),
+        (ansi.theme.muted, "muted", "gray"),
     ]
     for code, label, name in reserved:
         lines.append(f"  {code}██{r}  {grey}{label}{r}  {name}")

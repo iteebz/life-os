@@ -25,6 +25,7 @@ __all__ = [
     "find_task_any",
     "find_task_exact",
     "get_all_tasks",
+    "get_completed_today",
     "get_mutations",
     "get_subtasks",
     "get_task",
@@ -46,7 +47,7 @@ _TASK_COLS = (
 )
 
 
-def _fetch_tasks(
+def fetch_tasks(
     conn: sqlite3.Connection, where: str, params: tuple[object, ...] = ()
 ) -> list[Task]:
     cursor = conn.execute(
@@ -59,7 +60,7 @@ def _fetch_tasks(
     return hydrate_tags(tasks, tags_map)
 
 
-def _task_sort_key(task: Task) -> tuple[bool, bool, object, object]:
+def task_sort_key(task: Task) -> tuple[bool, bool, object, object]:
     return (
         not task.focus,
         task.scheduled_date is None,
@@ -150,21 +151,32 @@ def get_task(task_id: str) -> Task | None:
 
 def get_tasks(include_steward: bool = False) -> list[Task]:
     where = "completed_at IS NULL" if include_steward else "completed_at IS NULL AND steward = 0"
-    # deleted_at filter applied in _fetch_tasks
+    # deleted_at filter applied in fetch_tasks
     with get_db() as conn:
-        tasks = _fetch_tasks(conn, where)
-    return sorted(tasks, key=_task_sort_key)
+        tasks = fetch_tasks(conn, where)
+    return sorted(tasks, key=task_sort_key)
 
 
 def get_all_tasks() -> list[Task]:
     with get_db() as conn:
-        tasks = _fetch_tasks(conn, "steward = 0")
-    return sorted(tasks, key=_task_sort_key)
+        tasks = fetch_tasks(conn, "steward = 0")
+    return sorted(tasks, key=task_sort_key)
+
+
+def get_completed_today() -> list[Task]:
+    """SELECT completed tasks from today."""
+    today_str = clock.today().isoformat()
+    with get_db() as conn:
+        return fetch_tasks(
+            conn,
+            "date(completed_at) = ? AND completed_at IS NOT NULL",
+            (today_str,),
+        )
 
 
 def get_subtasks(parent_id: str) -> list[Task]:
     with get_db() as conn:
-        return _fetch_tasks(conn, "parent_id = ?", (parent_id,))
+        return fetch_tasks(conn, "parent_id = ?", (parent_id,))
 
 
 _TRACKED_FIELDS = {
@@ -357,10 +369,8 @@ def toggle_focus(task_id: str) -> Task | None:
 
 
 def find_task(ref: str) -> Task | None:
-    from life.dash import _get_completed_today
-
     pending = get_tasks(include_steward=True)
-    completed_today = _get_completed_today()
+    completed_today = get_completed_today()
     return find_in_pool(ref, pending + completed_today)
 
 
@@ -369,10 +379,8 @@ def find_task_any(ref: str) -> Task | None:
 
 
 def find_task_exact(ref: str) -> Task | None:
-    from life.dash import _get_completed_today
-
     pending = get_tasks(include_steward=True)
-    completed_today = _get_completed_today()
+    completed_today = get_completed_today()
     return find_in_pool_exact(ref, pending + completed_today)
 
 
@@ -424,5 +432,3 @@ def check_task_cmd(task: Task) -> None:
         render_done_row(
             parent_completed.content.lower(), time_str, parent_completed.tags, parent_completed.id
         )
-
-

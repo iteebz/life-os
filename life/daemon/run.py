@@ -169,14 +169,14 @@ def _signal_thread(stop: threading.Event, interval: int) -> None:
 
 
 def _auto_thread(stop: threading.Event, every: int, provider: str) -> None:
-    from life.steward.auto import _run_autonomous
+    from life.steward.auto import run_autonomous
 
     _log(f"[auto] started, running every {every}s, provider={provider}")
 
     while not stop.is_set():
         try:
             _log("[auto] starting autonomous loop")
-            _run_autonomous(provider=provider)
+            run_autonomous(provider=provider)
             _log("[auto] loop complete")
         except Exception as e:
             _log(f"[auto] loop error: {e}")

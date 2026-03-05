@@ -202,7 +202,7 @@ def _build_provider_cmd_env(provider: str, prompt: str) -> tuple[list[str], dict
     return cmd, env
 
 
-def _run_autonomous(provider: str = "claude") -> None:
+def run_autonomous(provider: str = "claude") -> None:
     from life.habit import get_habits
     from life.lib.clock import today
     from life.loop import (
@@ -308,7 +308,7 @@ def on(
     for i in range(1, cycles + 1):
         if cycles > 1:
             print(f"[steward] cycle {i}/{cycles}")
-        _run_autonomous(provider=provider)
+        run_autonomous(provider=provider)
         if i < cycles:
             if _OFF_SENTINEL.exists():
                 print("[steward] off signal received, stopping")

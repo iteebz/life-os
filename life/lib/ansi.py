@@ -45,12 +45,12 @@ class Theme:
 
 
 DEFAULT = Theme()
-_active: Theme = DEFAULT
+theme: Theme = DEFAULT
 
 
-def use(theme: Theme) -> None:
-    global _active
-    _active = theme
+def use(new_theme: Theme) -> None:
+    global theme
+    theme = new_theme
 
 
 _COLORS = {
@@ -101,7 +101,7 @@ def __getattr__(name: str) -> Callable[[str], str]:
     if name in _COLORS:
 
         def _wrap(text: str) -> str:
-            return f"{getattr(_active, name)}{text}{_active.reset}"
+            return f"{getattr(theme, name)}{text}{theme.reset}"
 
         _wrap.__name__ = name
         return _wrap
@@ -109,16 +109,16 @@ def __getattr__(name: str) -> Callable[[str], str]:
 
 
 def bold(text: str) -> str:
-    return f"{_active.bold}{text}{_active.reset}"
+    return f"{theme.bold}{text}{theme.reset}"
 
 
 def dim(text: str) -> str:
-    return f"{_active.dim}{text}{_active.reset}"
+    return f"{theme.dim}{text}{theme.reset}"
 
 
 def strikethrough(text: str) -> str:
     struck = "".join(c + "\u0336" for c in text)
-    return f"{_active.muted}{struck}{_active.reset}"
+    return f"{theme.muted}{struck}{theme.reset}"
 
 
 def strip(text: str) -> str:
@@ -196,23 +196,23 @@ def agent_color(identity: str) -> str:
 
 def mention(name: str) -> str:
     color = agent_color(name)
-    return f"{_active.bold}{color}@{name}{_active.reset}"
+    return f"{theme.bold}{color}@{name}{theme.reset}"
 
 
 def highlight_references(text: str, base_color: str | None = None) -> str:
-    base = base_color or _active.reset
+    base = base_color or theme.reset
 
     def _color_ref(m: re.Match[str]) -> str:
-        return f"{_active.bold}{_active.cyan}{m.group(1)}/{m.group(2)}{_active.reset}{base}"
+        return f"{theme.bold}{theme.cyan}{m.group(1)}/{m.group(2)}{theme.reset}{base}"
 
     return _REFERENCE_RE.sub(_color_ref, text)
 
 
 def highlight_path(text: str, base_color: str | None = None) -> str:
-    base = base_color or _active.reset
+    base = base_color or theme.reset
 
     def _color_path(m: re.Match[str]) -> str:
-        return f"{_active.blue}{m.group(1)}{base}"
+        return f"{theme.blue}{m.group(1)}{base}"
 
     result = _PATH_RE.sub(_color_path, text)
     if base_color:

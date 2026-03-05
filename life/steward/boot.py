@@ -198,13 +198,13 @@ def boot():
 
         email_accounts = list_accounts("email")
         if email_accounts:
-            from life.comms.services import _get_email_adapter
+            from life.comms.services import get_email_adapter
 
             total_inbox = 0
             flagged_lines: list[str] = []
             for acct in email_accounts:
                 try:
-                    adapter = _get_email_adapter(acct["provider"])
+                    adapter = get_email_adapter(acct["provider"])
                     threads = adapter.list_threads(acct["email"], label="inbox", max_results=10)
                     total_inbox += len(threads)
                     flagged = adapter.list_threads(acct["email"], label="starred", max_results=5)

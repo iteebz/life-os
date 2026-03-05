@@ -36,8 +36,8 @@ def format_elapsed(dt: datetime, now: datetime | None = None) -> str:
 def render_done_row(
     content: str, time_str: str, tags: list[str], item_id: str, is_habit: bool = False
 ) -> None:
-    r = ansi._active.reset
-    grey = ansi._active.muted
+    r = ansi.theme.reset
+    grey = ansi.theme.muted
     check = ansi.purple("●") if is_habit else ansi.green("✓")
     tag_str = ""
     if tags:
@@ -50,8 +50,8 @@ def render_done_row(
 
 
 def render_uncheck_row(content: str, tags: list[str], item_id: str) -> None:
-    r = ansi._active.reset
-    grey = ansi._active.muted
+    r = ansi.theme.reset
+    grey = ansi.theme.muted
     tag_str = ""
     if tags:
         parts = [f"{ansi.POOL[hash(t) % len(ansi.POOL)][0]}#{t}{r}" for t in tags]

@@ -98,7 +98,7 @@ def _print_achievements(entries: list[Achievement]) -> None:
         uuid_str = ansi.muted(f"[{e.uuid[:8]}]")
         if e.tags:
             tag_parts = [
-                f"{tag_colors.get(t.strip(), ansi._active.muted)}#{t.strip()}{ansi._active.reset}"
+                f"{tag_colors.get(t.strip(), ansi.theme.muted)}#{t.strip()}{ansi.theme.reset}"
                 for t in e.tags.split(",")
             ]
             tags_str = "  " + " ".join(tag_parts)
