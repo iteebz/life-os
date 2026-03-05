@@ -225,9 +225,9 @@ def render_feedback_snapshot(snapshot: FeedbackSnapshot) -> list[str]:
 def render_feedback_headline(snapshot: FeedbackSnapshot) -> str:
     partner_total = snapshot.partner_done + snapshot.partner_open
     parts = [f"tasks {_format_pct(snapshot.closure_score)} {snapshot.momentum}"]
+    parts.append(f"habits {snapshot.habit_rate:.0%}")
     if snapshot.partner_tag and partner_total:
         parts.append(f"partner {_format_ratio(snapshot.partner_done, partner_total)}")
-    parts.append(f"habits {snapshot.habit_rate:.0%}")
     if snapshot.flags:
         parts.append("⚑ " + ", ".join(snapshot.flags))
     return "  ".join(parts)
