@@ -79,27 +79,15 @@ select = [
     "PLC",    # pylint conventions
 ]
 ignore = [
-    "SIM108",
-    "SIM115",
-    "SIM117",
-    "COM812",
-    "S104",
-    "D100", "D101", "D102", "D103", "D104", "D107",
-    "D202", "D209", "D212", "D213", "D401", "D413", "D417",
-    "ANN001", "ANN002", "ANN003", "ANN201", "ANN202", "ANN204", "ANN401",
-    "FBT001", "FBT002", "FBT003",
-    "EM101", "EM102",
-    "TRY003", "TRY300", "TRY301", "TRY400", "TRY401",
-    "G004", "G201",
-    "PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLR2004",
-    "ARG001", "ARG004",
-    "C901",
-    "BLE001",
-    "S603",
-    "S607",
-    "S108",
-    "B008",
-    "PLC0415",
+    "SIM108",   # ternary — readability preference
+    "SIM115",   # context manager for open() — not always cleaner
+    "SIM117",   # nested with — readability preference
+    "S104",     # binding 0.0.0.0 — preventive
+    "S603",     # subprocess call — CLI shells out by design
+    "S607",     # partial path — same
+    "S108",     # /tmp usage — acceptable
+    "B008",     # mutable default arg — fncli pattern
+    "PLC0415",  # import not at top — lazy imports for fncli commands
 ]
 
 [tool.ruff.lint.per-file-ignores]
