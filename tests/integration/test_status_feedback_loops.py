@@ -59,5 +59,5 @@ def test_stats_closure_weighted_by_tag(tmp_life_dir):
 
     assert result.exit_code == 0
     assert "STATS (7d):" in result.stdout
-    assert "closure:  100%" in result.stdout
+    assert "tasks:    100%" in result.stdout
     assert "pts)" in result.stdout

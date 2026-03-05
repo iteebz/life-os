@@ -44,6 +44,7 @@ class FeedbackSnapshot:
     habit_possible: int
     overdue_resets: int
     flags: list[str]
+    momentum: str = "≈"
     partner_tag: str | None = None
     tag_stats: dict[str, TagStat] = dataclasses.field(default_factory=dict)
 
@@ -73,7 +74,7 @@ def _format_ratio(done: int, total: int) -> str:
 def _count_defers(window_start: date, window_end: date) -> int:
     with get_db() as conn:
         row = conn.execute(
-            "SELECT COUNT(*) FROM task_mutations "
+            "SELECT COUNT(*) FROM mutations "
             "WHERE field = 'defer' "
             "AND date(mutated_at) >= ? AND date(mutated_at) <= ?",
             (window_start.isoformat(), window_end.isoformat()),
@@ -84,7 +85,7 @@ def _count_defers(window_start: date, window_end: date) -> int:
 def _count_overdue_resets(window_start: date, window_end: date) -> int:
     with get_db() as conn:
         row = conn.execute(
-            "SELECT COUNT(*) FROM task_mutations "
+            "SELECT COUNT(*) FROM mutations "
             "WHERE reason = 'overdue_reset' "
             "AND date(mutated_at) >= ? AND date(mutated_at) <= ?",
             (window_start.isoformat(), window_end.isoformat()),
@@ -140,6 +141,21 @@ def build_feedback_snapshot(
         habit_checked += min(weeks_hit, weeks_in_window)
     habit_rate = habit_checked / habit_possible if habit_possible else 0.0
 
+    prior_start = window_start - timedelta(days=window_days)
+    prior_end = window_start - timedelta(days=1)
+    prior_earned = sum(
+        _task_weight(t) for t in top_all if _in_window(t.completed_at, prior_start, prior_end)
+    )
+    _momentum_threshold = 0.10
+    if prior_earned == 0:
+        momentum = "↑" if closure_earned > 0 else "≈"
+    elif closure_earned >= prior_earned * (1 + _momentum_threshold):
+        momentum = "↑"
+    elif closure_earned <= prior_earned * (1 - _momentum_threshold):
+        momentum = "↓"
+    else:
+        momentum = "≈"
+
     tracked_tags = set(TAG_WEIGHT.keys())
     tag_stats: dict[str, TagStat] = {}
     for tag in tracked_tags:
@@ -175,6 +191,7 @@ def build_feedback_snapshot(
         habit_possible=habit_possible,
         overdue_resets=overdue_resets,
         flags=flags,
+        momentum=momentum,
         partner_tag=ptag,
         tag_stats=tag_stats,
     )
@@ -184,7 +201,7 @@ def render_feedback_snapshot(snapshot: FeedbackSnapshot) -> list[str]:
     partner_total = snapshot.partner_done + snapshot.partner_open
     lines = [
         "STATS (7d):",
-        f"  closure:  {_format_pct(snapshot.closure_score)} "
+        f"  tasks:    {_format_pct(snapshot.closure_score)} {snapshot.momentum} "
         f"({snapshot.closure_earned:.0f}/{snapshot.closure_possible:.0f} pts)",
     ]
     if snapshot.partner_tag and partner_total:
@@ -193,7 +210,7 @@ def render_feedback_snapshot(snapshot: FeedbackSnapshot) -> list[str]:
             f"({snapshot.partner_done}/{partner_total})"
         )
     lines += [
-        f"  rhythm:   {snapshot.habit_rate:.0%} "
+        f"  habits:   {snapshot.habit_rate:.0%} "
         f"({snapshot.habit_checked}/{snapshot.habit_possible})",
         f"  dodges:   {snapshot.defer_count}",
         f"  slips:    {snapshot.overdue_resets}",
@@ -207,10 +224,10 @@ def render_feedback_snapshot(snapshot: FeedbackSnapshot) -> list[str]:
 
 def render_feedback_headline(snapshot: FeedbackSnapshot) -> str:
     partner_total = snapshot.partner_done + snapshot.partner_open
-    parts = [f"closure {_format_pct(snapshot.closure_score)}"]
+    parts = [f"tasks {_format_pct(snapshot.closure_score)} {snapshot.momentum}"]
     if snapshot.partner_tag and partner_total:
         parts.append(f"partner {_format_ratio(snapshot.partner_done, partner_total)}")
-    parts.append(f"rhythm {snapshot.habit_rate:.0%}")
+    parts.append(f"habits {snapshot.habit_rate:.0%}")
     if snapshot.flags:
         parts.append("⚑ " + ", ".join(snapshot.flags))
     return "  ".join(parts)
