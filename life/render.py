@@ -120,7 +120,7 @@ class RenderCtx:
 
 
 def _row_subtask(sub: Task, ctx: RenderCtx, indent: str = "  └ ") -> str:
-    id_str = f" {_GREY}[{sub.id[:8]}]{_R}"
+    id_str = f" {dim('[' + sub.id[:8] + ']')}"
     tags_str = _fmt_tags(_get_direct_tags(sub, ctx.pending), ctx.tag_colors)
     time_str = f"{_fmt_time(sub.scheduled_time)} " if sub.scheduled_time else ""
     return f"{indent}□ {time_str}{sub.content.lower()}{tags_str}{id_str}{_R}"
@@ -136,7 +136,7 @@ def _row_task(
     today_str = ctx.today.isoformat()
     tomorrow_str = (ctx.today + timedelta(days=1)).isoformat()
     tags_str = _fmt_tags(tags_override if tags_override is not None else task.tags, ctx.tag_colors)
-    id_str = f" {_GREY}[{task.id[:8]}]{_R}"
+    id_str = f" {dim('[' + task.id[:8] + ']')}"
 
     date_str = ""
     if task.scheduled_date and task.scheduled_date.isoformat() not in (today_str, tomorrow_str):
@@ -172,7 +172,7 @@ def _row_habit(
     habit: Habit, checked_ids: set[str], ctx: RenderCtx, indent: str = "  "
 ) -> list[str]:
     tags_str = _fmt_tags(habit.tags, ctx.tag_colors)
-    id_str = f" {_GREY}[{habit.id[:8]}]{_R}"
+    id_str = f" {dim('[' + habit.id[:8] + ']')}"
 
     if habit.cadence == "weekly":
         # Trend: last 4 weeks vs prior 4 weeks
@@ -248,7 +248,7 @@ def _section_done(
     for item in sorted(items, key=_sort_key):
         tags_str = _fmt_tags(item.tags, ctx.tag_colors)
         content = item.content.lower()
-        id_str = f" {_GREY}[{item.id[:8]}]{_R}"
+        id_str = f" {dim('[' + item.id[:8] + ']')}"
         if isinstance(item, Habit):
             on_date = [c for c in item.checks if c.date() == target]
             time_str = max(on_date).strftime("%H:%M") if on_date else ""
@@ -272,7 +272,7 @@ def _section_overdue(tasks: list[Task], ctx: RenderCtx) -> tuple[list[str], set[
     for task in sorted(tasks, key=task_sort_key):
         scheduled_ids.add(task.id)
         tags_str = _fmt_tags(task.tags, ctx.tag_colors)
-        id_str = f" {_GREY}[{task.id[:8]}]{_R}"
+        id_str = f" {dim('[' + task.id[:8] + ']')}"
         fire = f"{theme.bold}🔥{_R} " if task.focus else ""
         label = _fmt_rel_date(
             task.scheduled_date or ctx.today, ctx.today, task.scheduled_time, task.is_deadline
@@ -316,7 +316,7 @@ def _section_schedule(
     for task in sorted(tasks, key=_sort):
         scheduled_ids.add(task.id)
         tags_str = _fmt_tags(task.tags, ctx.tag_colors)
-        id_str = f" {_GREY}[{task.id[:8]}]{_R}"
+        id_str = f" {dim('[' + task.id[:8] + ']')}"
         time_str = f"{_fmt_time(task.scheduled_time)} " if task.scheduled_time else ""
         if task.blocked_by:
             blocker = ctx.id_to_content.get(task.blocked_by, task.blocked_by[:8])
