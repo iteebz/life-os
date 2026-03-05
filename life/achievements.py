@@ -13,8 +13,7 @@ from .lib.store import get_db
 
 @dataclass(frozen=True)
 class Achievement:
-    id: int
-    uuid: str
+    id: str
     name: str
     tags: str | None
     achieved_at: datetime
@@ -24,7 +23,7 @@ def add_achievement(name: str, tags: str | None = None) -> str:
     a_uuid = _uuid.uuid4().hex[:8]
     with get_db() as conn:
         conn.execute(
-            "INSERT INTO achievements (uuid, name, tags) VALUES (?, ?, ?)",
+            "INSERT INTO achievements (id, name, tags) VALUES (?, ?, ?)",
             (a_uuid, name, tags),
         )
     return a_uuid
@@ -33,15 +32,14 @@ def add_achievement(name: str, tags: str | None = None) -> str:
 def get_achievements() -> list[Achievement]:
     with get_db() as conn:
         rows = conn.execute(
-            "SELECT id, uuid, name, tags, achieved_at FROM achievements ORDER BY achieved_at DESC"
+            "SELECT id, name, tags, achieved_at FROM achievements ORDER BY achieved_at DESC"
         ).fetchall()
     return [
         Achievement(
-            id=row[0],
-            uuid=row[1] or "",
-            name=row[2],
-            tags=row[3],
-            achieved_at=datetime.fromisoformat(row[4]),
+            id=row[0] or "",
+            name=row[1],
+            tags=row[2],
+            achieved_at=datetime.fromisoformat(row[3]),
         )
         for row in rows
     ]
@@ -51,13 +49,11 @@ def find_achievement(ref: str, pool: list[Achievement] | None = None) -> Achieve
     entries = pool if pool is not None else get_achievements()
     ref_lower = ref.lower()
     # UUID prefix
-    uuid_matches = [e for e in entries if e.uuid.startswith(ref_lower)]
+    uuid_matches = [e for e in entries if e.id.startswith(ref_lower)]
     if len(uuid_matches) == 1:
         return uuid_matches[0]
     if len(uuid_matches) > 1:
-        raise AmbiguousError(
-            ref, count=len(uuid_matches), sample=[e.uuid for e in uuid_matches[:3]]
-        )
+        raise AmbiguousError(ref, count=len(uuid_matches), sample=[e.id for e in uuid_matches[:3]])
     # exact name
     exact = next((e for e in entries if e.name.lower() == ref_lower), None)
     if exact:
@@ -95,7 +91,7 @@ def _print_achievements(entries: list[Achievement]) -> None:
     for e in entries:
         date_str = dim(e.achieved_at.strftime("%d/%m/%y").lower())
         dot = gray("·")
-        uuid_str = ansi.muted(f"[{e.uuid[:8]}]")
+        uuid_str = ansi.muted(f"[{e.id[:8]}]")
         if e.tags:
             tag_parts = [
                 f"{tag_colors.get(t.strip(), ansi.theme.muted)}#{t.strip()}{ansi.theme.reset}"

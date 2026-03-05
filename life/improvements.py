@@ -16,7 +16,7 @@ class Improvement:
 def add_improvement(body: str) -> str:
     imp_uuid = str(_uuid.uuid4())
     with get_db() as conn:
-        conn.execute("INSERT INTO improvements (uuid, body) VALUES (?, ?)", (imp_uuid, body))
+        conn.execute("INSERT INTO improvements (id, body) VALUES (?, ?)", (imp_uuid, body))
     return imp_uuid
 
 
@@ -24,12 +24,12 @@ def get_improvements(done: bool = False) -> list[Improvement]:
     with get_db() as conn:
         if done:
             rows = conn.execute(
-                "SELECT uuid, body, logged_at, done_at FROM improvements "
+                "SELECT id, body, logged_at, done_at FROM improvements "
                 "WHERE deleted_at IS NULL ORDER BY logged_at DESC"
             ).fetchall()
         else:
             rows = conn.execute(
-                "SELECT uuid, body, logged_at, done_at FROM improvements "
+                "SELECT id, body, logged_at, done_at FROM improvements "
                 "WHERE done_at IS NULL AND deleted_at IS NULL "
                 "ORDER BY logged_at DESC"
             ).fetchall()
@@ -52,12 +52,12 @@ def delete_improvement(prefix: str, hard: bool = False) -> bool:
         return False
     with get_db() as conn:
         if hard:
-            cursor = conn.execute("DELETE FROM improvements WHERE uuid = ?", (imp.uuid,))
+            cursor = conn.execute("DELETE FROM improvements WHERE id = ?", (imp.uuid,))
         else:
             cursor = conn.execute(
                 "UPDATE improvements "
                 "SET deleted_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now') "
-                "WHERE uuid = ? AND deleted_at IS NULL",
+                "WHERE id = ? AND deleted_at IS NULL",
                 (imp.uuid,),
             )
         return cursor.rowcount > 0
@@ -77,7 +77,7 @@ def mark_improvement_done(query: str) -> Improvement | None:
         return None
     with get_db() as conn:
         conn.execute(
-            "UPDATE improvements SET done_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now') WHERE uuid = ?",
+            "UPDATE improvements SET done_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now') WHERE id = ?",
             (imp.uuid,),
         )
     return imp

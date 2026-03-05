@@ -74,8 +74,7 @@ CREATE TABLE sessions (
 );
 
 CREATE TABLE observations (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    uuid TEXT,
+    id TEXT PRIMARY KEY,
     body TEXT NOT NULL,
     logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     tag TEXT,
@@ -100,8 +99,7 @@ CREATE TABLE special_dates (
 );
 
 CREATE TABLE improvements (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    uuid TEXT,
+    id TEXT PRIMARY KEY,
     body TEXT NOT NULL,
     logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     done_at TIMESTAMP,
@@ -109,8 +107,7 @@ CREATE TABLE improvements (
 );
 
 CREATE TABLE achievements (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    uuid TEXT,
+    id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     description TEXT,
     tags TEXT,

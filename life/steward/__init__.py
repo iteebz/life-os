@@ -45,7 +45,7 @@ def add_observation(body: str, tag: str | None = None, about_date: date | None =
     obs_uuid = str(_uuid.uuid4())
     with get_db() as conn:
         conn.execute(
-            "INSERT INTO observations (uuid, body, tag, about_date) VALUES (?, ?, ?, ?)",
+            "INSERT INTO observations (id, body, tag, about_date) VALUES (?, ?, ?, ?)",
             (obs_uuid, body, tag, about_date.isoformat() if about_date else None),
         )
     return obs_uuid
@@ -55,7 +55,7 @@ def get_observations(limit: int = 20, tag: str | None = None) -> list[Observatio
     with get_db() as conn:
         if tag:
             rows = conn.execute(
-                "SELECT uuid, body, tag, logged_at, about_date "
+                "SELECT id, body, tag, logged_at, about_date "
                 "FROM observations WHERE tag = ? "
                 "AND deleted_at IS NULL "
                 "ORDER BY logged_at DESC LIMIT ?",
@@ -63,7 +63,7 @@ def get_observations(limit: int = 20, tag: str | None = None) -> list[Observatio
             ).fetchall()
         else:
             rows = conn.execute(
-                "SELECT uuid, body, tag, logged_at, about_date "
+                "SELECT id, body, tag, logged_at, about_date "
                 "FROM observations "
                 "WHERE deleted_at IS NULL "
                 "ORDER BY logged_at DESC LIMIT ?",
@@ -87,12 +87,12 @@ def delete_observation(prefix: str, hard: bool = False) -> bool:
         return False
     with get_db() as conn:
         if hard:
-            cursor = conn.execute("DELETE FROM observations WHERE uuid = ?", (obs.uuid,))
+            cursor = conn.execute("DELETE FROM observations WHERE id = ?", (obs.uuid,))
         else:
             cursor = conn.execute(
                 "UPDATE observations "
                 "SET deleted_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now') "
-                "WHERE uuid = ? AND deleted_at IS NULL",
+                "WHERE id = ? AND deleted_at IS NULL",
                 (obs.uuid,),
             )
         return cursor.rowcount > 0
