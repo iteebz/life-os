@@ -185,7 +185,7 @@ def _row_habit(
         p2_end = p1_start - timedelta(days=1)
         count_p1 = _weeks_hit(p1_start, ctx.today)
         count_p2 = _weeks_hit(p2_start, p2_end)
-        cadence_label = f" {dim('(weekly)')}"
+        cadence_label = f" {gray('(weekly)')}"
     else:
         p1_start = ctx.today - timedelta(days=6)
         p2_start = ctx.today - timedelta(days=13)
@@ -342,12 +342,25 @@ def _section_habits(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) 
     visible = [h for h in habits if not h.private and not h.parent_id]
     if not visible:
         return []
-    checked_count = sum(1 for h in habits if h.id in checked_ids)
-    lines = [f"\n{theme.bold}{theme.purple}HABITS ({checked_count}/{len(habits)}){_R}"]
-    sorted_habits = sorted(visible, key=lambda h: h.content.lower())
-    for habit in [h for h in sorted_habits if h.id not in checked_ids] + [
-        h for h in sorted_habits if h.id in checked_ids
-    ]:
+
+    # Weekly habits count as "done" if checked any day this week
+    week_start = ctx.today - timedelta(days=ctx.today.weekday())
+
+    def _is_done(h: Habit) -> bool:
+        if h.id in checked_ids:
+            return True
+        if h.cadence == "weekly":
+            return any(week_start <= dt.date() <= ctx.today for dt in h.checks)
+        return False
+
+    done_count = sum(1 for h in visible if _is_done(h))
+    remaining = [h for h in visible if not _is_done(h)]
+
+    lines = [f"\n{theme.bold}{theme.purple}HABITS ({done_count}/{len(visible)}){_R}"]
+    if not remaining:
+        lines.append(f"  {gray('all done.')}")
+        return lines
+    for habit in sorted(remaining, key=lambda h: h.content.lower()):
         lines.extend(_row_habit(habit, checked_ids, ctx))
     return lines
 
