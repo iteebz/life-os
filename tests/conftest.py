@@ -2,6 +2,7 @@ import io
 from contextlib import redirect_stderr, redirect_stdout
 from datetime import date, datetime, time
 
+import fncli
 import pytest
 
 import life.config
@@ -10,60 +11,55 @@ from life import db
 from life.core.errors import LifeError
 from life.lib.store import configure as configure_store
 
-
-class _Result:
-    def __init__(self, exit_code: int, stdout: str, stderr: str):
-        self.exit_code = exit_code
-        self.stdout = stdout
-        self.stderr = stderr
+_discovered = False
 
 
-class FnCLIRunner:
-    _discovered = False
+def invoke(argv: list[str]) -> fncli.Result:
+    """Invoke a life CLI command, returning captured Result.
 
-    def invoke(self, argv: list[str]) -> _Result:
-        from pathlib import Path
+    Handles autodiscovery once, then delegates to fncli.invoke with
+    life-os-specific routing (dashboard fallback, prefix trial).
+    """
+    global _discovered
+    from pathlib import Path
 
-        import fncli
-        from fncli import dispatch
+    if not _discovered:
+        import life.cli  # noqa: F401 — registers fncli commands
 
-        if not FnCLIRunner._discovered:
-            import life.cli  # noqa: F401 — registers fncli commands
+        fncli.autodiscover(Path(__file__).parent.parent / "life", "life")
+        _discovered = True
 
-            fncli.autodiscover(Path(__file__).parent.parent / "life", "life")
-            FnCLIRunner._discovered = True
+    from life.dash import dashboard
 
-        from life.dash import dashboard
+    _dashboard = getattr(dashboard, "__wrapped__", dashboard)
 
-        # @cli wraps functions — call the raw function to avoid sys.argv leakage
-        _dashboard = getattr(dashboard, "__wrapped__", dashboard)
-
-        out_buf = io.StringIO()
-        err_buf = io.StringIO()
-        try:
-            with redirect_stdout(out_buf), redirect_stderr(err_buf):
-                if not argv or argv == ["-v"] or argv == ["--verbose"]:
-                    _dashboard()
-                    code = 0
+    out_buf = io.StringIO()
+    err_buf = io.StringIO()
+    code = 0
+    try:
+        with redirect_stdout(out_buf), redirect_stderr(err_buf):
+            if not argv or argv == ["-v"] or argv == ["--verbose"]:
+                _dashboard()
+                code = 0
+            else:
+                # Try "life <cmd>" first; fall back to bare argv for
+                # commands not registered under the "life" namespace
+                trial_err = io.StringIO()
+                with redirect_stderr(trial_err):
+                    prefixed_code = fncli.try_dispatch(["life", *argv])
+                if prefixed_code == 1 and "Unknown command" in trial_err.getvalue():
+                    code = fncli.dispatch(argv)
+                elif prefixed_code is None:
+                    code = fncli.dispatch(["life", *argv])
                 else:
-                    # Try "life <cmd>" first; fall back to bare argv for
-                    # commands not registered under the "life" namespace
-                    trial_err = io.StringIO()
-                    with redirect_stderr(trial_err):
-                        prefixed_code = fncli.try_dispatch(["life", *argv])
-                    if prefixed_code == 1 and "Unknown command" in trial_err.getvalue():
-                        code = dispatch(argv)
-                    elif prefixed_code is None:
-                        code = dispatch(["life", *argv])
-                    else:
-                        err_buf.write(trial_err.getvalue())
-                        code = prefixed_code
-        except SystemExit as e:
-            code = int(e.code) if e.code is not None else 1
-        except LifeError as e:
-            err_buf.write(f"{e}\n")
-            code = 1
-        return _Result(code, out_buf.getvalue(), err_buf.getvalue())
+                    err_buf.write(trial_err.getvalue())
+                    code = prefixed_code
+    except SystemExit as e:
+        code = int(e.code) if e.code is not None else 1
+    except LifeError as e:
+        err_buf.write(f"{e}\n")
+        code = 1
+    return fncli.Result(code, out_buf.getvalue(), err_buf.getvalue())
 
 
 @pytest.fixture

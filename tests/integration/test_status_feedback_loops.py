@@ -1,15 +1,14 @@
 from datetime import date, datetime, timedelta
 
 from life.lib.store import get_db
-from tests.conftest import FnCLIRunner
+from tests.conftest import invoke
 
 
 def test_status_shows_feedback_metrics(tmp_life_dir):
-    runner = FnCLIRunner()
-    runner.invoke(["task", "call bank", "--tag", "finance", "--due", "today"])
-    runner.invoke(["task", "wedding vids", "--tag", "janice"])
+    invoke(["task", "call bank", "--tag", "finance", "--due", "today"])
+    invoke(["task", "wedding vids", "--tag", "janice"])
 
-    result = runner.invoke(["status"])
+    result = invoke(["status"])
 
     assert result.exit_code == 0
     assert "HEALTH:" in result.stdout
@@ -21,9 +20,8 @@ def test_status_flags_relationship_and_stuck_task(tmp_life_dir):
     import life.config
 
     life.config._config._data["partner_tag"] = "janice"
-    runner = FnCLIRunner()
-    runner.invoke(["task", "wedding vids", "--tag", "janice"])
-    runner.invoke(["task", "call bank", "--tag", "finance"])
+    invoke(["task", "wedding vids", "--tag", "janice"])
+    invoke(["task", "call bank", "--tag", "finance"])
 
     today = date.today()
     with get_db() as conn:
@@ -32,7 +30,7 @@ def test_status_flags_relationship_and_stuck_task(tmp_life_dir):
             ((today - timedelta(days=4)).isoformat(), "call bank"),
         )
 
-    result = runner.invoke(["status"])
+    result = invoke(["status"])
 
     assert result.exit_code == 0
     assert "FLAGS:" in result.stdout
@@ -41,10 +39,9 @@ def test_status_flags_relationship_and_stuck_task(tmp_life_dir):
 
 
 def test_stats_closure_weighted_by_tag(tmp_life_dir):
-    runner = FnCLIRunner()
     today = date.today()
-    runner.invoke(["task", "invoice jeff", "--tag", "finance", "--due", "today"])
-    runner.invoke(["done", "invoice jeff"])
+    invoke(["task", "invoice jeff", "--tag", "finance", "--due", "today"])
+    invoke(["done", "invoice jeff"])
 
     yesterday = datetime.combine(today - timedelta(days=1), datetime.min.time())
     with get_db() as conn:
@@ -58,7 +55,7 @@ def test_stats_closure_weighted_by_tag(tmp_life_dir):
             ),
         )
 
-    result = runner.invoke(["stats"])
+    result = invoke(["stats"])
 
     assert result.exit_code == 0
     assert "STATS (7d):" in result.stdout
