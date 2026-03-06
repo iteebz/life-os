@@ -203,6 +203,7 @@ def _build_provider_cmd_env(provider: str, prompt: str) -> tuple[list[str], dict
 
 
 def run_autonomous(provider: str = "claude") -> None:
+    from life.feedback import build_feedback_snapshot, render_feedback_snapshot
     from life.habit import get_habits
     from life.lib.clock import today
     from life.loop import (
@@ -211,7 +212,6 @@ def run_autonomous(provider: str = "claude") -> None:
         save_loop_state,
         update_loop_state,
     )
-    from life.metrics import build_feedback_snapshot, render_feedback_snapshot
     from life.task import get_all_tasks, get_tasks
 
     tasks_before = get_tasks()

@@ -77,7 +77,8 @@ def get_habits_by_tag(tag: str) -> list[Habit]:
     with get_db() as conn:
         cursor = conn.execute(
             """
-            SELECT DISTINCT h.id, h.content, h.created
+            SELECT DISTINCT h.id, h.content, h.created, h.archived_at,
+                   h.parent_id, h.private, h.cadence
             FROM habits h
             INNER JOIN tags tg ON h.id = tg.habit_id
             WHERE tg.tag = ?

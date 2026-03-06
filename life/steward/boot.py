@@ -17,10 +17,10 @@ STEWARD_BIRTHDAY = datetime(2026, 2, 18)
 @cli("steward")
 def boot():
     """Load life state and emit sitrep for interactive session start"""
+    from life.feedback import build_feedback_snapshot, render_feedback_headline
     from life.habit import get_habits
     from life.improvements import get_improvements
     from life.lib.clock import today
-    from life.metrics import build_feedback_snapshot, render_feedback_headline
     from life.mood import get_recent_moods
     from life.task import get_all_tasks, get_tasks
 

@@ -96,7 +96,7 @@ def test_weekly_streak_year_boundary(tmp_life_dir, monkeypatch):
 
 def test_weekly_metrics_count_one_per_week(tmp_life_dir, fixed_today):
     """Weekly habits should count as 1 possible per week, not 7."""
-    from life.metrics import build_feedback_snapshot
+    from life.feedback import build_feedback_snapshot
     from life.task import get_all_tasks, get_tasks
 
     add_habit("daily-thing")
