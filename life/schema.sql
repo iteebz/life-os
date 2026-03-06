@@ -29,6 +29,7 @@ CREATE TABLE habits (
     parent_id TEXT REFERENCES habits(id) ON DELETE CASCADE,
     private BOOLEAN NOT NULL DEFAULT 0,
     cadence TEXT NOT NULL DEFAULT 'daily' CHECK (cadence IN ('daily', 'weekly')),
+    deleted_at TEXT,
     CHECK (length(content) > 0)
 );
 

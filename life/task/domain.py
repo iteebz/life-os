@@ -98,6 +98,7 @@ def add_task(
     content: str,
     focus: bool = False,
     scheduled_date: str | None = None,
+    scheduled_time: str | None = None,
     tags: list[str] | None = None,
     parent_id: str | None = None,
     notes: str | None = None,
@@ -109,14 +110,15 @@ def add_task(
         try:
             conn.execute(
                 "INSERT INTO tasks "
-                "(id, content, focus, scheduled_date, created, "
+                "(id, content, focus, scheduled_date, scheduled_time, created, "
                 "parent_id, notes, steward, source) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     task_id,
                     content,
                     focus,
                     scheduled_date,
+                    scheduled_time,
                     clock.today().isoformat(),
                     parent_id,
                     notes,

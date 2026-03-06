@@ -81,7 +81,7 @@ def get_habits_by_tag(tag: str) -> list[Habit]:
                    h.parent_id, h.private, h.cadence
             FROM habits h
             INNER JOIN tags tg ON h.id = tg.habit_id
-            WHERE tg.tag = ?
+            WHERE tg.tag = ? AND h.deleted_at IS NULL
             """,
             (tag.lower(),),
         )

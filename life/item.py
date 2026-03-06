@@ -1,5 +1,3 @@
-from typing import Any
-
 from fncli import UsageError, cli
 
 from .core.errors import NotFoundError, ValidationError
@@ -15,7 +13,6 @@ from .task import (
     delete_task,
     rename_task,
     uncheck_task,
-    update_task,
 )
 
 
@@ -146,19 +143,13 @@ def add(
         content_str,
         focus=focus,
         scheduled_date=resolved_due,
+        scheduled_time=resolved_time,
         tags=tags,
         parent_id=parent_id,
         notes=desc,
         steward=steward,
         source=source,
     )
-    if resolved_due or resolved_time:
-        updates: dict[str, Any] = {}
-        if resolved_due:
-            updates["scheduled_date"] = resolved_due
-        if resolved_time:
-            updates["scheduled_time"] = resolved_time
-        update_task(task_id, **updates)
     if done:
         from .task import get_task
 

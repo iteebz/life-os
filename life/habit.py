@@ -101,7 +101,7 @@ def add_habit(
 def get_habit(habit_id: str) -> Habit | None:
     with get_db() as conn:
         cursor = conn.execute(
-            f"SELECT {_HABIT_COLS} FROM habits WHERE id = ?",  # noqa: S608
+            f"SELECT {_HABIT_COLS} FROM habits WHERE id = ? AND deleted_at IS NULL",  # noqa: S608
             (habit_id,),
         )
         row = cursor.fetchone()
@@ -132,13 +132,16 @@ def update_habit(habit_id: str, content: str | None = None) -> Habit | None:
 
 def delete_habit(habit_id: str) -> None:
     with get_db() as conn:
-        conn.execute("DELETE FROM habits WHERE id = ?", (habit_id,))
+        conn.execute(
+            "UPDATE habits SET deleted_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now') WHERE id = ?",
+            (habit_id,),
+        )
 
 
 def get_habits(habit_ids: list[str] | None = None, include_private: bool = True) -> list[Habit]:
     if habit_ids is None:
         private_filter = "" if include_private else " AND private = 0"
-        where = f"archived_at IS NULL{private_filter}"
+        where = f"deleted_at IS NULL AND archived_at IS NULL{private_filter}"
         with get_db() as conn:
             return _fetch_habits(conn, f"{where} ORDER BY created DESC")
 
@@ -146,7 +149,9 @@ def get_habits(habit_ids: list[str] | None = None, include_private: bool = True)
         return []
     placeholders = ",".join("?" * len(habit_ids))
     with get_db() as conn:
-        return _fetch_habits(conn, f"id IN ({placeholders})", tuple(habit_ids))
+        return _fetch_habits(
+            conn, f"deleted_at IS NULL AND id IN ({placeholders})", tuple(habit_ids)
+        )
 
 
 def get_checks(habit_id: str) -> list[datetime]:
@@ -218,13 +223,17 @@ def get_streak(habit_id: str) -> int:
 def get_subhabits(parent_id: str) -> list["Habit"]:
     with get_db() as conn:
         return _fetch_habits(
-            conn, "parent_id = ? AND archived_at IS NULL ORDER BY created ASC", (parent_id,)
+            conn,
+            "parent_id = ? AND deleted_at IS NULL AND archived_at IS NULL ORDER BY created ASC",
+            (parent_id,),
         )
 
 
 def get_archived_habits() -> list[Habit]:
     with get_db() as conn:
-        return _fetch_habits(conn, "archived_at IS NOT NULL ORDER BY archived_at DESC")
+        return _fetch_habits(
+            conn, "deleted_at IS NULL AND archived_at IS NOT NULL ORDER BY archived_at DESC"
+        )
 
 
 def archive_habit(habit_id: str) -> Habit | None:

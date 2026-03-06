@@ -129,7 +129,7 @@ def search_by_tag(tag: str, limit: int = 20) -> list[SearchResult]:
             SELECT h.id, h.content, h.created, 0.0 as rank
             FROM habits h
             JOIN tags tg ON h.id = tg.habit_id
-            WHERE tg.tag = ? COLLATE NOCASE
+            WHERE tg.tag = ? COLLATE NOCASE AND h.deleted_at IS NULL
             """,
             (tag,),
         ).fetchall()
