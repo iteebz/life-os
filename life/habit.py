@@ -298,7 +298,6 @@ def rename_habit(habit: Habit, to_content: str) -> None:
     if habit.content == to_content:
         raise ValidationError(f"cannot rename '{habit.content}' to itself")
     update_habit(habit.id, content=to_content)
-    print(f"\u2192 {to_content}")
 
 
 def check_habit_cmd(habit: Habit) -> None:

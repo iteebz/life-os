@@ -415,7 +415,6 @@ def rename_task(task: Task, to_content: str) -> None:
     if task.content == to_content:
         raise ValidationError(f"cannot rename '{task.content}' to itself")
     update_task(task.id, content=to_content)
-    print(f"→ {to_content}")
 
 
 def check_task_cmd(task: Task) -> None:

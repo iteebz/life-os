@@ -182,5 +182,7 @@ def rename(ref: list[str], to: str) -> None:
         raise NotFoundError("item not found")
     if isinstance(task, Task):
         rename_task(task, to)
+        render_uncheck_row(to, task.tags, task.id)
     elif habit:
         rename_habit(habit, to)
+        render_uncheck_row(to, habit.tags, habit.id)
