@@ -168,6 +168,22 @@ def _signal_thread(stop: threading.Event, interval: int) -> None:
         stop.wait(interval)
 
 
+def _nudge_thread(stop: threading.Event, interval: int) -> None:
+    from life.nudge import run_cycle
+
+    _log(f"[nudge] started, evaluating every {interval}s")
+
+    while not stop.is_set():
+        try:
+            sent = run_cycle()
+            if sent:
+                _log(f"[nudge] sent {sent} nudge(s)")
+        except Exception as e:
+            _log(f"[nudge] error: {e}")
+
+        stop.wait(interval)
+
+
 def _auto_thread(stop: threading.Event, every: int, provider: str) -> None:
     from life.steward.auto import run_autonomous
 
@@ -189,6 +205,7 @@ def run(
     signal_interval: int = 5,
     auto_every: int = 0,
     auto_provider: str = "claude",
+    nudge_interval: int = 300,
 ) -> None:
     DAEMON_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -215,6 +232,12 @@ def run(
     threads.append(sig)
     sig.start()
 
+    nudge = threading.Thread(
+        target=_nudge_thread, args=(stop, nudge_interval), daemon=True, name="nudge"
+    )
+    threads.append(nudge)
+    nudge.start()
+
     if auto_every > 0:
         auto = threading.Thread(
             target=_auto_thread,
@@ -227,7 +250,8 @@ def run(
 
     _log(
         f"daemon started (PID {os.getpid()}) tg_interval={tg_interval}s "
-        f"signal_interval={signal_interval}s auto_every={auto_every}s"
+        f"signal_interval={signal_interval}s auto_every={auto_every}s "
+        f"nudge_interval={nudge_interval}s"
     )
 
     stop.wait()

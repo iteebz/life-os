@@ -213,6 +213,15 @@ CREATE INDEX idx_messages_direction ON messages(direction);
 CREATE INDEX idx_messages_timestamp ON messages(timestamp DESC);
 CREATE INDEX idx_messages_channel_peer_ts ON messages(channel, peer, timestamp DESC);
 
+CREATE TABLE nudge_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    rule TEXT NOT NULL,
+    entity_id TEXT NOT NULL,
+    message TEXT NOT NULL,
+    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_nudge_dedup ON nudge_log (rule, entity_id, DATE(sent_at));
+
 CREATE VIRTUAL TABLE tasks_fts USING fts5(
     content,
     content='tasks',
