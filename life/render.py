@@ -92,6 +92,7 @@ class RenderCtx:
     subtasks: dict[str, list[Task]]  # parent_id → children
     id_to_content: dict[str, str]  # task_id → content
     subtask_ids: set[str]  # IDs that are subtasks
+    scheduled_ids: set[str] = dataclasses.field(default_factory=set)
 
     @classmethod
     def build(
@@ -158,6 +159,7 @@ def _row_task(
     rows.extend(
         _row_subtask(sub, ctx, indent=f"{indent}└ ")
         for sub in sorted(ctx.subtasks.get(task.id, []), key=task_sort_key)
+        if sub.id not in ctx.scheduled_ids
     )
     for sub in completed_subs.get(task.id, []):
         tags_str2 = _fmt_tags(_get_direct_tags(sub, ctx.pending), ctx.tag_colors)
@@ -326,7 +328,14 @@ def _section_schedule(
             )
         else:
             fire = f"{theme.bold}🔥{_R} " if task.focus else ""
-            lines.append(f"  □ {fire}{time_str}{task.content.lower()}{tags_str}{id_str}")
+            parent_str = ""
+            if task.parent_id:
+                parent_name = ctx.id_to_content.get(task.parent_id, "")
+                if parent_name:
+                    parent_str = f" {dim('~ ' + parent_name.lower())}"
+            lines.append(
+                f"  □ {fire}{time_str}{task.content.lower()}{tags_str}{id_str}{parent_str}"
+            )
         for sub in sorted(ctx.subtasks.get(task.id, []), key=task_sort_key):
             scheduled_ids.add(sub.id)
             lines.append(_row_subtask(sub, ctx))
@@ -435,11 +444,7 @@ def render_dashboard(
 
     today_str = ctx.today.isoformat()
     due_today = [
-        t
-        for t in ctx.pending
-        if t.scheduled_date
-        and t.scheduled_date.isoformat() == today_str
-        and t.id not in ctx.subtask_ids
+        t for t in ctx.pending if t.scheduled_date and t.scheduled_date.isoformat() == today_str
     ]
     today_lines, today_ids = _section_schedule(
         due_today, "TODAY", ctx, is_today=True, events=upcoming_by_date.get(ctx.today, [])
@@ -460,11 +465,7 @@ def render_dashboard(
             label = day.strftime("%A").upper()
         else:
             label = day.strftime("%-d %b").upper()
-        due_day = [
-            t
-            for t in ctx.pending
-            if t.scheduled_date and t.scheduled_date == day and t.id not in ctx.subtask_ids
-        ]
+        due_day = [t for t in ctx.pending if t.scheduled_date and t.scheduled_date == day]
         day_lines, day_ids = _section_schedule(
             due_day, label, ctx, events=upcoming_by_date.get(day, [])
         )
@@ -477,6 +478,7 @@ def render_dashboard(
         if t.parent_id:
             completed_subs.setdefault(t.parent_id, []).append(t)
 
+    ctx.scheduled_ids = scheduled_ids
     backlog = [
         i
         for i in items
