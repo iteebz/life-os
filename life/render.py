@@ -133,27 +133,38 @@ def _row_task(
     completed_subs: dict[str, list[Task]],
     indent: str = "  ",
     tags_override: list[str] | None = None,
+    show_date: bool = True,
+    show_parent: bool = False,
 ) -> list[str]:
     today_str = ctx.today.isoformat()
     tomorrow_str = (ctx.today + timedelta(days=1)).isoformat()
     tags_str = _fmt_tags(tags_override if tags_override is not None else task.tags, ctx.tag_colors)
     id_str = f" {dim('[' + task.id[:8] + ']')}"
 
-    date_str = ""
-    if task.scheduled_date and task.scheduled_date.isoformat() not in (today_str, tomorrow_str):
-        date_str = (
-            _fmt_rel_date(task.scheduled_date, ctx.today, task.scheduled_time, task.is_deadline)
-            + " "
-        )
+    if show_date:
+        prefix = ""
+        if task.scheduled_date and task.scheduled_date.isoformat() not in (today_str, tomorrow_str):
+            prefix = (
+                _fmt_rel_date(task.scheduled_date, ctx.today, task.scheduled_time, task.is_deadline)
+                + " "
+            )
+    else:
+        prefix = f"{_fmt_time(task.scheduled_time)} " if task.scheduled_time else ""
+
+    parent_str = ""
+    if show_parent and task.parent_id:
+        parent_name = ctx.id_to_content.get(task.parent_id, "")
+        if parent_name:
+            parent_str = f" {dim('~ ' + parent_name.lower())}"
 
     if task.blocked_by:
         blocker = ctx.id_to_content.get(task.blocked_by, task.blocked_by[:8])
         blocker_str = dim("← " + blocker.lower())
-        content = f"{_GREY}{date_str}{task.content.lower()}{tags_str}{_R}"
+        content = f"{_GREY}{prefix}{task.content.lower()}{tags_str}{_R}"
         row = f"{indent}⊘ {content} {blocker_str}{id_str}"
     else:
         fire = f"{theme.bold}🔥{_R} " if task.focus else ""
-        row = f"{indent}□ {fire}{date_str}{task.content.lower()}{tags_str}{id_str}"
+        row = f"{indent}□ {fire}{prefix}{task.content.lower()}{tags_str}{id_str}{parent_str}"
 
     rows = [row]
     rows.extend(
@@ -273,16 +284,9 @@ def _section_overdue(tasks: list[Task], ctx: RenderCtx) -> tuple[list[str], set[
     scheduled_ids: set[str] = set()
     for task in sorted(tasks, key=task_sort_key):
         scheduled_ids.add(task.id)
-        tags_str = _fmt_tags(task.tags, ctx.tag_colors)
-        id_str = f" {dim('[' + task.id[:8] + ']')}"
-        fire = f"{theme.bold}🔥{_R} " if task.focus else ""
-        label = _fmt_rel_date(
-            task.scheduled_date or ctx.today, ctx.today, task.scheduled_time, task.is_deadline
-        )
-        lines.append(f"  □ {fire}{label} {task.content.lower()}{tags_str}{id_str}")
-        for sub in sorted(ctx.subtasks.get(task.id, []), key=task_sort_key):
+        lines.extend(_row_task(task, ctx, {}))
+        for sub in ctx.subtasks.get(task.id, []):
             scheduled_ids.add(sub.id)
-            lines.append(_row_subtask(sub, ctx))
     return lines, scheduled_ids
 
 
@@ -317,28 +321,9 @@ def _section_schedule(
 
     for task in sorted(tasks, key=_sort):
         scheduled_ids.add(task.id)
-        tags_str = _fmt_tags(task.tags, ctx.tag_colors)
-        id_str = f" {dim('[' + task.id[:8] + ']')}"
-        time_str = f"{_fmt_time(task.scheduled_time)} " if task.scheduled_time else ""
-        if task.blocked_by:
-            blocker = ctx.id_to_content.get(task.blocked_by, task.blocked_by[:8])
-            lines.append(
-                f"  ⊘ {time_str}{_GREY}{task.content.lower()}{_R}"
-                f"{tags_str} {dim('← ' + blocker.lower())}{id_str}"
-            )
-        else:
-            fire = f"{theme.bold}🔥{_R} " if task.focus else ""
-            parent_str = ""
-            if task.parent_id:
-                parent_name = ctx.id_to_content.get(task.parent_id, "")
-                if parent_name:
-                    parent_str = f" {dim('~ ' + parent_name.lower())}"
-            lines.append(
-                f"  □ {fire}{time_str}{task.content.lower()}{tags_str}{id_str}{parent_str}"
-            )
-        for sub in sorted(ctx.subtasks.get(task.id, []), key=task_sort_key):
+        lines.extend(_row_task(task, ctx, {}, show_date=False, show_parent=True))
+        for sub in ctx.subtasks.get(task.id, []):
             scheduled_ids.add(sub.id)
-            lines.append(_row_subtask(sub, ctx))
 
     for event in all_events:
         emoji = _EVENT_EMOJI.get(str(event.get("type", "")), "📌")
