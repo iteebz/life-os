@@ -4,7 +4,7 @@ from tests.conftest import invoke
 
 
 def test_rm_can_delete_completed_task(tmp_life_dir):
-    invoke(["task", "test done flag"])
+    invoke(["task", "test done flag", "-t", "test"])
     invoke(["done", "test done flag"])
 
     rm_result = invoke(["rm", "test done flag"])

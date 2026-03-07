@@ -311,6 +311,8 @@ def task(
             for t in tasks:
                 print(f"  \u25a1 {format_task(t, tags=t.tags, show_id=True)}")
         return
+    if not tag:
+        raise UsageError('Tag required: life task "name" -t <tag>')
     from life.item import add as _add
 
     _add(ref, tag=tag, due=due or schedule, focus=focus)
