@@ -257,16 +257,18 @@ def find_habit_exact(ref: str) -> Habit | None:
     return find_in_pool_exact(ref, get_habits())
 
 
-def check_habit(habit_id: str, check_on: date | None = None) -> Habit | None:
+def check_habit(
+    habit_id: str, check_on: date | None = None, check_time: str | None = None
+) -> Habit | None:
     habit = get_habit(habit_id)
     if not habit:
         return None
     if check_on is not None:
         check_date = check_on.isoformat()
-        completed_at = f"{check_date}T23:59:59"
+        completed_at = f"{check_date}T{check_time}:00" if check_time else f"{check_date}T23:59:59"
     else:
         check_date = clock.today().isoformat()
-        completed_at = datetime.now().isoformat()
+        completed_at = f"{check_date}T{check_time}:00" if check_time else datetime.now().isoformat()
     with get_db() as conn:
         with contextlib.suppress(sqlite3.IntegrityError):
             conn.execute(
@@ -309,8 +311,13 @@ def rename_habit(habit: Habit, to_content: str) -> None:
     update_habit(habit.id, content=to_content)
 
 
-def check_habit_cmd(habit: Habit) -> None:
+def check_habit_cmd(habit: Habit, check_time: str | None = None) -> None:
     from .lib.clock import today
+
+    if check_time:
+        check_habit(habit.id, check_time=check_time)
+        render_done_row(habit.content.lower(), check_time, habit.tags, habit.id, is_habit=True)
+        return
 
     updated = toggle_check(habit.id)
     if updated:

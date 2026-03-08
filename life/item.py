@@ -17,7 +17,7 @@ from .task import (
 
 
 @cli("life", name="done")
-def check(ref: list[str], date: str | None = None) -> None:
+def check(ref: list[str], date: str | None = None, time: str | None = None) -> None:
     """Toggle done"""
     from .habit import check_habit, get_checks, toggle_check
     from .lib.clock import today
@@ -45,9 +45,13 @@ def check(ref: list[str], date: str | None = None) -> None:
             uncheck_habit(habit.id, check_on=check_on)
             render_uncheck_row(f"{habit.content.lower()} ({parsed})", habit.tags, habit.id)
         else:
-            check_habit(habit.id, check_on=check_on)
+            check_habit(habit.id, check_on=check_on, check_time=time)
             render_done_row(
-                f"{habit.content.lower()} ({parsed})", "", habit.tags, habit.id, is_habit=True
+                f"{habit.content.lower()} ({parsed})",
+                time or "",
+                habit.tags,
+                habit.id,
+                is_habit=True,
             )
         return
 
@@ -63,7 +67,7 @@ def check(ref: list[str], date: str | None = None) -> None:
                 if not checked_today:
                     render_uncheck_row(habit.content.lower(), habit.tags, habit.id)
         else:
-            check_habit_cmd(habit)
+            check_habit_cmd(habit, check_time=time)
     elif task:
         if task.completed_at:
             uncheck_task(task.id)
