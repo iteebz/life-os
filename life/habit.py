@@ -407,6 +407,10 @@ def habit(ref: list[str] | None = None, tag: list[str] | None = None, weekly: bo
     if not ref:
         print(_render_habit_matrix(get_habits()))
         return
+    if not tag:
+        print('Tag required: life habit "name" -t <tag>')
+        print("Run `life habit --help` for usage.")
+        return
     name = " ".join(ref)
     cadence = "weekly" if weekly else "daily"
     add_habit(name, tags=tag, cadence=cadence)
