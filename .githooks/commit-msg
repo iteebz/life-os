@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -e
 
+is_agent() {
+    [ -n "$CLAUDE_CODE" ] || [ -n "$GEMINI_CLI" ] || [ "$AGENT" = "codex" ]
+}
+is_agent || exit 0
+
 commit_msg_file="$1"
 subject=$(head -1 "$commit_msg_file")
 
@@ -38,11 +43,10 @@ if echo "$subject" | grep -qE ','; then
     exit 1
 fi
 
-# Max 72 chars for subject (git line width standard)
+# Max 72 chars
 len=${#subject}
 if [ "$len" -gt 72 ]; then
     echo "BLOCKED — subject too long ($len chars, max 72)" >&2
-    echo "  tag(scope): verb object" >&2
     echo "  got:  $subject" >&2
     exit 1
 fi

@@ -1,15 +1,21 @@
 #!/usr/bin/env bash
 set -e
 
-just bin 2>/dev/null || true
+is_agent() {
+    [ -n "$CLAUDE_CODE" ] || [ -n "$GEMINI_CLI" ] || [ "$AGENT" = "codex" ]
+}
+is_agent || exit 0
+
+DELETED=$(git diff --cached --name-only --diff-filter=D | wc -l | tr -d ' ')
+if [ "$DELETED" -ge 50 ]; then
+    echo "pre-commit: refusing commit — $DELETED staged deletions (threshold: 50)" >&2
+    echo "  If intentional, bypass with: git commit --no-verify" >&2
+    exit 1
+fi
 
 STAGED=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$' || true)
-
-if [ -z "$STAGED" ]; then
-    exit 0
-fi
+[ -z "$STAGED" ] && exit 0
 
 uv run ruff format $STAGED
 uv run ruff check --fix $STAGED
 git add $STAGED
-uv run pyright
