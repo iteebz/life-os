@@ -49,7 +49,7 @@ def render_done_row(
     sys.stdout.flush()
 
 
-def render_uncheck_row(content: str, tags: list[str], item_id: str) -> None:
+def render_uncheck_row(content: str, tags: list[str], item_id: str, is_habit: bool = False) -> None:
     r = ansi.theme.reset
     grey = ansi.theme.muted
     tag_str = ""
@@ -57,7 +57,8 @@ def render_uncheck_row(content: str, tags: list[str], item_id: str) -> None:
         parts = [f"{ansi.POOL[hash(t) % len(ansi.POOL)][0]}#{t}{r}" for t in tags]
         tag_str = " " + " ".join(parts)
     id_str = f" {grey}[{item_id[:8]}]{r}"
-    sys.stdout.write(f"  □ {content}{tag_str}{id_str}\n")
+    symbol = ansi.purple("○") if is_habit else "□"
+    sys.stdout.write(f"  {symbol} {content}{tag_str}{id_str}\n")
     sys.stdout.flush()
 
 

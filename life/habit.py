@@ -268,7 +268,9 @@ def check_habit(
         completed_at = f"{check_date}T{check_time}:00" if check_time else f"{check_date}T23:59:59"
     else:
         check_date = clock.today().isoformat()
-        completed_at = f"{check_date}T{check_time}:00" if check_time else datetime.now().isoformat()
+        completed_at = (
+            f"{check_date}T{check_time.zfill(5)}:00" if check_time else datetime.now().isoformat()
+        )
     with get_db() as conn:
         with contextlib.suppress(sqlite3.IntegrityError):
             conn.execute(

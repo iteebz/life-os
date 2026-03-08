@@ -43,7 +43,9 @@ def check(ref: list[str], date: str | None = None, time: str | None = None) -> N
         already_checked = any(c.date() == check_on for c in checks)
         if already_checked:
             uncheck_habit(habit.id, check_on=check_on)
-            render_uncheck_row(f"{habit.content.lower()} ({parsed})", habit.tags, habit.id)
+            render_uncheck_row(
+                f"{habit.content.lower()} ({parsed})", habit.tags, habit.id, is_habit=True
+            )
         else:
             check_habit(habit.id, check_on=check_on, check_time=time)
             render_done_row(
@@ -65,7 +67,7 @@ def check(ref: list[str], date: str | None = None, time: str | None = None) -> N
             if updated:
                 checked_today = any(c.date() == today() for c in updated.checks)
                 if not checked_today:
-                    render_uncheck_row(habit.content.lower(), habit.tags, habit.id)
+                    render_uncheck_row(habit.content.lower(), habit.tags, habit.id, is_habit=True)
         else:
             check_habit_cmd(habit, check_time=time)
     elif task:
@@ -180,4 +182,4 @@ def rename(ref: list[str], to: str) -> None:
         render_uncheck_row(to, task.tags, task.id)
     elif habit:
         rename_habit(habit, to)
-        render_uncheck_row(to, habit.tags, habit.id)
+        render_uncheck_row(to, habit.tags, habit.id, is_habit=True)
