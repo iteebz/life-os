@@ -1,10 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-is_agent() {
-    [ -n "$CLAUDE_CODE" ] || [ -n "$GEMINI_CLI" ] || [ "$AGENT" = "codex" ]
-}
-is_agent || exit 0
+# Enforce for everyone — commit quality isn't agent-specific
 
 commit_msg_file="$1"
 subject=$(head -1 "$commit_msg_file")
