@@ -83,7 +83,7 @@ def focus(ref: list[str]) -> None:
     print(format_status(symbol, t.content, t.id))
 
 
-@cli("life")
+@cli("life", flags={"remove": ["-r", "--remove"]})
 def due(ref: list[str], when: str, remove: bool = False) -> None:
     """Mark task deadline"""
     from life.lib.resolve import resolve_task
@@ -115,7 +115,16 @@ def due(ref: list[str], when: str, remove: bool = False) -> None:
     print(format_status(label, t.content, t.id))
 
 
-@cli("life", name="set")
+@cli(
+    "life",
+    name="set",
+    flags={
+        "ref": [],
+        "parent": ["-p", "--parent"],
+        "content": ["-c", "--content"],
+        "notes": ["-n", "--notes"],
+    },
+)
 def set_cmd(
     ref: list[str],
     parent: str | None = None,
@@ -202,7 +211,7 @@ def show(ref: list[str], json: bool = False) -> None:
         print(render_task_detail(t, subtasks, mutations))
 
 
-@cli("life")
+@cli("life", flags={"by": ["-b", "--by"]})
 def block(ref: list[str], by: str) -> None:
     """Mark task as blocked"""
     from life.lib.resolve import resolve_task
@@ -227,7 +236,7 @@ def unblock(ref: list[str]) -> None:
     print(f"\u25a1 {t.content.lower()}  unblocked")
 
 
-@cli("life")
+@cli("life", flags={"reason": ["-r", "--reason"]})
 def cancel(ref: list[str], reason: str) -> None:
     """Cancel task with reason"""
     from life.lib.resolve import resolve_task
@@ -237,7 +246,7 @@ def cancel(ref: list[str], reason: str) -> None:
     print(f"\u2717 {t.content.lower()} \u2014 {reason}")
 
 
-@cli("life")
+@cli("life", flags={"reason": ["-r", "--reason"]})
 def defer(ref: list[str], reason: str) -> None:
     """Defer task with reason"""
     from life.lib.resolve import resolve_task

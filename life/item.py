@@ -16,7 +16,7 @@ from .task import (
 )
 
 
-@cli("life", name="done")
+@cli("life", name="done", flags={"date": ["-d", "--date"], "time": ["-t", "--time"]})
 def check(ref: list[str], date: str | None = None, time: str | None = None) -> None:
     """Toggle done"""
     from .habit import check_habit, get_checks, toggle_check

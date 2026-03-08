@@ -17,7 +17,7 @@ def summary(note: str):
     print("→ summary logged")
 
 
-@cli("steward", flags={"body": []})
+@cli("steward", flags={"body": [], "tag": ["-t", "--tag"], "about": ["-a", "--about"]})
 def observe(
     body: str | None = None,
     tag: str | None = None,

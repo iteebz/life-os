@@ -7,7 +7,7 @@ from life.lib.format import format_elapsed
 from . import get_sessions
 
 
-@cli("steward")
+@cli("steward", flags={"limit": ["-n", "--limit"]})
 def log(
     limit: int = 10,
 ):
