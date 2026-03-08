@@ -7,8 +7,7 @@ install: bin
     @uv run life daemon start
 
 hooks:
-    @cp scripts/hooks/pre-commit .git/hooks/pre-commit
-    @chmod +x .git/hooks/pre-commit
+    @git config core.hooksPath .githooks
 
 bin:
     #!/bin/sh
