@@ -27,7 +27,7 @@ lint:
     set -e
     uv run ruff format .
     uv run ruff check . --fix
-    uv run pyright || true
+    uv run pyright
 
 ci: lint
     @uv run python -m pytest tests --tb=short

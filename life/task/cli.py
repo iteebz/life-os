@@ -299,6 +299,7 @@ def task(
     due: str | None = None,
     focus: bool = False,
     schedule: str | None = None,
+    done: bool = False,
 ) -> None:
     """List tasks, or create one: `life task "name" -t tag`"""
     if not ref:
@@ -315,4 +316,4 @@ def task(
         raise UsageError('Tag required: life task "name" -t <tag>')
     from life.item import add as _add
 
-    _add(ref, tag=tag, due=due or schedule, focus=focus)
+    _add(ref, tag=tag, due=due or schedule, focus=focus, done=done)
