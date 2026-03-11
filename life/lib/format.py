@@ -10,6 +10,7 @@ __all__ = [
     "format_status",
     "format_task",
     "render_done_row",
+    "render_row",
     "render_uncheck_row",
 ]
 
@@ -33,38 +34,54 @@ def format_elapsed(dt: datetime, now: datetime | None = None) -> str:
     return dt.strftime("%Y-%m-%d")
 
 
+def _fmt_tags(tags: list[str]) -> str:
+    """Format tags with consistent color-pool coloring (matches dashboard)."""
+    if not tags:
+        return ""
+    r = ansi.theme.reset
+    pool = [code for code, _ in ansi.POOL]
+    # Deterministic: sorted tag list → stable color assignment
+    all_tags = sorted(set(tags))
+    colors = {t: pool[i % len(pool)] for i, t in enumerate(all_tags)}
+    parts = [f"{colors[t]}#{t}{r}" for t in tags]
+    return " " + " ".join(parts)
+
+
+def render_row(
+    content: str,
+    tags: list[str],
+    item_id: str,
+    *,
+    symbol: str = "□",
+    time_str: str = "",
+    prefix: str = "  ",
+) -> None:
+    """Standardized row renderer. Used by all creation, check, and uncheck paths."""
+    r = ansi.theme.reset
+    grey = ansi.theme.muted
+    tag_str = _fmt_tags(tags)
+    id_str = f" {grey}[{item_id[:8]}]{r}"
+    time_part = f"{grey}{time_str}{r} " if time_str else ""
+    sys.stdout.write(f"{prefix}{symbol} {time_part}{content}{tag_str}{id_str}\n")
+    sys.stdout.flush()
+
+
 def render_done_row(
     content: str, time_str: str, tags: list[str], item_id: str, is_habit: bool = False
 ) -> None:
-    r = ansi.theme.reset
-    grey = ansi.theme.muted
-    check = ansi.purple("●") if is_habit else ansi.green("✓")
-    tag_str = ""
-    if tags:
-        parts = [f"{ansi.POOL[hash(t) % len(ansi.POOL)][0]}#{t}{r}" for t in tags]
-        tag_str = " " + " ".join(parts)
-    id_str = f" {grey}[{item_id[:8]}]{r}"
-    time_part = f"{grey}{time_str}{r} " if time_str else ""
-    sys.stdout.write(f"  {check} {time_part}{content}{tag_str}{id_str}\n")
-    sys.stdout.flush()
+    symbol = ansi.purple("●") if is_habit else ansi.green("✓")
+    render_row(content, tags, item_id, symbol=symbol, time_str=time_str)
 
 
 def render_uncheck_row(content: str, tags: list[str], item_id: str, is_habit: bool = False) -> None:
-    r = ansi.theme.reset
-    grey = ansi.theme.muted
-    tag_str = ""
-    if tags:
-        parts = [f"{ansi.POOL[hash(t) % len(ansi.POOL)][0]}#{t}{r}" for t in tags]
-        tag_str = " " + " ".join(parts)
-    id_str = f" {grey}[{item_id[:8]}]{r}"
     symbol = ansi.purple("○") if is_habit else "□"
-    sys.stdout.write(f"  {symbol} {content}{tag_str}{id_str}\n")
-    sys.stdout.flush()
+    render_row(content, tags, item_id, symbol=symbol)
 
 
 def _format_tags(tags: list[str]) -> str:
-    """Format a list of tags for display."""
-    return " ".join(ansi.muted(f"#{tag}") for tag in tags)
+    """Format tags with consistent color-pool coloring (matches dashboard)."""
+    # Strip leading space — _fmt_tags includes it for row context
+    return _fmt_tags(tags).lstrip()
 
 
 def format_due(due_date: date | str, colorize: bool = True) -> str:

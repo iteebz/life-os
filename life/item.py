@@ -4,7 +4,7 @@ from .core.errors import NotFoundError, ValidationError
 from .core.models import Task
 from .habit import add_habit, check_habit_cmd, rename_habit
 from .lib import ansi
-from .lib.format import format_status, render_done_row, render_uncheck_row
+from .lib.format import render_done_row, render_row, render_uncheck_row
 from .lib.parsing import validate_content
 from .lib.resolve import resolve_item, resolve_item_any
 from .task import (
@@ -125,7 +125,7 @@ def add(
             parent_id = parent.id
         tags = list(tag) if tag else []
         habit_id = add_habit(content_str, tags=tags, parent_id=parent_id)
-        print(format_status("\u25a1", content_str, habit_id))
+        render_row(content_str.lower(), tags, habit_id, symbol=ansi.purple("○"))
         return
 
     from .lib.resolve import resolve_task
@@ -164,8 +164,8 @@ def add(
             check_task_cmd(task)
         return
     symbol = ansi.bold("\u29bf") if focus else "\u25a1"
-    prefix = "  \u2514 " if parent_id else ""
-    print(f"{prefix}{format_status(symbol, content_str, task_id)}")
+    prefix = "  └ " if parent_id else "  "
+    render_row(content_str.lower(), tags, task_id, symbol=symbol, prefix=prefix)
 
 
 @cli("life")

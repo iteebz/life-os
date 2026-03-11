@@ -420,9 +420,10 @@ def habit(ref: list[str] | None = None, tag: list[str] | None = None, weekly: bo
         print('Tag required: life habit "name" -t <tag>')
         print("Run `life habit --help` for usage.")
         return
+    from .lib.format import render_row
+
     name = " ".join(ref)
     cadence = "weekly" if weekly else "daily"
-    add_habit(name, tags=tag, cadence=cadence)
-    cadence_str = " (weekly)" if weekly else ""
-    suffix = " " + " ".join(f"#{t}" for t in tag) if tag else ""
-    print(f"→ {name}{suffix}{cadence_str}")
+    habit_id = add_habit(name, tags=tag, cadence=cadence)
+    cadence_suffix = f" {ansi.dim('(weekly)')}" if weekly else ""
+    render_row(f"{name.lower()}{cadence_suffix}", tag, habit_id, symbol=ansi.purple("○"))
