@@ -315,11 +315,11 @@ def cancel_task(task_id: str, reason: str) -> None:
     delete_task(task_id, cancel_reason=reason)
 
 
-def check_task(task_id: str) -> tuple[Task | None, Task | None]:
+def check_task(task_id: str, completed_at: str | None = None) -> tuple[Task | None, Task | None]:
     task = get_task(task_id)
     if not task or task.completed_at:
         return task, None
-    completed = clock.now().strftime("%Y-%m-%dT%H:%M:%S")
+    completed = completed_at or clock.now().strftime("%Y-%m-%dT%H:%M:%S")
     with get_db() as conn:
         conn.execute(
             "UPDATE tasks SET completed_at = ? WHERE id = ?",
@@ -419,10 +419,10 @@ def rename_task(task: Task, to_content: str) -> None:
     update_task(task.id, content=to_content)
 
 
-def check_task_cmd(task: Task) -> None:
+def check_task_cmd(task: Task, completed_at: str | None = None) -> None:
     if task.completed_at:
         raise ConflictError(f"'{task.content}' is already done")
-    completed_task, parent_completed = check_task(task.id)
+    completed_task, parent_completed = check_task(task.id, completed_at=completed_at)
     if completed_task and completed_task.completed_at:
         time_str = completed_task.completed_at.strftime("%H:%M")
         render_done_row(

@@ -35,8 +35,13 @@ def check(ref: list[str], date: str | None = None, time: str | None = None) -> N
             raise UsageError(f"Unrecognized date '{date}' — use yesterday, YYYY-MM-DD, etc.")
         check_on = date_type.fromisoformat(parsed)
         task, habit = resolve_item_any(item_ref)
+        if task and not habit:
+            if task.completed_at:
+                raise UsageError("task is already done — uncheck first to re-complete with a date")
+            check_task_cmd(task, completed_at=f"{parsed}T23:59:59")
+            return
         if not habit:
-            raise UsageError("--date only applies to habits")
+            raise UsageError("item not found")
         from .habit import uncheck_habit
 
         checks = get_checks(habit.id)
