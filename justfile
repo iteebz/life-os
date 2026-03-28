@@ -21,18 +21,19 @@ bin:
         chmod 755 "$SCRIPT"
     done
 
-lint:
-    #!/bin/bash
-    set -e
-    uv run ruff format .
-    uv run ruff check . --fix
-    uv run pyright
+format:
+    uv run ruff format . && uv run ruff check --fix . || true
 
-ci: lint
-    @uv run python -m pytest tests --tb=short
+lint:
+    uv run ruff check .
+
+typecheck:
+    uv run pyright
 
 test:
     @uv run python -m pytest tests
+
+ci: lint typecheck test
 
 build:
     @uv build
