@@ -15,7 +15,7 @@ STEWARD_BIRTHDAY = datetime(2026, 2, 18)
 
 
 @cli("steward")
-def boot():
+def wake():
     """Load life state and emit sitrep for interactive session start"""
     from life.feedback import build_feedback_snapshot, render_feedback_headline
     from life.habit import get_habits
@@ -49,6 +49,24 @@ def boot():
         now = datetime.now()
         rel = format_elapsed(s.logged_at, now)
         print(f"\nLAST SESSION ({rel}): {s.summary}")
+
+    contracts_path = Path.home() / "life" / "steward" / "contracts.md"
+    if contracts_path.exists():
+        text = contracts_path.read_text()
+        import re
+        blocks = re.split(r"^## ", text, flags=re.MULTILINE)
+        contracts = []
+        for block in blocks[1:]:  # skip preamble
+            lines = block.splitlines()
+            name = lines[0].strip()
+            ratified = next((l.split("**ratified:**")[1].strip() for l in lines if "**ratified:**" in l), "")
+            status = next((l.split("**status:**")[1].strip() for l in lines if "**status:**" in l), "")
+            contracts.append((name, ratified, status))
+        if contracts:
+            print("\nCONTRACTS:")
+            for name, ratified, status in contracts:
+                flag = "  !" if not ratified or ratified == "—" else "   "
+                print(f"{flag} {name:<14}  {status}")
 
     now = datetime.now()
     today_d = date.today()
@@ -250,4 +268,4 @@ def main():
     from fncli import dispatch
 
     init()
-    sys.exit(dispatch(["life", "steward", "boot", *sys.argv[1:]]))
+    sys.exit(dispatch(["life", "steward", "wake", *sys.argv[1:]]))

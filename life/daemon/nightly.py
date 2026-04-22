@@ -38,7 +38,7 @@ def _build_session_prompt(history: list[dict[str, str]], new_message: str | None
     if not history and not new_message:
         return (
             "You are Steward. It's 8pm nightly check-in via Telegram.\n\n"
-            "Run `life steward boot` and `life dash`, then send Tyson a short evening sitrep:\n"
+            "Run `life steward wake` and `life dash`, then send Tyson a short evening sitrep:\n"
             "- What got done today\n"
             "- What's open/overdue\n"
             "- One thing to close tonight if he has energy\n\n"

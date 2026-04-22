@@ -112,7 +112,7 @@ def get_sessions(limit: int = 10) -> list[StewardSession]:
         ]
 
 
-from . import auto, boot, close, dash, improve, log  # noqa: E402
+from . import auto, close, dash, improve, log, wake  # noqa: E402
 
 __all__ = [
     "Observation",
@@ -120,7 +120,7 @@ __all__ = [
     "add_observation",
     "add_session",
     "auto",
-    "boot",
+    "wake",
     "close",
     "dash",
     "delete_observation",

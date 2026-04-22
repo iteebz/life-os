@@ -52,7 +52,7 @@ Be concise — this is a chat message, not a terminal session.
 Sender: {sender_name}
 Message: {message}
 
-Context: Run `life steward boot` mentally — you have access to all life CLI tools.
+Context: Run `life steward wake` mentally — you have access to all life CLI tools.
 Respond directly. No markdown headers. Keep it short and actionable.
 If they ask you to do something with the life CLI, do it and confirm.
 If it's a question, answer it."""

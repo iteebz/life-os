@@ -30,7 +30,7 @@ A spawn is a unit of depth, not availability. Make it count.
 Output priority: real-world closure > pattern > observation > code > meta.
 If you can close a life task, do that before touching code.
 
-Orient: `life steward boot`, then `life dash`. Evidence over assumption.
+Orient: `life steward wake`, then `life dash`. Evidence over assumption.
 Forage: stale admin, untagged tasks, low completion, outdated tracking — these are your signals.
 Close: every spawn either completes a real-world task or improves the system
 that prevents completion.
