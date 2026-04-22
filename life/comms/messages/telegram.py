@@ -1,4 +1,5 @@
 import contextlib
+import threading
 from typing import Any
 
 import keyring
@@ -13,6 +14,7 @@ API = "https://api.telegram.org/bot{token}"
 
 _cached_token: str | None = None
 _cached_update_id: int | None = None
+_poll_lock = threading.Lock()
 
 
 def _token() -> str | None:
@@ -69,6 +71,11 @@ def poll(timeout: int = 5, token: str | None = None) -> list[dict[str, Any]]:
     if not tok:
         return []
 
+    with _poll_lock:
+        return _poll(tok, timeout)
+
+
+def _poll(tok: str, timeout: int) -> list[dict[str, Any]]:
     last = _last_update_id()
     offset = last + 1 if last else None
     params: dict[str, Any] = {"timeout": timeout, "allowed_updates": ["message"]}
@@ -105,6 +112,7 @@ def poll(timeout: int = 5, token: str | None = None) -> list[dict[str, Any]]:
         _store_incoming(parsed)
 
     return messages
+
 
 
 def _store_incoming(msg: dict[str, Any]) -> None:

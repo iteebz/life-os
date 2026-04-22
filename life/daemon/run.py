@@ -44,15 +44,33 @@ def _load_allowed_tg_chats() -> set[int]:
     return chat_ids
 
 
-def _build_tg_prompt(message: str, sender_name: str) -> str:
+def _fetch_wake_context() -> str:
+    from pathlib import Path
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["life", "steward", "wake"],
+            cwd=Path.home() / "life",
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        return result.stdout.strip()
+    except Exception as e:
+        return f"(wake context unavailable: {e})"
+
+
+def _build_tg_prompt(message: str, sender_name: str, context: str) -> str:
     return f"""\
 You are Steward responding via Telegram. Be concise — chat format, not a report.
+
+Current life state:
+{context}
 
 Sender: {sender_name}
 Message: {message}
 
-Run `life steward wake` to orient, then respond. You have full access to life CLI tools.
-No markdown headers. Keep it short and actionable."""
+Respond directly. Short and actionable. No markdown headers."""
 
 
 def _telegram_thread(
@@ -100,7 +118,8 @@ def _telegram_thread(
 
                 spawn_times.append(now)
                 _log(f"[telegram] spawning claude for: {body[:60]}")
-                prompt = _build_tg_prompt(body, sender)
+                context = _fetch_wake_context()
+                prompt = _build_tg_prompt(body, sender, context)
                 response = spawn_claude(prompt)
                 _log(f"[telegram] response ({len(response)} chars)")
                 tg.send(chat_id, response)
