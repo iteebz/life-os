@@ -11,7 +11,7 @@ from . import add_observation, add_session, delete_observation, get_observations
 
 
 @cli("steward")
-def summary(note: str):
+def sleep(note: str):
     """Write handover summary for the next steward — what happened, what's open, what's next"""
     add_session(note)
     print("→ summary logged")
