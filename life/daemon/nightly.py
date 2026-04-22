@@ -1,13 +1,10 @@
 """Nightly steward activation — 8pm proactive check-in via Telegram."""
 
-import subprocess
 import threading
 import time
 from datetime import datetime
-from pathlib import Path
-
 from life.daemon.run import _log
-from life.daemon.spawn import spawn_claude
+from life.daemon.spawn import fetch_wake_context, spawn_claude
 
 NIGHTLY_HOUR = 20  # 8pm
 SESSION_TIMEOUT = 3600  # 1 hour
@@ -21,21 +18,6 @@ def _get_chat_id() -> int | None:
 
     result = resolve_people_field("tyson", "telegram")
     return int(result) if result else None
-
-
-def _fetch_wake_context() -> str:
-    """Run `life steward wake` and capture output for prompt injection."""
-    try:
-        result = subprocess.run(
-            ["life", "steward", "wake"],
-            cwd=Path.home() / "life",
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-        return result.stdout.strip()
-    except Exception as e:
-        return f"(wake context unavailable: {e})"
 
 
 def _load_history_from_db(chat_id: int, hours: int = HISTORY_LOOKBACK_HOURS) -> list[dict[str, str]]:
@@ -120,7 +102,7 @@ def _run_nightly_session(
         _log(f"[nightly] loaded {len(history)} messages from DB")
 
     # pre-fetch context before spawning
-    wake_context = _fetch_wake_context()
+    wake_context = fetch_wake_context()
     prompt = _build_initial_prompt(wake_context)
     response = spawn_claude(prompt)
     tg.send(chat_id, response)

@@ -7,6 +7,21 @@ from pathlib import Path
 MAX_RESPONSE_LEN = 4000
 
 
+def fetch_wake_context() -> str:
+    """Run `life steward wake` and capture output for prompt injection."""
+    try:
+        result = subprocess.run(
+            ["life", "steward", "wake"],
+            cwd=Path.home() / "life",
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        return result.stdout.strip()
+    except Exception as e:
+        return f"(wake context unavailable: {e})"
+
+
 def spawn_claude(prompt: str, timeout: int = 120) -> str:
     cmd = [
         "claude",

@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 
 from life.config import LIFE_DIR
-from life.daemon.spawn import spawn_claude
+from life.daemon.spawn import fetch_wake_context, spawn_claude
 
 DAEMON_DIR = LIFE_DIR
 LOG_FILE = DAEMON_DIR / "daemon.log"
@@ -42,22 +42,6 @@ def _load_allowed_tg_chats() -> set[int]:
         except Exception:  # noqa: S112
             continue
     return chat_ids
-
-
-def _fetch_wake_context() -> str:
-    from pathlib import Path
-    import subprocess
-    try:
-        result = subprocess.run(
-            ["life", "steward", "wake"],
-            cwd=Path.home() / "life",
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-        return result.stdout.strip()
-    except Exception as e:
-        return f"(wake context unavailable: {e})"
 
 
 def _build_tg_prompt(message: str, sender_name: str, context: str) -> str:
@@ -118,7 +102,7 @@ def _telegram_thread(
 
                 spawn_times.append(now)
                 _log(f"[telegram] spawning claude for: {body[:60]}")
-                context = _fetch_wake_context()
+                context = fetch_wake_context()
                 prompt = _build_tg_prompt(body, sender, context)
                 response = spawn_claude(prompt)
                 _log(f"[telegram] response ({len(response)} chars)")
