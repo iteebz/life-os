@@ -1,3 +1,11 @@
+class StoreError(Exception):
+    """Raised when a store operation fails."""
+
+
+class StoreIntegrityError(StoreError):
+    """Raised on constraint violations."""
+
+
 class LifeError(Exception):
     pass
 
