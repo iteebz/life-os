@@ -46,16 +46,13 @@ def _load_allowed_tg_chats() -> set[int]:
 
 def _build_tg_prompt(message: str, sender_name: str) -> str:
     return f"""\
-You are Steward responding via Telegram. \
-Be concise — this is a chat message, not a terminal session.
+You are Steward responding via Telegram. Be concise — chat format, not a report.
 
 Sender: {sender_name}
 Message: {message}
 
-Context: Run `life steward wake` mentally — you have access to all life CLI tools.
-Respond directly. No markdown headers. Keep it short and actionable.
-If they ask you to do something with the life CLI, do it and confirm.
-If it's a question, answer it."""
+Run `life steward wake` to orient, then respond. You have full access to life CLI tools.
+No markdown headers. Keep it short and actionable."""
 
 
 def _telegram_thread(

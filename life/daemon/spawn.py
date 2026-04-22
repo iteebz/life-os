@@ -11,10 +11,10 @@ def spawn_claude(prompt: str, timeout: int = 120) -> str:
     cmd = [
         "claude",
         "--print",
+        "--no-session-persistence",
         "--dangerously-skip-permissions",
         "--model",
         "claude-sonnet-4-6",
-        prompt,
     ]
     env = os.environ.copy()
     env.pop("ANTHROPIC_BASE_URL", None)
@@ -23,6 +23,7 @@ def spawn_claude(prompt: str, timeout: int = 120) -> str:
     try:
         result = subprocess.run(
             cmd,
+            input=prompt,
             cwd=Path.home() / "life",
             env=env,
             capture_output=True,

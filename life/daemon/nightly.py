@@ -1,8 +1,10 @@
 """Nightly steward activation — 8pm proactive check-in via Telegram."""
 
+import subprocess
 import threading
 import time
 from datetime import datetime
+from pathlib import Path
 
 from life.daemon.run import _log
 from life.daemon.spawn import spawn_claude
@@ -11,6 +13,7 @@ NIGHTLY_HOUR = 20  # 8pm
 SESSION_TIMEOUT = 3600  # 1 hour
 POLL_INTERVAL = 5
 MAX_HISTORY_CHARS = 8000  # ~2k tokens — keeps prompt fast
+HISTORY_LOOKBACK_HOURS = 2  # load recent DB messages on session start
 
 
 def _get_chat_id() -> int | None:
@@ -18,6 +21,43 @@ def _get_chat_id() -> int | None:
 
     result = resolve_people_field("tyson", "telegram")
     return int(result) if result else None
+
+
+def _fetch_wake_context() -> str:
+    """Run `life steward wake` and capture output for prompt injection."""
+    try:
+        result = subprocess.run(
+            ["life", "steward", "wake"],
+            cwd=Path.home() / "life",
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        return result.stdout.strip()
+    except Exception as e:
+        return f"(wake context unavailable: {e})"
+
+
+def _load_history_from_db(chat_id: int, hours: int = HISTORY_LOOKBACK_HOURS) -> list[dict[str, str]]:
+    """Load recent telegram messages from the DB to survive daemon restarts."""
+    try:
+        from life.lib.store import get_db
+
+        cutoff = int(time.time()) - (hours * 3600)
+        with get_db() as conn:
+            rows = conn.execute(
+                "SELECT direction, body, timestamp FROM messages "
+                "WHERE channel = 'telegram' AND peer = ? AND timestamp > ? "
+                "ORDER BY timestamp ASC",
+                (str(chat_id), cutoff),
+            ).fetchall()
+        return [
+            {"role": "user" if row[0] == "in" else "assistant", "text": row[1]}
+            for row in rows
+        ]
+    except Exception as e:
+        _log(f"[nightly] history load failed: {e}")
+        return []
 
 
 def _trim_history(history: list[dict[str, str]]) -> list[dict[str, str]]:
@@ -34,18 +74,18 @@ def _trim_history(history: list[dict[str, str]]) -> list[dict[str, str]]:
     return history[cutoff:]
 
 
-def _build_session_prompt(history: list[dict[str, str]], new_message: str | None = None) -> str:
-    if not history and not new_message:
-        return (
-            "You are Steward. It's 8pm nightly check-in via Telegram.\n\n"
-            "Run `life steward wake` and `life dash`, then send Tyson a short evening sitrep:\n"
-            "- What got done today\n"
-            "- What's open/overdue\n"
-            "- One thing to close tonight if he has energy\n\n"
-            "Keep it casual and short. This is a Telegram message, not a report.\n"
-            "No markdown headers. No bullet symbols. Plain text only."
-        )
+def _build_initial_prompt(wake_context: str) -> str:
+    return (
+        "You are Steward. It's the 8pm nightly check-in via Telegram.\n\n"
+        f"Current life state:\n{wake_context}\n\n"
+        "Send Tyson a short evening sitrep: what got done, what's open, "
+        "one thing to close tonight if he has energy.\n\n"
+        "Casual and short. Telegram message, not a report. "
+        "No markdown headers. No bullet symbols. Plain text only."
+    )
 
+
+def _build_reply_prompt(history: list[dict[str, str]], new_message: str) -> str:
     recent = _trim_history(history)
     truncated = len(recent) < len(history)
 
@@ -60,9 +100,8 @@ def _build_session_prompt(history: list[dict[str, str]], new_message: str | None
         role = "Tyson" if entry["role"] == "user" else "Steward"
         parts.append(f"{role}: {entry['text']}")
 
-    if new_message:
-        parts.append(f"\nTyson just said: {new_message}")
-        parts.append("\nRespond directly. Short and actionable. No markdown headers.")
+    parts.append(f"\nTyson just said: {new_message}")
+    parts.append("\nRespond directly. Short and actionable. No markdown headers.")
 
     return "\n".join(parts)
 
@@ -75,12 +114,19 @@ def _run_nightly_session(
     _log("[nightly] starting session")
     claimed_chat.set()
 
-    prompt = _build_session_prompt([])
+    # load any recent history from DB (survives restarts)
+    history = _load_history_from_db(chat_id)
+    if history:
+        _log(f"[nightly] loaded {len(history)} messages from DB")
+
+    # pre-fetch context before spawning
+    wake_context = _fetch_wake_context()
+    prompt = _build_initial_prompt(wake_context)
     response = spawn_claude(prompt)
     tg.send(chat_id, response)
     _log(f"[nightly] sitrep sent ({len(response)} chars)")
 
-    history: list[dict[str, str]] = [{"role": "assistant", "text": response}]
+    history.append({"role": "assistant", "text": response})
     last_activity = time.time()
 
     while not stop.is_set():
@@ -99,7 +145,7 @@ def _run_nightly_session(
             last_activity = time.time()
 
             history.append({"role": "user", "text": body})
-            prompt = _build_session_prompt(history, body)
+            prompt = _build_reply_prompt(history, body)
             reply = spawn_claude(prompt)
             history.append({"role": "assistant", "text": reply})
 
