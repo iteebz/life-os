@@ -117,3 +117,11 @@ def daemon_restart() -> None:
             print(f"restarted (pid {new_p})")
             return
     print("restarted (pid unknown)")
+
+
+@cli("life daemon", name="nightly")
+def daemon_nightly() -> None:
+    """trigger nightly steward session now (for testing)"""
+    from life.daemon.nightly import trigger_now
+
+    trigger_now()

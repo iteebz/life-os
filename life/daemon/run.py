@@ -1,17 +1,16 @@
 import os
 import signal
-import subprocess
 import threading
 import time
 from pathlib import Path
 
 from life.config import LIFE_DIR
+from life.daemon.spawn import spawn_claude
 
 DAEMON_DIR = LIFE_DIR
 LOG_FILE = DAEMON_DIR / "daemon.log"
 
 MAX_TG_SPAWNS_PER_HOUR = 12
-MAX_TG_RESPONSE_LEN = 4000
 PEOPLE_DIR = Path.home() / "life" / "steward" / "people"
 
 
@@ -59,42 +58,9 @@ If they ask you to do something with the life CLI, do it and confirm.
 If it's a question, answer it."""
 
 
-def _spawn_claude_tg(message: str, sender_name: str) -> str:
-    prompt = _build_tg_prompt(message, sender_name)
-    cmd = [
-        "claude",
-        "--print",
-        "--dangerously-skip-permissions",
-        "--model",
-        "claude-sonnet-4-6",
-        prompt,
-    ]
-    env = os.environ.copy()
-    env.pop("ANTHROPIC_BASE_URL", None)
-    env.pop("ANTHROPIC_AUTH_TOKEN", None)
-
-    try:
-        result = subprocess.run(
-            cmd,
-            cwd=Path.home() / "life",
-            env=env,
-            capture_output=True,
-            text=True,
-            timeout=120,
-        )
-        output = result.stdout.strip()
-        if not output and result.stderr:
-            return f"[steward error: {result.stderr[:200]}]"
-        if len(output) > MAX_TG_RESPONSE_LEN:
-            output = output[:MAX_TG_RESPONSE_LEN] + "\n\n[truncated]"
-        return output or "[steward: no response]"
-    except subprocess.TimeoutExpired:
-        return "[steward: timed out (120s)]"
-    except Exception as e:
-        return f"[steward error: {e}]"
-
-
-def _telegram_thread(stop: threading.Event, interval: int) -> None:
+def _telegram_thread(
+    stop: threading.Event, interval: int, claimed_chat: threading.Event
+) -> None:
     from life.comms.messages import telegram as tg
 
     allowed = _load_allowed_tg_chats()
@@ -106,9 +72,18 @@ def _telegram_thread(stop: threading.Event, interval: int) -> None:
     _log(f"[telegram] started, {len(allowed)} allowed chat(s), polling every {interval}s")
 
     while not stop.is_set():
+        # nightly session owns the poll loop — back off
+        if claimed_chat.is_set():
+            stop.wait(2)
+            continue
+
         try:
             messages = tg.poll(timeout=interval)
             for msg in messages:
+                # re-check: nightly may have claimed between poll return and here
+                if claimed_chat.is_set():
+                    break
+
                 chat_id = msg["chat_id"]
                 if chat_id not in allowed:
                     _log(f"[telegram] ignored unknown chat {chat_id}")
@@ -128,7 +103,8 @@ def _telegram_thread(stop: threading.Event, interval: int) -> None:
 
                 spawn_times.append(now)
                 _log(f"[telegram] spawning claude for: {body[:60]}")
-                response = _spawn_claude_tg(body, sender)
+                prompt = _build_tg_prompt(body, sender)
+                response = spawn_claude(prompt)
                 _log(f"[telegram] response ({len(response)} chars)")
                 tg.send(chat_id, response)
 
@@ -207,9 +183,12 @@ def run(
     auto_provider: str = "claude",
     nudge_interval: int = 300,
 ) -> None:
+    from life.daemon.nightly import nightly_thread
+
     DAEMON_DIR.mkdir(parents=True, exist_ok=True)
 
     stop = threading.Event()
+    claimed_chat = threading.Event()
 
     def handle_signal(signum, frame):
         _log("shutdown signal received")
@@ -221,10 +200,16 @@ def run(
     threads: list[threading.Thread] = []
 
     tg = threading.Thread(
-        target=_telegram_thread, args=(stop, tg_interval), daemon=True, name="telegram"
+        target=_telegram_thread, args=(stop, tg_interval, claimed_chat), daemon=True, name="telegram"
     )
     threads.append(tg)
     tg.start()
+
+    nightly = threading.Thread(
+        target=nightly_thread, args=(stop, claimed_chat), daemon=True, name="nightly"
+    )
+    threads.append(nightly)
+    nightly.start()
 
     sig = threading.Thread(
         target=_signal_thread, args=(stop, signal_interval), daemon=True, name="signal"
@@ -251,7 +236,7 @@ def run(
     _log(
         f"daemon started (PID {os.getpid()}) tg_interval={tg_interval}s "
         f"signal_interval={signal_interval}s auto_every={auto_every}s "
-        f"nudge_interval={nudge_interval}s"
+        f"nudge_interval={nudge_interval}s nightly=20:00"
     )
 
     stop.wait()
