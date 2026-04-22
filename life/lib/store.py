@@ -1,32 +1,28 @@
-"""Single DB access layer. All domain code imports get_db from here."""
+"""Single DB access layer. All domain code imports get_db from here.
 
-import sqlite3
+Migration path: get_db() now delegates to store.connection.ensure().
+New code should import ensure/transaction from life.store.connection directly.
+"""
+
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
 
-_db_path: Path | None = None
+from life.store.connection import (
+    close_all,
+    ensure,
+    set_test_db_path,
+    transaction,
+)
 
 
 def configure(path: Path) -> None:
     """Set DB path. Called once at startup and in test fixtures."""
-    global _db_path
-    _db_path = path
+    set_test_db_path(path)
 
 
 @contextmanager
-def get_db():
-    from life import config  # deferred: avoids import-time dep on config
-
-    path = _db_path or config.DB_PATH
-    conn = sqlite3.connect(path)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA foreign_keys = ON")
-    try:
+def get_db() -> Generator:
+    """Legacy interface. Wraps ensure() in a transaction for backward compat."""
+    with transaction() as conn:
         yield conn
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        conn.close()

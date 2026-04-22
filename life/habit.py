@@ -1,12 +1,11 @@
 import contextlib
 import dataclasses
-import sqlite3
 import uuid
 from datetime import date, datetime, timedelta
 
 from fncli import UsageError, cli
 
-from .core.errors import ValidationError
+from .core.errors import StoreIntegrityError, ValidationError
 from .core.models import Habit
 from .lib import ansi, clock
 from .lib.converters import row_to_habit
@@ -54,7 +53,7 @@ def _get_habit_checks(conn, habit_id: str) -> list[datetime]:
 
 
 def _fetch_habits(
-    conn: sqlite3.Connection, where: str, params: tuple[object, ...] = ()
+    conn, where: str, params: tuple[object, ...] = ()
 ) -> list[Habit]:
     """Fetch habits matching a WHERE clause and hydrate checks + tags."""
     cursor = conn.execute(
@@ -85,12 +84,12 @@ def add_habit(
                 " VALUES (?, ?, ?, ?, ?)",
                 (habit_id, content, parent_id, int(private), cadence),
             )
-        except sqlite3.IntegrityError as e:
+        except StoreIntegrityError as e:
             raise ValueError(f"Failed to add habit: {e}") from e
 
         if tags:
             for tag in tags:
-                with contextlib.suppress(sqlite3.IntegrityError):
+                with contextlib.suppress(StoreIntegrityError):
                     conn.execute(
                         "INSERT INTO tags (habit_id, tag) VALUES (?, ?)",
                         (habit_id, tag.lower()),
@@ -124,7 +123,7 @@ def update_habit(habit_id: str, content: str | None = None) -> Habit | None:
                 "UPDATE habits SET content = ? WHERE id = ?",
                 (content, habit_id),
             )
-        except sqlite3.IntegrityError as e:
+        except StoreIntegrityError as e:
             raise ValueError(f"Failed to update habit: {e}") from e
 
     return get_habit(habit_id)
@@ -272,7 +271,7 @@ def check_habit(
             f"{check_date}T{check_time.zfill(5)}:00" if check_time else datetime.now().isoformat()
         )
     with get_db() as conn:
-        with contextlib.suppress(sqlite3.IntegrityError):
+        with contextlib.suppress(StoreIntegrityError):
             conn.execute(
                 "INSERT INTO habit_checks (habit_id, check_date, completed_at) VALUES (?, ?, ?)",
                 (habit_id, check_date, completed_at),

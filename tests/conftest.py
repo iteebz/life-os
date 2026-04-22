@@ -10,6 +10,7 @@ import life.lib.clock as clock
 from life import db
 from life.core.errors import LifeError
 from life.lib.store import configure as configure_store
+from life.store.connection import close_all, reset_for_testing
 
 _discovered = False
 
@@ -81,6 +82,7 @@ def tmp_life_dir(monkeypatch, tmp_path):
     configure_store(db_path)
     db.init(db_path=db_path)
     yield tmp_path
+    reset_for_testing()
 
 
 @pytest.fixture

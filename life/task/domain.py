@@ -1,10 +1,9 @@
 import contextlib
 import re
-import sqlite3
 import uuid
 from datetime import datetime
 
-from life.core.errors import ConflictError, ValidationError
+from life.core.errors import ConflictError, StoreIntegrityError, ValidationError
 from life.core.models import Task, TaskMutation
 from life.core.types import UNSET, Unset
 from life.lib import clock
@@ -48,7 +47,7 @@ _TASK_COLS = (
 
 
 def fetch_tasks(
-    conn: sqlite3.Connection, where: str, params: tuple[object, ...] = ()
+    conn, where: str, params: tuple[object, ...] = ()
 ) -> list[Task]:
     cursor = conn.execute(
         f"SELECT {_TASK_COLS} FROM tasks WHERE deleted_at IS NULL AND ({where})",  # noqa: S608
@@ -126,7 +125,7 @@ def add_task(
                     source,
                 ),
             )
-        except sqlite3.IntegrityError as e:
+        except StoreIntegrityError as e:
             raise ValueError(f"Failed to add task: {e}") from e
 
         all_tags = list(tags or [])
@@ -191,7 +190,7 @@ _TRACKED_FIELDS = {
 }
 
 
-def _record_mutation(conn: sqlite3.Connection, task_id: str, field: str, old_val, new_val) -> None:
+def _record_mutation(conn, task_id: str, field: str, old_val, new_val) -> None:
     if field not in _TRACKED_FIELDS:
         return
     old_str = str(old_val) if old_val is not None else None
@@ -205,7 +204,7 @@ def _record_mutation(conn: sqlite3.Connection, task_id: str, field: str, old_val
 
 
 def _record_mutations(
-    conn: sqlite3.Connection, task_id: str, old: Task, updates: dict[str, str]
+    conn, task_id: str, old: Task, updates: dict[str, str]
 ) -> None:
     for field, new_val in updates.items():
         _record_mutation(conn, task_id, field, getattr(old, field, None), new_val)
@@ -251,7 +250,7 @@ def update_task(
                 )
                 if old:
                     _record_mutations(conn, task_id, old, updates)
-            except sqlite3.IntegrityError as e:
+            except StoreIntegrityError as e:
                 raise ValueError(f"Failed to update task: {e}") from e
 
     return get_task(task_id)

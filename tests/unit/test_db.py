@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from life import db
+from life.core.errors import StoreIntegrityError
 from life.core.models import Habit, Task, TaskMutation
 from life.lib.store import get_db
 
@@ -59,7 +60,7 @@ def test_get_db_auto_commit(tmp_life_dir):
 
 def test_get_db_auto_rollback(tmp_life_dir):
     """Verify that get_db() automatically rolls back failed transactions."""
-    with pytest.raises(sqlite3.IntegrityError):
+    with pytest.raises(StoreIntegrityError):
         with get_db() as conn:
             conn.execute("INSERT INTO tasks (id, content) VALUES (?, ?)", ("test_id", None))
 

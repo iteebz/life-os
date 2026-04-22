@@ -1,6 +1,5 @@
-import sqlite3
 from collections import defaultdict
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from fncli import cli
 
@@ -29,7 +28,7 @@ def add_tag(task_id: str | None, habit_id: str | None, tag: str, conn=None) -> N
     if (task_id is None and habit_id is None) or (task_id is not None and habit_id is not None):
         raise ValueError("Exactly one of (task_id, habit_id) must be not None")
 
-    def _insert(c: sqlite3.Connection) -> None:
+    def _insert(c: Any) -> None:
         c.execute(
             "INSERT INTO tags (task_id, habit_id, tag) VALUES (?, ?, ?) ON CONFLICT DO NOTHING",
             (task_id, habit_id, tag.lower()),
@@ -109,7 +108,7 @@ def list_all_tags() -> list[str]:
 
 
 def _load_tags_by_column(
-    column: str, ids: list[str], conn: sqlite3.Connection | None = None
+    column: str, ids: list[str], conn: Any | None = None
 ) -> dict[str, list[str]]:
     """Batch load tags for items by column name (task_id or habit_id)."""
     if not ids:
@@ -118,7 +117,7 @@ def _load_tags_by_column(
     placeholders = ",".join("?" * len(ids))
     query = f"SELECT {column}, tag FROM tags WHERE {column} IN ({placeholders}) ORDER BY tag"  # noqa: S608
 
-    def _run(c: sqlite3.Connection) -> dict[str, list[str]]:
+    def _run(c: Any) -> dict[str, list[str]]:
         cursor = c.execute(query, ids)
         tags_map: defaultdict[str, list[str]] = defaultdict(list)
         for item_id, tag in cursor.fetchall():
@@ -132,13 +131,13 @@ def _load_tags_by_column(
 
 
 def load_tags_for_tasks(
-    task_ids: list[str], conn: sqlite3.Connection | None = None
+    task_ids: list[str], conn: Any | None = None
 ) -> dict[str, list[str]]:
     return _load_tags_by_column("task_id", task_ids, conn)
 
 
 def load_tags_for_habits(
-    habit_ids: list[str], conn: sqlite3.Connection | None = None
+    habit_ids: list[str], conn: Any | None = None
 ) -> dict[str, list[str]]:
     return _load_tags_by_column("habit_id", habit_ids, conn)
 
