@@ -12,9 +12,8 @@ from life.lib.store import get_db
 
 logger = logging.getLogger(__name__)
 
-QUIET_START = 0  # midnight — no nudges before QUIET_END
-QUIET_END = 8  # 8am
-QUIET_NIGHT = 23  # 11pm
+QUIET_END = 6   # 6am — lights out midnight to 6am
+QUIET_NIGHT = 24  # no evening quiet — only midnight-6am window
 MAX_PER_DAY = 3
 DISCOMFORT_TAGS = {"finance", "legal", "janice"}
 
@@ -29,6 +28,10 @@ class Nudge:
 
 def _is_quiet(now: datetime) -> bool:
     return now.hour < QUIET_END or now.hour >= QUIET_NIGHT
+
+
+def is_quiet_now() -> bool:
+    return _is_quiet(clock.now())
 
 
 def _sent_today(rule: str, entity_id: str) -> bool:

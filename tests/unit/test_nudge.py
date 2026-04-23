@@ -27,21 +27,16 @@ def _at(hour: int, minute: int = 0, d: date | None = None) -> datetime:
 # ── quiet hours ──────────────────────────────────────────────────────────────
 
 
-def test_quiet_before_8am():
-    assert _is_quiet(_at(7, 59))
+def test_quiet_midnight_to_6am():
     assert _is_quiet(_at(0))
-    assert _is_quiet(_at(5))
+    assert _is_quiet(_at(3))
+    assert _is_quiet(_at(5, 59))
 
 
-def test_not_quiet_during_day():
-    assert not _is_quiet(_at(8, 0))
+def test_not_quiet_outside_sleep():
+    assert not _is_quiet(_at(6, 0))
     assert not _is_quiet(_at(14))
-    assert not _is_quiet(_at(22, 59))
-
-
-def test_quiet_after_11pm():
-    assert _is_quiet(_at(23, 0))
-    assert _is_quiet(_at(23, 59))
+    assert not _is_quiet(_at(23, 59))
 
 
 # ── scheduled rule ───────────────────────────────────────────────────────────

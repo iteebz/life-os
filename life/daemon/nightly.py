@@ -112,6 +112,12 @@ def _run_nightly_session(
     last_activity = time.time()
 
     while not stop.is_set():
+        from life.nudge import is_quiet_now
+
+        if is_quiet_now():
+            _log("[nightly] quiet hours — ending session")
+            break
+
         elapsed = time.time() - last_activity
         if elapsed > SESSION_TIMEOUT:
             _log("[nightly] session timed out (1hr)")

@@ -116,6 +116,12 @@ def _telegram_thread(
             continue
 
         try:
+            from life.nudge import is_quiet_now
+
+            if is_quiet_now():
+                stop.wait(60)
+                continue
+
             messages = tg.poll(timeout=interval)
             for msg in messages:
                 # re-check: nightly may have claimed between poll return and here
