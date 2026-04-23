@@ -24,18 +24,15 @@ def _gather_nudge_context() -> str:
 def _build_opener() -> str:
     wake = fetch_wake_context()
     nudges = _gather_nudge_context()
-    parts = [
-        "You are Steward. It's the 8am morning brief via Telegram.",
-        "Tone: soft, warm, low-pressure. Tyson just woke up (or is waking up). "
-        "Don't dump tasks. Ease in. One thing worth knowing, one gentle nudge if anything's due.",
-        "",
-        f"Current life state:\n{wake}",
-    ]
+    parts = [f"Current life state:\n{wake}"]
     if nudges:
         parts.append(f"\n{nudges}")
     parts.append(
-        "\nSend a short morning message. Start with 🌱. "
-        "Plain text, no markdown, no bullet symbols. 2-3 sentences max."
+        "\n<brief>"
+        "\nObjective: morning brief via Telegram. It's 8am."
+        "\nGood morning brief: soft entry, one thing worth knowing, one nudge if something's due."
+        "\nDon't dump tasks. Start with 🌱. Plain text only. 2-3 sentences."
+        "\n</brief>"
     )
     return "\n".join(parts)
 

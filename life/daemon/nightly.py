@@ -13,12 +13,12 @@ NIGHTLY_HOUR = 20
 def _build_opener() -> str:
     wake = fetch_wake_context()
     return (
-        "You are Steward. It's the 8pm nightly check-in via Telegram.\n\n"
         f"Current life state:\n{wake}\n\n"
-        "Send Tyson a short evening sitrep: what got done, what's open, "
-        "one thing to close tonight if he has energy.\n\n"
-        "Casual and short. Telegram message, not a report. "
-        "Start with 🌱. No markdown headers. No bullet symbols. Plain text only."
+        "<brief>\n"
+        "Objective: evening brief via Telegram. It's 8pm.\n"
+        "Good evening brief: what moved today, what's still open, one thing to close if he has energy. "
+        "Honest, not cheerful. Start with 🌱. Plain text only. 2-3 sentences.\n"
+        "</brief>"
     )
 
 
