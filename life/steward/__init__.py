@@ -18,6 +18,9 @@ class StewardSession:
     id: int
     summary: str
     logged_at: datetime
+    claude_session_id: str | None = None
+    name: str | None = None
+    model: str | None = None
 
 
 @dataclass(frozen=True)
@@ -37,10 +40,23 @@ def resolve_prefix[T: _HasId](prefix: str, pool: Sequence[T]) -> T | None:
     return matches[0] if matches else None
 
 
-def add_session(summary: str) -> int:
+def add_session(
+    summary: str,
+    claude_session_id: str | None = None,
+    name: str | None = None,
+    model: str | None = None,
+) -> int:
     with get_db() as conn:
-        cursor = conn.execute("INSERT INTO sessions (summary) VALUES (?)", (summary,))
+        cursor = conn.execute(
+            "INSERT INTO sessions (summary, claude_session_id, name, model) VALUES (?, ?, ?, ?)",
+            (summary, claude_session_id, name, model),
+        )
         return cursor.lastrowid or 0
+
+
+def update_session_summary(session_id: int, summary: str) -> None:
+    with get_db() as conn:
+        conn.execute("UPDATE sessions SET summary = ? WHERE id = ?", (summary, session_id))
 
 
 def add_observation(body: str, tag: str | None = None, about_date: date | None = None) -> str:
@@ -103,16 +119,24 @@ def delete_observation(prefix: str, hard: bool = False) -> bool:
 def get_sessions(limit: int = 10) -> list[StewardSession]:
     with get_db() as conn:
         rows = conn.execute(
-            "SELECT id, summary, logged_at FROM sessions ORDER BY logged_at DESC LIMIT ?",
+            "SELECT id, summary, logged_at, claude_session_id, name, model "
+            "FROM sessions ORDER BY logged_at DESC LIMIT ?",
             (limit,),
         ).fetchall()
         return [
-            StewardSession(id=row[0], summary=row[1], logged_at=datetime.fromisoformat(row[2]))
+            StewardSession(
+                id=row[0],
+                summary=row[1],
+                logged_at=datetime.fromisoformat(row[2]),
+                claude_session_id=row[3],
+                name=row[4],
+                model=row[5],
+            )
             for row in rows
         ]
 
 
-from . import auto, close, dash, improve, log, wake  # noqa: E402
+from . import auto, chat, close, dash, improve, log, wake  # noqa: E402
 
 __all__ = [
     "Observation",
@@ -120,6 +144,7 @@ __all__ = [
     "add_observation",
     "add_session",
     "auto",
+    "chat",
     "wake",
     "close",
     "dash",
@@ -129,4 +154,5 @@ __all__ = [
     "improve",
     "log",
     "resolve_prefix",
+    "update_session_summary",
 ]
