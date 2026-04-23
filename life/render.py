@@ -208,12 +208,13 @@ def _row_habit(
         cadence_label = ""
 
     trend = "↗" if count_p1 > count_p2 else "↘" if count_p1 < count_p2 else "→"
+    time_str = f" {gray(habit.scheduled_time)}" if habit.scheduled_time else ""
     if habit.id in checked_ids:
         label = f"{gray(habit.content.lower())}{cadence_label}{tags_str}"
-        lines = [f"{indent}{purple('●')} {gray(trend)} {label}{id_str}"]
+        lines = [f"{indent}{purple('●')} {gray(trend)} {label}{time_str}{id_str}"]
     else:
         label = f"{habit.content.lower()}{cadence_label}{tags_str}"
-        lines = [f"{indent}{purple('○')} {gray(trend)} {label}{id_str}"]
+        lines = [f"{indent}{purple('○')} {gray(trend)} {label}{time_str}{id_str}"]
     for sub in get_subhabits(habit.id):
         lines.extend(_row_habit(sub, checked_ids, ctx, indent="   └ "))
     return lines
@@ -354,7 +355,10 @@ def _section_habits(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) 
     if not remaining:
         lines.append(f"  {gray('all done.')}")
         return lines
-    for habit in sorted(remaining, key=lambda h: h.content.lower()):
+    def _habit_sort_key(h: Habit) -> tuple[int, str]:
+        return (1 if h.scheduled_time else 0, h.scheduled_time or h.content.lower())
+
+    for habit in sorted(remaining, key=_habit_sort_key):
         lines.extend(_row_habit(habit, checked_ids, ctx))
     return lines
 

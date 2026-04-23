@@ -37,7 +37,7 @@ __all__ = [
 # ── domain ───────────────────────────────────────────────────────────────────
 
 
-_HABIT_COLS = "id, content, created, archived_at, parent_id, private, cadence"
+_HABIT_COLS = "id, content, created, archived_at, parent_id, private, cadence, scheduled_time"
 
 
 def _hydrate_habit(habit: Habit, checks: list[datetime], tags: list[str]) -> Habit:
@@ -113,15 +113,33 @@ def get_habit(habit_id: str) -> Habit | None:
         return _hydrate_habit(habit, checks, tags)
 
 
-def update_habit(habit_id: str, content: str | None = None) -> Habit | None:
-    if content is None:
+def update_habit(
+    habit_id: str,
+    content: str | None = None,
+    scheduled_time: str | None = None,
+    clear_time: bool = False,
+) -> Habit | None:
+    updates: list[str] = []
+    params: list[object] = []
+
+    if content is not None:
+        updates.append("content = ?")
+        params.append(content)
+    if clear_time:
+        updates.append("scheduled_time = NULL")
+    elif scheduled_time is not None:
+        updates.append("scheduled_time = ?")
+        params.append(scheduled_time)
+
+    if not updates:
         return get_habit(habit_id)
 
+    params.append(habit_id)
     with get_db() as conn:
         try:
             conn.execute(
-                "UPDATE habits SET content = ? WHERE id = ?",
-                (content, habit_id),
+                f"UPDATE habits SET {', '.join(updates)} WHERE id = ?",  # noqa: S608
+                tuple(params),
             )
         except StoreIntegrityError as e:
             raise ValueError(f"Failed to update habit: {e}") from e
@@ -370,7 +388,10 @@ def _render_habit_matrix(habits: list[Habit]) -> str:
         dates = [(today - timedelta(days=i)) for i in range(6, -1, -1)]
         header = "habit           " + " ".join(day_names) + "   key"
         lines += [header, "-" * len(header)]
-        for h in sorted(daily, key=lambda h: h.content.lower()):
+        def _habit_sort_key(h: Habit) -> tuple[int, str]:
+            return (1 if h.scheduled_time else 0, h.scheduled_time or h.content.lower())
+
+        for h in sorted(daily, key=_habit_sort_key):
             check_dates = {dt.date() for dt in h.checks}
             indicators = ["●" if d in check_dates else "○" for d in dates]
             cells = "   ".join(indicators)
@@ -426,3 +447,16 @@ def habit(ref: list[str] | None = None, tag: list[str] | None = None, weekly: bo
     habit_id = add_habit(name, tags=tag, cadence=cadence)
     cadence_suffix = f" {ansi.dim('(weekly)')}" if weekly else ""
     render_row(f"{name.lower()}{cadence_suffix}", tag, habit_id, symbol=ansi.purple("○"))
+
+
+@cli("life")
+def habit_set(ref: str, time: str | None = None, clear_time: bool = False) -> None:
+    """Set properties on a habit: `life habit set <ref> --time 07:30`"""
+    from .lib.resolve import resolve_habit
+
+    h = resolve_habit(ref)
+    update_habit(h.id, scheduled_time=time, clear_time=clear_time)
+    updated = get_habit(h.id)
+    if updated:
+        time_suffix = f"  {ansi.dim(updated.scheduled_time)}" if updated.scheduled_time else ""
+        print(f"{updated.content.lower()}{time_suffix}")

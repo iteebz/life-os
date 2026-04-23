@@ -30,6 +30,7 @@ class Habit:
     private: bool = False
     cadence: str = "daily"
     deleted_at: datetime | None = None
+    scheduled_time: str | None = None
     checks: list[datetime] = dataclasses.field(default_factory=list, hash=False)
     tags: list[str] = dataclasses.field(default_factory=list, hash=False)
 
