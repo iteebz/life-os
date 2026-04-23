@@ -32,7 +32,7 @@ def dash():
 
     sessions = get_sessions(limit=5)
     if sessions:
-        print("\nRECENT SESSIONS:")
+        print("\nRECENT LIVES:")
         now_dt = datetime.now()
         for s in sessions:
             rel = format_elapsed(s.logged_at, now_dt)

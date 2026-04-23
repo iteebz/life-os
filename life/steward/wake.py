@@ -48,7 +48,7 @@ def wake():
         s = sessions[0]
         now = datetime.now()
         rel = format_elapsed(s.logged_at, now)
-        print(f"\nLAST SESSION ({rel}): {s.summary}")
+        print(f"\nLAST LIFE ({rel}): {s.summary}")
 
     contracts_path = Path.home() / "life" / "steward" / "contracts.md"
     if contracts_path.exists():
