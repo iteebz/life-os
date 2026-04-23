@@ -2,12 +2,10 @@ import os
 import signal
 import threading
 import time
-from datetime import datetime
 
 from life.daemon.shared import (
     DAEMON_DIR,
     MAX_TG_SPAWNS_PER_HOUR,
-    NUDGE_HOUR,
     PEOPLE_DIR,
     TG_SESSION_MAX_CHARS,
     TG_SESSION_TIMEOUT,
@@ -183,26 +181,6 @@ def _signal_thread(stop: threading.Event, interval: int) -> None:
         stop.wait(interval)
 
 
-def _nudge_thread(stop: threading.Event) -> None:
-    from life.nudge import run_cycle
-
-    log(f"[nudge] started, activation at {NUDGE_HOUR:02d}:00 daily")
-    triggered_today: str | None = None
-
-    while not stop.is_set():
-        now = datetime.now()
-        today_str = now.strftime("%Y-%m-%d")
-
-        if now.hour == NUDGE_HOUR and triggered_today != today_str:
-            triggered_today = today_str
-            try:
-                sent = run_cycle()
-                log(f"[nudge] morning batch: sent {sent} nudge(s)")
-            except Exception as e:
-                log(f"[nudge] error: {e}")
-
-        stop.wait(30)
-
 
 def _auto_thread(stop: threading.Event, every: int, provider: str) -> None:
     from life.steward.auto import run_autonomous
@@ -267,12 +245,6 @@ def run(
     threads.append(sig)
     sig.start()
 
-    nudge = threading.Thread(
-        target=_nudge_thread, args=(stop,), daemon=True, name="nudge"
-    )
-    threads.append(nudge)
-    nudge.start()
-
     if auto_every > 0:
         auto = threading.Thread(
             target=_auto_thread,
@@ -286,7 +258,7 @@ def run(
     log(
         f"daemon started (PID {os.getpid()}) tg_interval={tg_interval}s "
         f"signal_interval={signal_interval}s auto_every={auto_every}s "
-        f"morning=08:00 nudge=08:00 nightly=20:00"
+        f"morning=08:00 nightly=20:00"
     )
 
     stop.wait()
