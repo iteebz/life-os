@@ -334,6 +334,28 @@ def task(
             for t in tasks:
                 print(f"  \u25a1 {format_task(t, tags=t.tags, show_id=True)}")
         return
+
+    # Try to resolve as existing task — if found, update it instead of creating
+    from life.task.domain import find_task_exact, find_task
+
+    item_ref = " ".join(ref)
+    existing = find_task_exact(item_ref) or find_task(item_ref)
+    if existing:
+        updates: dict[str, Any] = {}
+        when = due or schedule
+        if when:
+            from life.lib.parsing import parse_due_and_item
+
+            date_str, time_str, _ = parse_due_and_item([*when.split(), "x"])
+            if date_str:
+                updates["scheduled_date"] = date_str
+            if time_str:
+                updates["scheduled_time"] = time_str
+        if updates:
+            update_task(existing.id, **updates)
+        print(format_status("\u25a1", existing.content, existing.id))
+        return
+
     if not tag:
         raise UsageError('Tag required: life task "name" -t <tag>')
     from life.item import add as _add
