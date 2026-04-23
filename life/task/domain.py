@@ -180,35 +180,6 @@ def get_subtasks(parent_id: str) -> list[Task]:
         return fetch_tasks(conn, "parent_id = ?", (parent_id,))
 
 
-_TRACKED_FIELDS = {
-    "content",
-    "scheduled_date",
-    "scheduled_time",
-    "is_deadline",
-    "focus",
-    "completed_at",
-}
-
-
-def _record_mutation(conn, task_id: str, field: str, old_val, new_val) -> None:
-    if field not in _TRACKED_FIELDS:
-        return
-    old_str = str(old_val) if old_val is not None else None
-    new_str = str(new_val) if new_val is not None else None
-    if old_str == new_str:
-        return
-    conn.execute(
-        "INSERT INTO mutations (task_id, field, old_value, new_value) VALUES (?, ?, ?, ?)",
-        (task_id, field, old_str, new_str),
-    )
-
-
-def _record_mutations(
-    conn, task_id: str, old: Task, updates: dict[str, str]
-) -> None:
-    for field, new_val in updates.items():
-        _record_mutation(conn, task_id, field, getattr(old, field, None), new_val)
-
 
 def update_task(
     task_id: str,
@@ -237,7 +208,6 @@ def update_task(
         updates["notes"] = notes
 
     if updates:
-        old = get_task(task_id)
         set_clauses = [f"{k} = ?" for k in updates]
         values = list(updates.values())
         values.append(task_id)
@@ -248,8 +218,6 @@ def update_task(
                     f"UPDATE tasks SET {', '.join(set_clauses)} WHERE id = ?",  # noqa: S608
                     tuple(values),
                 )
-                if old:
-                    _record_mutations(conn, task_id, old, updates)
             except StoreIntegrityError as e:
                 raise ValueError(f"Failed to update task: {e}") from e
 
@@ -324,7 +292,6 @@ def check_task(task_id: str, completed_at: str | None = None) -> tuple[Task | No
             "UPDATE tasks SET completed_at = ? WHERE id = ?",
             (completed, task_id),
         )
-        _record_mutation(conn, task_id, "completed_at", None, completed)
         conn.execute(
             "UPDATE tasks SET blocked_by = NULL WHERE blocked_by = ?",
             (task_id,),
@@ -341,7 +308,6 @@ def check_task(task_id: str, completed_at: str | None = None) -> tuple[Task | No
                         "UPDATE tasks SET completed_at = ? WHERE id = ?",
                         (completed, task.parent_id),
                     )
-                    _record_mutation(conn, task.parent_id, "completed_at", None, completed)
                 parent_completed = get_task(task.parent_id)
     return completed_task, parent_completed
 
@@ -352,13 +318,11 @@ def uncheck_task(task_id: str) -> Task | None:
         return task
     with get_db() as conn:
         conn.execute("UPDATE tasks SET completed_at = NULL WHERE id = ?", (task_id,))
-        _record_mutation(conn, task_id, "completed_at", task.completed_at, None)
     if task.parent_id:
         parent = get_task(task.parent_id)
         if parent and parent.completed_at:
             with get_db() as conn:
                 conn.execute("UPDATE tasks SET completed_at = NULL WHERE id = ?", (task.parent_id,))
-                _record_mutation(conn, task.parent_id, "completed_at", parent.completed_at, None)
     return get_task(task_id)
 
 
