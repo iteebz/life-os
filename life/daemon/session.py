@@ -1,0 +1,158 @@
+"""Shared Telegram session loop — one implementation, multiple openers."""
+
+import threading
+import time
+
+from life.daemon.shared import TG_SESSION_MAX_CHARS, TG_SESSION_TIMEOUT, log
+from life.daemon.spawn import spawn_claude
+
+MAX_HISTORY_CHARS = 8000
+POLL_INTERVAL = 5
+HISTORY_LOOKBACK_HOURS = 2
+
+
+def trim_history(history: list[dict[str, str]]) -> list[dict[str, str]]:
+    """Keep most recent entries within MAX_HISTORY_CHARS."""
+    total = 0
+    cutoff = len(history)
+    for i in range(len(history) - 1, -1, -1):
+        total += len(history[i]["text"])
+        if total > MAX_HISTORY_CHARS:
+            cutoff = i + 1
+            break
+    else:
+        cutoff = 0
+    return history[cutoff:]
+
+
+def build_reply_prompt(
+    history: list[dict[str, str]], message: str, tone: str = ""
+) -> str:
+    recent = trim_history(history)
+    truncated = len(recent) < len(history)
+    tone_str = f" {tone}" if tone else ""
+    parts = [
+        "You are Steward in a Telegram conversation with Tyson. "
+        f"Be concise — chat format.{tone_str} You have access to all life CLI tools.\n",
+    ]
+    if truncated:
+        parts.append("[earlier conversation truncated]\n")
+    parts.append("Conversation so far:")
+    for entry in recent:
+        role = "Tyson" if entry["role"] == "user" else "Steward"
+        parts.append(f"{role}: {entry['text']}")
+    parts.append(f"\nTyson: {message}")
+    parts.append("\nRespond directly. Short and actionable. No markdown headers.")
+    return "\n".join(parts)
+
+
+def load_history_from_db(chat_id: int, hours: int = HISTORY_LOOKBACK_HOURS) -> list[dict[str, str]]:
+    """Load recent telegram messages from DB to survive daemon restarts."""
+    try:
+        from life.lib.store import get_db
+
+        cutoff = int(time.time()) - (hours * 3600)
+        with get_db() as conn:
+            rows = conn.execute(
+                "SELECT direction, body, timestamp FROM messages "
+                "WHERE channel = 'telegram' AND peer = ? AND timestamp > ? "
+                "ORDER BY timestamp ASC",
+                (str(chat_id), cutoff),
+            ).fetchall()
+        return [
+            {"role": "user" if row[0] == "in" else "assistant", "text": row[1]}
+            for row in rows
+        ]
+    except Exception as e:
+        log(f"[session] history load failed: {e}")
+        return []
+
+
+def get_tyson_chat_id() -> int | None:
+    from life.lib.resolve import resolve_people_field
+
+    result = resolve_people_field("tyson", "telegram")
+    return int(result) if result else None
+
+
+def run_session(
+    chat_id: int,
+    opener: str,
+    stop: threading.Event,
+    claimed_chat: threading.Event,
+    label: str,
+    tone: str = "",
+    load_db_history: bool = True,
+) -> None:
+    """Run a full Telegram session: send opener, poll for replies, respond.
+
+    Args:
+        chat_id: Telegram chat to interact with.
+        opener: Initial prompt for Claude (produces the first message).
+        stop: Daemon shutdown event.
+        claimed_chat: Mutex — set while this session owns the poll loop.
+        label: Log prefix, e.g. "morning", "nightly".
+        tone: Extra tone instruction injected into reply prompts.
+        load_db_history: Whether to seed history from DB (survives restarts).
+    """
+    from life.comms.messages import telegram as tg
+
+    log(f"[{label}] starting session")
+    claimed_chat.set()
+
+    history: list[dict[str, str]] = []
+    if load_db_history:
+        history = load_history_from_db(chat_id)
+        if history:
+            log(f"[{label}] loaded {len(history)} messages from DB")
+
+    response = spawn_claude(opener)
+    tg.send(chat_id, response)
+    log(f"[{label}] opener sent ({len(response)} chars)")
+
+    history.append({"role": "assistant", "text": response})
+    last_activity = time.time()
+
+    while not stop.is_set():
+        from life.nudge import is_quiet_now
+
+        if is_quiet_now():
+            log(f"[{label}] quiet hours — ending session")
+            break
+
+        elapsed = time.time() - last_activity
+        if elapsed > TG_SESSION_TIMEOUT:
+            log(f"[{label}] session timed out (1hr)")
+            break
+
+        messages = tg.poll(timeout=POLL_INTERVAL)
+        for msg in messages:
+            if msg["chat_id"] != chat_id:
+                continue
+
+            body = msg["body"]
+
+            # slash commands inside sessions
+            if body.startswith("/"):
+                from life.daemon.commands import handle_command
+
+                chars = sum(len(e["text"]) for e in history)
+                resp = handle_command(body, history, last_activity, chars)
+                if resp is not None:
+                    tg.send(chat_id, resp)
+                    log(f"[{label}] command: {body.split()[0]}")
+                    continue
+
+            log(f"[{label}] reply: {body[:80]}")
+            last_activity = time.time()
+
+            history.append({"role": "user", "text": body})
+            prompt = build_reply_prompt(history, body, tone=tone)
+            reply = spawn_claude(prompt)
+            history.append({"role": "assistant", "text": reply})
+
+            tg.send(chat_id, reply)
+            log(f"[{label}] responded ({len(reply)} chars)")
+
+    claimed_chat.clear()
+    log(f"[{label}] session ended")

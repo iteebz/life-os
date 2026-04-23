@@ -1,147 +1,25 @@
 """Nightly steward activation — 8pm proactive check-in via Telegram."""
 
 import threading
-import time
 from datetime import datetime
-from life.daemon.run import _log
-from life.daemon.spawn import fetch_wake_context, spawn_claude
 
-NIGHTLY_HOUR = 20  # 8pm
-SESSION_TIMEOUT = 3600  # 1 hour
-POLL_INTERVAL = 5
-MAX_HISTORY_CHARS = 8000  # ~2k tokens — keeps prompt fast
-HISTORY_LOOKBACK_HOURS = 2  # load recent DB messages on session start
+from life.daemon.session import get_tyson_chat_id, run_session
+from life.daemon.shared import log
+from life.daemon.spawn import fetch_wake_context
+
+NIGHTLY_HOUR = 20
 
 
-def _get_chat_id() -> int | None:
-    from life.lib.resolve import resolve_people_field
-
-    result = resolve_people_field("tyson", "telegram")
-    return int(result) if result else None
-
-
-def _load_history_from_db(chat_id: int, hours: int = HISTORY_LOOKBACK_HOURS) -> list[dict[str, str]]:
-    """Load recent telegram messages from the DB to survive daemon restarts."""
-    try:
-        from life.lib.store import get_db
-
-        cutoff = int(time.time()) - (hours * 3600)
-        with get_db() as conn:
-            rows = conn.execute(
-                "SELECT direction, body, timestamp FROM messages "
-                "WHERE channel = 'telegram' AND peer = ? AND timestamp > ? "
-                "ORDER BY timestamp ASC",
-                (str(chat_id), cutoff),
-            ).fetchall()
-        return [
-            {"role": "user" if row[0] == "in" else "assistant", "text": row[1]}
-            for row in rows
-        ]
-    except Exception as e:
-        _log(f"[nightly] history load failed: {e}")
-        return []
-
-
-def _trim_history(history: list[dict[str, str]]) -> list[dict[str, str]]:
-    """Keep most recent entries that fit within MAX_HISTORY_CHARS."""
-    total = 0
-    cutoff = len(history)
-    for i in range(len(history) - 1, -1, -1):
-        total += len(history[i]["text"])
-        if total > MAX_HISTORY_CHARS:
-            cutoff = i + 1
-            break
-    else:
-        cutoff = 0
-    return history[cutoff:]
-
-
-def _build_initial_prompt(wake_context: str) -> str:
+def _build_opener() -> str:
+    wake = fetch_wake_context()
     return (
         "You are Steward. It's the 8pm nightly check-in via Telegram.\n\n"
-        f"Current life state:\n{wake_context}\n\n"
+        f"Current life state:\n{wake}\n\n"
         "Send Tyson a short evening sitrep: what got done, what's open, "
         "one thing to close tonight if he has energy.\n\n"
         "Casual and short. Telegram message, not a report. "
-        "No markdown headers. No bullet symbols. Plain text only."
+        "Start with 🌱. No markdown headers. No bullet symbols. Plain text only."
     )
-
-
-def _build_reply_prompt(history: list[dict[str, str]], new_message: str) -> str:
-    recent = _trim_history(history)
-    truncated = len(recent) < len(history)
-
-    parts = [
-        "You are Steward in a nightly Telegram check-in with Tyson. "
-        "Be concise — chat format. You have access to all life CLI tools.\n",
-    ]
-    if truncated:
-        parts.append("[earlier conversation truncated]\n")
-    parts.append("Conversation so far:")
-    for entry in recent:
-        role = "Tyson" if entry["role"] == "user" else "Steward"
-        parts.append(f"{role}: {entry['text']}")
-
-    parts.append(f"\nTyson just said: {new_message}")
-    parts.append("\nRespond directly. Short and actionable. No markdown headers.")
-
-    return "\n".join(parts)
-
-
-def _run_nightly_session(
-    chat_id: int, stop: threading.Event, claimed_chat: threading.Event
-) -> None:
-    from life.comms.messages import telegram as tg
-
-    _log("[nightly] starting session")
-    claimed_chat.set()
-
-    # load any recent history from DB (survives restarts)
-    history = _load_history_from_db(chat_id)
-    if history:
-        _log(f"[nightly] loaded {len(history)} messages from DB")
-
-    # pre-fetch context before spawning
-    wake_context = fetch_wake_context()
-    prompt = _build_initial_prompt(wake_context)
-    response = spawn_claude(prompt)
-    tg.send(chat_id, response)
-    _log(f"[nightly] sitrep sent ({len(response)} chars)")
-
-    history.append({"role": "assistant", "text": response})
-    last_activity = time.time()
-
-    while not stop.is_set():
-        from life.nudge import is_quiet_now
-
-        if is_quiet_now():
-            _log("[nightly] quiet hours — ending session")
-            break
-
-        elapsed = time.time() - last_activity
-        if elapsed > SESSION_TIMEOUT:
-            _log("[nightly] session timed out (1hr)")
-            break
-
-        messages = tg.poll(timeout=POLL_INTERVAL)
-        for msg in messages:
-            if msg["chat_id"] != chat_id:
-                continue
-
-            body = msg["body"]
-            _log(f"[nightly] reply: {body[:80]}")
-            last_activity = time.time()
-
-            history.append({"role": "user", "text": body})
-            prompt = _build_reply_prompt(history, body)
-            reply = spawn_claude(prompt)
-            history.append({"role": "assistant", "text": reply})
-
-            tg.send(chat_id, reply)
-            _log(f"[nightly] responded ({len(reply)} chars)")
-
-    claimed_chat.clear()
-    _log("[nightly] session ended")
 
 
 def trigger_now() -> None:
@@ -153,7 +31,7 @@ def trigger_now() -> None:
         print("daemon is running — stop it first or let the nightly thread handle it")
         return
 
-    chat_id = _get_chat_id()
+    chat_id = get_tyson_chat_id()
     if not chat_id:
         print("no telegram chat_id for tyson")
         return
@@ -162,7 +40,8 @@ def trigger_now() -> None:
     claimed = threading.Event()
     print(f"triggering nightly session (chat_id={chat_id})")
     try:
-        _run_nightly_session(chat_id, stop, claimed)
+        opener = _build_opener()
+        run_session(chat_id, opener, stop, claimed, label="nightly")
     except KeyboardInterrupt:
         stop.set()
         claimed.clear()
@@ -170,12 +49,12 @@ def trigger_now() -> None:
 
 
 def nightly_thread(stop: threading.Event, claimed_chat: threading.Event) -> None:
-    chat_id = _get_chat_id()
+    chat_id = get_tyson_chat_id()
     if not chat_id:
-        _log("[nightly] no telegram chat_id for tyson — disabled")
+        log("[nightly] no telegram chat_id for tyson — disabled")
         return
 
-    _log(f"[nightly] thread started, activation at {NIGHTLY_HOUR}:00")
+    log(f"[nightly] thread started, activation at {NIGHTLY_HOUR}:00")
     triggered_today: str | None = None
 
     while not stop.is_set():
@@ -184,6 +63,7 @@ def nightly_thread(stop: threading.Event, claimed_chat: threading.Event) -> None
 
         if now.hour == NIGHTLY_HOUR and triggered_today != today_str:
             triggered_today = today_str
-            _run_nightly_session(chat_id, stop, claimed_chat)
+            opener = _build_opener()
+            run_session(chat_id, opener, stop, claimed_chat, label="nightly")
 
         stop.wait(30)
