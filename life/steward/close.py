@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 from fncli import cli
@@ -7,13 +8,17 @@ from life.lib import ansi
 from life.lib.format import format_elapsed
 from life.lib.ids import short
 
-from . import add_observation, add_session, delete_observation, get_observations
+from . import add_observation, add_session, delete_observation, get_observations, update_session_summary
 
 
 @cli("steward")
 def sleep(note: str):
     """Write handover summary for the next steward — what happened, what's open, what's next"""
-    add_session(note)
+    session_id_env = os.environ.get("STEWARD_SESSION_ID")
+    if session_id_env:
+        update_session_summary(int(session_id_env), note)
+    else:
+        add_session(note)
     print("→ summary logged")
 
 

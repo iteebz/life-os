@@ -214,6 +214,11 @@ def run_autonomous(provider: str = "claude") -> None:
     )
     from life.task import get_all_tasks, get_tasks
 
+    from . import add_session
+
+    ts_label = datetime.now().strftime("%b %d %H:%M").lstrip("0").lower()
+    db_session_id = add_session("(active)", name=f"auto {ts_label}", model=provider)
+
     tasks_before = get_tasks()
     all_before = get_all_tasks()
     habits_before = get_habits()
@@ -240,6 +245,7 @@ def run_autonomous(provider: str = "claude") -> None:
     spawn_file = _STEWARD_DIR / f"{ts}.jsonl"
 
     cmd, env = _build_provider_cmd_env(provider, prompt)
+    env["STEWARD_SESSION_ID"] = str(db_session_id)
     rc = _run_tail_stream(
         cmd,
         cwd=Path.home() / "life",
