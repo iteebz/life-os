@@ -34,18 +34,24 @@ def _fmt_date_label(date_str: str) -> str:
 
 
 def _schedule(args: list[str], remove: bool = False) -> None:
-    from life.lib.resolve import resolve_task
+    from life.habit import update_habit
+    from life.lib.resolve import resolve_item
 
     if remove:
         if not args:
-            raise UsageError("Usage: life schedule --remove <task>")
+            raise UsageError("Usage: life schedule --remove <item>")
         try:
             _, _, item_name = parse_due_and_item(list(args), remove=True)
         except ValueError as e:
             raise UsageError(str(e)) from e
-        t = resolve_task(item_name)
-        update_task(t.id, scheduled_date=None, scheduled_time=None, is_deadline=False)
-        print(format_status("\u25a1", t.content, t.id))
+        task, habit = resolve_item(item_name)
+        if habit:
+            update_habit(habit.id, clear_time=True)
+            print(format_status("\u25a1", habit.content, habit.id))
+        else:
+            assert task
+            update_task(task.id, scheduled_date=None, scheduled_time=None, is_deadline=False)
+            print(format_status("\u25a1", task.content, task.id))
         return
     try:
         date_str, time_str, item_name = parse_due_and_item(list(args))
@@ -55,18 +61,25 @@ def _schedule(args: list[str], remove: bool = False) -> None:
         raise UsageError(
             "Schedule spec required: today, tomorrow, day name, YYYY-MM-DD, HH:MM, or 'now'"
         )
-    t = resolve_task(item_name)
+    task, habit = resolve_item(item_name)
+    if habit:
+        if not time_str:
+            raise UsageError("Habits only support time scheduling: life schedule 07:30 <habit>")
+        update_habit(habit.id, scheduled_time=time_str)
+        print(format_status(ansi.muted(time_str), habit.content, habit.id))
+        return
+    assert task
     updates: dict[str, Any] = {"is_deadline": False}
     if date_str:
         updates["scheduled_date"] = date_str
     if time_str:
         updates["scheduled_time"] = time_str
-    update_task(t.id, **updates)
+    update_task(task.id, **updates)
     if time_str:
         label = ansi.muted(time_str)
     else:
         label = ansi.muted(_fmt_date_label(date_str or ""))
-    print(format_status(label, t.content, t.id))
+    print(format_status(label, task.content, task.id))
 
 
 @cli("life")

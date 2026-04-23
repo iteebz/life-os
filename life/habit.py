@@ -449,14 +449,3 @@ def habit(ref: list[str] | None = None, tag: list[str] | None = None, weekly: bo
     render_row(f"{name.lower()}{cadence_suffix}", tag, habit_id, symbol=ansi.purple("○"))
 
 
-@cli("life")
-def habit_set(ref: str, time: str | None = None, clear_time: bool = False) -> None:
-    """Set properties on a habit: `life habit set <ref> --time 07:30`"""
-    from .lib.resolve import resolve_habit
-
-    h = resolve_habit(ref)
-    update_habit(h.id, scheduled_time=time, clear_time=clear_time)
-    updated = get_habit(h.id)
-    if updated:
-        time_suffix = f"  {ansi.dim(updated.scheduled_time)}" if updated.scheduled_time else ""
-        print(f"{updated.content.lower()}{time_suffix}")
