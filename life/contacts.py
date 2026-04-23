@@ -46,15 +46,15 @@ def find_contact(name: str) -> Contact | None:
     return None
 
 
-def log_contact(name: str) -> Contact | None:
+def log_contact(name: str, date: str | None = None) -> Contact | None:
     contact = find_contact(name)
     if not contact:
         return None
-    now = datetime.now().isoformat()
+    ts = datetime.fromisoformat(date).isoformat() if date else datetime.now().isoformat()
     with get_db() as conn:
         conn.execute(
             "UPDATE contacts SET last_contact_at = ? WHERE id = ?",
-            (now, contact.id),
+            (ts, contact.id),
         )
     return _get_contact_by_id(contact.id)
 
@@ -137,9 +137,9 @@ def add(name: str, every: int = 30) -> None:
 
 
 @cli("life contacts")
-def log(name: str) -> None:
-    """Log contact with someone: `life contacts log "name"`"""
-    contact = log_contact(name)
+def log(name: str, date: str | None = None) -> None:
+    """Log contact with someone: `life contacts log "name" --date 2026-04-18`"""
+    contact = log_contact(name, date=date)
     if not contact:
         raise UsageError(f"no contact matching '{name}'")
     print(f"✓ {contact.name} — logged")
