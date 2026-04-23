@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 QUIET_END = 6   # 6am — lights out midnight to 6am
 QUIET_NIGHT = 24  # no evening quiet — only midnight-6am window
-MAX_PER_DAY = 3
+MAX_PER_DAY = 1
 DISCOMFORT_TAGS = {"finance", "legal", "janice"}
 
 
