@@ -13,7 +13,7 @@ from life.lib.store import get_db
 logger = logging.getLogger(__name__)
 
 QUIET_START = 0  # midnight — no nudges before QUIET_END
-QUIET_END = 10  # 10am
+QUIET_END = 8  # 8am
 QUIET_NIGHT = 23  # 11pm
 MAX_PER_DAY = 3
 DISCOMFORT_TAGS = {"finance", "legal", "janice"}

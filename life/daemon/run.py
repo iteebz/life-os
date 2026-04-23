@@ -2,6 +2,7 @@ import os
 import signal
 import threading
 import time
+from datetime import datetime
 from pathlib import Path
 
 from life.config import LIFE_DIR
@@ -11,6 +12,9 @@ DAEMON_DIR = LIFE_DIR
 LOG_FILE = DAEMON_DIR / "daemon.log"
 
 MAX_TG_SPAWNS_PER_HOUR = 12
+TG_SESSION_TIMEOUT = 3600  # 1 hour — restart with boot after this
+TG_SESSION_MAX_CHARS = 300_000  # ~100k tokens
+NUDGE_HOUR = 8  # 8am daily batch
 PEOPLE_DIR = Path.home() / "life" / "steward" / "people"
 
 
@@ -44,9 +48,9 @@ def _load_allowed_tg_chats() -> set[int]:
     return chat_ids
 
 
-def _build_tg_prompt(message: str, sender_name: str, context: str) -> str:
+def _build_tg_boot_prompt(message: str, sender_name: str, context: str) -> str:
     return f"""\
-You are Steward responding via Telegram. Be concise — chat format, not a report.
+You are Steward responding via Telegram. New session — run boot sequence first.
 
 Current life state:
 {context}
@@ -55,6 +59,37 @@ Sender: {sender_name}
 Message: {message}
 
 Respond directly. Short and actionable. No markdown headers."""
+
+
+def _trim_tg_history(history: list[dict[str, str]]) -> list[dict[str, str]]:
+    total = 0
+    cutoff = len(history)
+    for i in range(len(history) - 1, -1, -1):
+        total += len(history[i]["text"])
+        if total > 8000:
+            cutoff = i + 1
+            break
+    else:
+        cutoff = 0
+    return history[cutoff:]
+
+
+def _build_tg_reply_prompt(history: list[dict[str, str]], message: str) -> str:
+    recent = _trim_tg_history(history)
+    truncated = len(recent) < len(history)
+    parts = [
+        "You are Steward in a Telegram conversation with Tyson. "
+        "Be concise — chat format. You have access to all life CLI tools.\n",
+    ]
+    if truncated:
+        parts.append("[earlier conversation truncated]\n")
+    parts.append("Conversation so far:")
+    for entry in recent:
+        role = "Tyson" if entry["role"] == "user" else "Steward"
+        parts.append(f"{role}: {entry['text']}")
+    parts.append(f"\nTyson: {message}")
+    parts.append("\nRespond directly. Short and actionable. No markdown headers.")
+    return "\n".join(parts)
 
 
 def _telegram_thread(
@@ -68,6 +103,10 @@ def _telegram_thread(
         return
 
     spawn_times: list[float] = []
+    session_history: list[dict[str, str]] = []
+    session_last_time: float = 0.0
+    session_chars: int = 0
+
     _log(f"[telegram] started, {len(allowed)} allowed chat(s), polling every {interval}s")
 
     while not stop.is_set():
@@ -101,12 +140,38 @@ def _telegram_thread(
                     continue
 
                 spawn_times.append(now)
-                _log(f"[telegram] spawning claude for: {body[:60]}")
-                context = fetch_wake_context()
-                prompt = _build_tg_prompt(body, sender, context)
+
+                elapsed = now - session_last_time
+                continuing = (
+                    elapsed < TG_SESSION_TIMEOUT
+                    and session_chars < TG_SESSION_MAX_CHARS
+                    and bool(session_history)
+                )
+
+                if continuing:
+                    _log(f"[telegram] continuing session ({session_chars} chars, {elapsed:.0f}s ago)")
+                    session_history.append({"role": "user", "text": body})
+                    prompt = _build_tg_reply_prompt(session_history, body)
+                else:
+                    _log(f"[telegram] new session — boot context")
+                    session_history = []
+                    session_chars = 0
+                    context = fetch_wake_context()
+                    prompt = _build_tg_boot_prompt(body, sender, context)
+
                 response = spawn_claude(prompt)
                 _log(f"[telegram] response ({len(response)} chars)")
                 tg.send(chat_id, response)
+
+                if not continuing:
+                    session_history = [
+                        {"role": "user", "text": body},
+                        {"role": "assistant", "text": response},
+                    ]
+                else:
+                    session_history.append({"role": "assistant", "text": response})
+                session_chars = sum(len(e["text"]) for e in session_history)
+                session_last_time = now
 
         except Exception as e:
             _log(f"[telegram] poll error: {e}")
@@ -144,20 +209,25 @@ def _signal_thread(stop: threading.Event, interval: int) -> None:
         stop.wait(interval)
 
 
-def _nudge_thread(stop: threading.Event, interval: int) -> None:
+def _nudge_thread(stop: threading.Event) -> None:
     from life.nudge import run_cycle
 
-    _log(f"[nudge] started, evaluating every {interval}s")
+    _log(f"[nudge] started, activation at {NUDGE_HOUR:02d}:00 daily")
+    triggered_today: str | None = None
 
     while not stop.is_set():
-        try:
-            sent = run_cycle()
-            if sent:
-                _log(f"[nudge] sent {sent} nudge(s)")
-        except Exception as e:
-            _log(f"[nudge] error: {e}")
+        now = datetime.now()
+        today_str = now.strftime("%Y-%m-%d")
 
-        stop.wait(interval)
+        if now.hour == NUDGE_HOUR and triggered_today != today_str:
+            triggered_today = today_str
+            try:
+                sent = run_cycle()
+                _log(f"[nudge] morning batch: sent {sent} nudge(s)")
+            except Exception as e:
+                _log(f"[nudge] error: {e}")
+
+        stop.wait(30)
 
 
 def _auto_thread(stop: threading.Event, every: int, provider: str) -> None:
@@ -181,7 +251,6 @@ def run(
     signal_interval: int = 5,
     auto_every: int = 0,
     auto_provider: str = "claude",
-    nudge_interval: int = 300,
 ) -> None:
     from life.daemon.nightly import nightly_thread
 
@@ -218,7 +287,7 @@ def run(
     sig.start()
 
     nudge = threading.Thread(
-        target=_nudge_thread, args=(stop, nudge_interval), daemon=True, name="nudge"
+        target=_nudge_thread, args=(stop,), daemon=True, name="nudge"
     )
     threads.append(nudge)
     nudge.start()
@@ -236,7 +305,7 @@ def run(
     _log(
         f"daemon started (PID {os.getpid()}) tg_interval={tg_interval}s "
         f"signal_interval={signal_interval}s auto_every={auto_every}s "
-        f"nudge_interval={nudge_interval}s nightly=20:00"
+        f"nudge=08:00 nightly=20:00"
     )
 
     stop.wait()

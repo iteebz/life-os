@@ -27,14 +27,14 @@ def _at(hour: int, minute: int = 0, d: date | None = None) -> datetime:
 # ── quiet hours ──────────────────────────────────────────────────────────────
 
 
-def test_quiet_before_10am():
-    assert _is_quiet(_at(9, 59))
+def test_quiet_before_8am():
+    assert _is_quiet(_at(7, 59))
     assert _is_quiet(_at(0))
     assert _is_quiet(_at(5))
 
 
 def test_not_quiet_during_day():
-    assert not _is_quiet(_at(10, 0))
+    assert not _is_quiet(_at(8, 0))
     assert not _is_quiet(_at(14))
     assert not _is_quiet(_at(22, 59))
 
@@ -198,7 +198,7 @@ def test_daily_budget_cap(tmp_life_dir, monkeypatch):
 def test_run_cycle_respects_quiet(tmp_life_dir, monkeypatch):
     fixed = date(2025, 10, 30)
     monkeypatch.setattr(clock, "today", lambda: fixed)
-    monkeypatch.setattr(clock, "now", lambda: _at(8, 0, fixed))  # before 10am
+    monkeypatch.setattr(clock, "now", lambda: _at(7, 0, fixed))  # before 8am
 
     yesterday = (fixed - timedelta(days=1)).isoformat()
     add_task("should not nudge", scheduled_date=yesterday, tags=["finance"])
