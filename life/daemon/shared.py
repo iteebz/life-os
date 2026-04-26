@@ -8,8 +8,8 @@ from life.config import LIFE_DIR
 DAEMON_DIR = LIFE_DIR
 LOG_FILE = DAEMON_DIR / "daemon.log"
 
-TG_SESSION_TIMEOUT = 3600  # 1 hour — restart with boot after this
-TG_SESSION_MAX_CHARS = 300_000  # ~100k tokens
+TG_SESSION_TIMEOUT = 3300  # 55 min — restart with boot after this
+TG_SESSION_MAX_CHARS = 100_000  # ~33k tokens
 MAX_TG_SPAWNS_PER_HOUR = 12
 PEOPLE_DIR = Path.home() / "life" / "steward" / "people"
 
