@@ -1,5 +1,6 @@
 """steward — interactive sessions with tracking. Default command."""
 
+import os
 import subprocess
 import uuid
 from datetime import datetime
@@ -16,13 +17,43 @@ LIFE_DIR = Path.home() / "life"
 TOOLS = "Bash,Read,Write,Edit,Grep,Glob,WebFetch,WebSearch"
 DEFAULT_MODEL = "sonnet"
 
+_session_start: datetime | None = None
+_followups: list[datetime] = []
 
-def _launch(model: str, session_id: str, name: str | None = None, resume: bool = False) -> int:
+
+def _session_meta_fragment(source: str) -> str:
+    now = datetime.now()
+    start = _session_start or now
+    elapsed_s = int((now - start).total_seconds())
+    elapsed_str = f"{elapsed_s // 60}m{elapsed_s % 60}s" if elapsed_s >= 60 else f"{elapsed_s}s"
+    timeline = ", ".join(
+        f"+{int((t - start).total_seconds())}s" for t in _followups
+    ) if _followups else "none"
+    return (
+        f"\n\n[session meta] source={source} | started={start.strftime('%H:%M:%S')} | "
+        f"runtime={elapsed_str} | follow-ups={timeline} | ts={now.isoformat(timespec='seconds')}"
+    )
+
+
+def _launch(
+    model: str,
+    session_id: str,
+    name: str | None = None,
+    resume: bool = False,
+    source: str = "cli",
+) -> int:
+    global _session_start
+    if _session_start is None:
+        _session_start = datetime.now()
+    else:
+        _followups.append(datetime.now())
+
     cmd = [
         "claude",
         "--model", model,
         "--dangerously-skip-permissions",
         "--tools", TOOLS,
+        "--append-system-prompt", _session_meta_fragment(source),
     ]
     if resume:
         cmd.extend(["--resume", session_id])
@@ -59,8 +90,9 @@ def chat(model: str | None = None, name: str | None = None, opus: bool = False):
         model=model,
     )
 
-    print(f"session {db_id} → {session_id[:8]}  model={model}")
-    rc = _launch(model, session_id, name=label)
+    source = os.environ.get("STEWARD_SOURCE", "cli")
+    print(f"session {db_id} → {session_id[:8]}  model={model}  source={source}")
+    rc = _launch(model, session_id, name=label, source=source)
     update_session_summary(db_id, f"(closed) {label}")
     return rc
 
@@ -100,8 +132,9 @@ def resume(ref: str | None = None, model: str | None = None):
         return 1
 
     m = model or target.model or DEFAULT_MODEL
-    print(f"resuming {target.id} → {target.claude_session_id[:8]}  model={m}")
-    return _launch(m, target.claude_session_id, name=target.name, resume=True)
+    source = os.environ.get("STEWARD_SOURCE", "cli")
+    print(f"resuming {target.id} → {target.claude_session_id[:8]}  model={m}  source={source}")
+    return _launch(m, target.claude_session_id, name=target.name, resume=True, source=source)
 
 
 @cli("steward", name="continue", aliases=["c"])
@@ -116,6 +149,7 @@ def continue_session():
 
     target = resumable[0]
     m = target.model or DEFAULT_MODEL
+    source = os.environ.get("STEWARD_SOURCE", "cli")
     assert target.claude_session_id
-    print(f"continuing {target.id} → {target.claude_session_id[:8]}  model={m}")
-    return _launch(m, target.claude_session_id, name=target.name, resume=True)
+    print(f"continuing {target.id} → {target.claude_session_id[:8]}  model={m}  source={source}")
+    return _launch(m, target.claude_session_id, name=target.name, resume=True, source=source)
