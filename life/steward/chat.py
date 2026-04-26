@@ -35,9 +35,11 @@ def _launch(model: str, session_id: str, name: str | None = None, resume: bool =
     return subprocess.call(cmd, cwd=LIFE_DIR, env=os.environ.copy())
 
 
-@cli("steward", default=True, flags={"model": ["-m", "--model"], "name": ["-n", "--name"]})
-def chat(model: str | None = None, name: str | None = None):
+@cli("steward", default=True, flags={"model": ["-m", "--model"], "name": ["-n", "--name"], "opus": ["--opus"]})
+def chat(model: str | None = None, name: str | None = None, opus: bool = False):
     """Start a tracked interactive steward session"""
+    if opus:
+        model = "opus"
     model = model or DEFAULT_MODEL
     session_id = str(uuid.uuid4())
     label = name or datetime.now().strftime("%b %d %H:%M").lower()
