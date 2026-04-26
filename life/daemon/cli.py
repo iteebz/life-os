@@ -121,7 +121,7 @@ def daemon_restart() -> None:
 
 @cli("life daemon", name="nightly")
 def daemon_nightly() -> None:
-    """trigger nightly steward session now (for testing)"""
+    """trigger a steward session now (for testing)"""
     from life.daemon.nightly import trigger_now
 
     trigger_now()

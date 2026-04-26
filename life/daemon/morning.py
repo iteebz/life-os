@@ -1,4 +1,8 @@
-"""Morning steward brief — 8am soft check-in via Telegram."""
+"""Morning steward brief — single daily Telegram touchpoint.
+
+Fires once at 8am. If Tyson replies before 8pm, steward responds.
+No nightly session. No standalone nudges. Everything in one place.
+"""
 
 import threading
 from datetime import datetime
@@ -8,6 +12,7 @@ from life.daemon.shared import log
 from life.daemon.spawn import fetch_wake_context
 
 MORNING_HOUR = 8
+CUTOFF_HOUR = 20  # replies after 8pm won't trigger a new session
 
 
 def _gather_nudge_context() -> str:
@@ -29,9 +34,10 @@ def _build_opener() -> str:
         parts.append(f"\n{nudges}")
     parts.append(
         "\n<brief>"
-        "\nObjective: morning brief via Telegram. It's 8am."
-        "\nGood morning brief: soft entry, one thing worth knowing, one nudge if something's due."
-        "\nDon't dump tasks. Start with 🌱. Plain text only. 2-3 sentences."
+        "\nObjective: consolidated morning brief via Telegram. It's 8am."
+        "\nThis is Tyson's only unprompted message today. Make it count."
+        "\nInclude: one thing worth knowing, overdue items (if any), one nudge."
+        "\nStart with 🌱. Plain text only. 2-3 sentences max."
         "\n</brief>"
     )
     return "\n".join(parts)

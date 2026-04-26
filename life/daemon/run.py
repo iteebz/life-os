@@ -205,7 +205,6 @@ def run(
     auto_provider: str = "claude",
 ) -> None:
     from life.daemon.morning import morning_thread
-    from life.daemon.nightly import nightly_thread
 
     DAEMON_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -233,12 +232,6 @@ def run(
     threads.append(morning)
     morning.start()
 
-    nightly = threading.Thread(
-        target=nightly_thread, args=(stop, claimed_chat), daemon=True, name="nightly"
-    )
-    threads.append(nightly)
-    nightly.start()
-
     sig = threading.Thread(
         target=_signal_thread, args=(stop, signal_interval), daemon=True, name="signal"
     )
@@ -258,7 +251,7 @@ def run(
     log(
         f"daemon started (PID {os.getpid()}) tg_interval={tg_interval}s "
         f"signal_interval={signal_interval}s auto_every={auto_every}s "
-        f"morning=08:00 nightly=20:00"
+        f"morning=08:00"
     )
 
     stop.wait()

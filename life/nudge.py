@@ -232,19 +232,12 @@ def is_enabled() -> bool:
 
 
 def run_cycle() -> int:
-    if not is_enabled():
-        return 0
-    now = clock.now()
-    if _is_quiet(now):
-        return 0
-    budget = MAX_PER_DAY - _count_today()
-    if budget <= 0:
-        return 0
-    candidates = evaluate_rules(now)
-    to_send = candidates[:budget]
-    if not to_send:
-        return 0
-    return send_nudges(to_send)
+    """No-op: nudges are now folded into the morning brief.
+
+    Standalone nudge sends are disabled. Use evaluate_rules() to get
+    nudge candidates for inclusion in consolidated messages.
+    """
+    return 0
 
 
 # ── cli ──────────────────────────────────────────────────────────────────────

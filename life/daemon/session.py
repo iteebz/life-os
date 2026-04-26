@@ -2,8 +2,9 @@
 
 import threading
 import time
+from datetime import datetime
 
-from life.daemon.shared import TG_SESSION_MAX_CHARS, TG_SESSION_TIMEOUT, log
+from life.daemon.shared import TG_SESSION_TIMEOUT, log
 from life.daemon.spawn import spawn_claude
 
 MAX_HISTORY_CHARS = 8000
@@ -155,4 +156,34 @@ def run_session(
             log(f"[{label}] responded ({len(reply)} chars)")
 
     claimed_chat.clear()
+    log_session(label, history)
     log(f"[{label}] session ended")
+
+
+def log_session(label: str, history: list[dict[str, str]]) -> None:
+    """Write session transcript to steward/sessions/ for traceability."""
+    from pathlib import Path
+
+    sessions_dir = Path.home() / "life" / "steward" / "sessions"
+    sessions_dir.mkdir(parents=True, exist_ok=True)
+
+    now = datetime.now()
+    filename = now.strftime(f"%Y-%m-%d-%H%M-{label}.md")
+    path = sessions_dir / filename
+
+    lines = [f"# {label} session — {now.strftime('%Y-%m-%d %H:%M')}", ""]
+    msg_count = 0
+    for entry in history:
+        role = "Tyson" if entry["role"] == "user" else "Steward"
+        lines.append(f"**{role}:** {entry['text']}")
+        lines.append("")
+        msg_count += 1
+
+    if msg_count == 0:
+        return  # don't log empty sessions
+
+    try:
+        path.write_text("\n".join(lines))
+        log(f"[{label}] session logged to {path.name}")
+    except Exception as e:
+        log(f"[{label}] session log failed: {e}")
