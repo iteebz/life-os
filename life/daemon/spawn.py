@@ -1,10 +1,22 @@
 """Shared Claude spawning for daemon threads."""
 
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
 MAX_RESPONSE_LEN = 4000
+
+
+def _claude_bin() -> str:
+    """Resolve the claude binary, checking nvm paths if not in PATH."""
+    found = shutil.which("claude")
+    if found:
+        return found
+    nvm_bin = Path.home() / ".nvm" / "versions" / "node"
+    for node_ver in sorted(nvm_bin.glob("*/bin/claude"), reverse=True):
+        return str(node_ver)
+    raise FileNotFoundError("claude binary not found — ensure Claude Code CLI is installed")
 
 
 def fetch_wake_context() -> str:
@@ -22,15 +34,23 @@ def fetch_wake_context() -> str:
         return f"(wake context unavailable: {e})"
 
 
-def spawn_claude(prompt: str, timeout: int = 120) -> str:
+def spawn_claude(prompt: str, timeout: int = 120, photo_path: str | None = None) -> str:
+    try:
+        claude = _claude_bin()
+    except FileNotFoundError as e:
+        return f"[steward error: {e}]"
+
     cmd = [
-        "claude",
+        claude,
         "--print",
         "--no-session-persistence",
         "--dangerously-skip-permissions",
         "--model",
         "claude-sonnet-4-6",
     ]
+    if photo_path:
+        cmd += ["--image", photo_path]
+
     env = os.environ.copy()
     env.pop("ANTHROPIC_BASE_URL", None)
     env.pop("ANTHROPIC_AUTH_TOKEN", None)
