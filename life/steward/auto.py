@@ -184,15 +184,11 @@ def _select_required_real_world_task(tasks: list[Any]) -> "Task | None":
     return sorted(ranked, key=lambda t: t.created)[0]
 
 
-def _build_provider_cmd_env(provider: str, prompt: str) -> tuple[list[str], dict[str, str]]:
-    from life.lib.providers import claude, glm
+def _build_cmd_env(prompt: str) -> tuple[list[str], dict[str, str]]:
+    from life.lib.providers import claude
 
-    if provider == "glm":
-        env = glm.build_env()
-        cmd = glm.build_command(prompt)
-    else:
-        env = claude.build_env()
-        cmd = claude.build_command(prompt)
+    env = claude.build_env("auto")
+    cmd = claude.build_command(prompt)
 
     env["GIT_AUTHOR_NAME"] = "steward-auto"
     env["GIT_AUTHOR_EMAIL"] = "steward-auto@life.local"
@@ -202,7 +198,7 @@ def _build_provider_cmd_env(provider: str, prompt: str) -> tuple[list[str], dict
     return cmd, env
 
 
-def run_autonomous(provider: str = "claude") -> None:
+def run_autonomous() -> None:
     from life.feedback import build_feedback_snapshot, render_feedback_snapshot
     from life.habit import get_habits
     from life.lib.clock import today
@@ -217,7 +213,7 @@ def run_autonomous(provider: str = "claude") -> None:
     from . import add_session
 
     ts_label = datetime.now().strftime("%b %d %H:%M").lstrip("0").lower()
-    db_session_id = add_session("(active)", name=f"auto {ts_label}", model=provider)
+    db_session_id = add_session("(active)", name=f"auto {ts_label}", model="claude")
 
     tasks_before = get_tasks()
     all_before = get_all_tasks()
@@ -244,7 +240,7 @@ def run_autonomous(provider: str = "claude") -> None:
     ts = datetime.now(UTC).strftime("%Y%m%dT%H%M%S")
     spawn_file = _STEWARD_DIR / f"{ts}.jsonl"
 
-    cmd, env = _build_provider_cmd_env(provider, prompt)
+    cmd, env = _build_cmd_env(prompt)
     env["STEWARD_SESSION_ID"] = str(db_session_id)
     rc = _run_tail_stream(
         cmd,
@@ -300,21 +296,17 @@ def run_autonomous(provider: str = "claude") -> None:
 
 @cli("steward")
 def on(
-    provider: str = "claude",
-    glm: bool = False,
     cycles: int = 1,
     every: int = 0,
     timeout: int = 1200,
 ) -> None:
     """start steward (runs one spawn, or loop with --cycles)"""
-    if glm:
-        provider = "glm"
     if _OFF_SENTINEL.exists():
         _OFF_SENTINEL.unlink()
     for i in range(1, cycles + 1):
         if cycles > 1:
             print(f"[steward] cycle {i}/{cycles}")
-        run_autonomous(provider=provider)
+        run_autonomous()
         if i < cycles:
             if _OFF_SENTINEL.exists():
                 print("[steward] off signal received, stopping")

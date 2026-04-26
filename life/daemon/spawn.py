@@ -52,6 +52,7 @@ def spawn_claude(prompt: str, timeout: int = 120, photo_path: str | None = None)
         cmd += ["--image", photo_path]
 
     env = os.environ.copy()
+    env["STEWARD_MODE"] = "tg"
     env.pop("ANTHROPIC_BASE_URL", None)
     env.pop("ANTHROPIC_AUTH_TOKEN", None)
 

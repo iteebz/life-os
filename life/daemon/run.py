@@ -182,15 +182,15 @@ def _signal_thread(stop: threading.Event, interval: int) -> None:
 
 
 
-def _auto_thread(stop: threading.Event, every: int, provider: str) -> None:
+def _auto_thread(stop: threading.Event, every: int) -> None:
     from life.steward.auto import run_autonomous
 
-    log(f"[auto] started, running every {every}s, provider={provider}")
+    log(f"[auto] started, running every {every}s")
 
     while not stop.is_set():
         try:
             log("[auto] starting autonomous loop")
-            run_autonomous(provider=provider)
+            run_autonomous()
             log("[auto] loop complete")
         except Exception as e:
             log(f"[auto] loop error: {e}")
@@ -202,7 +202,6 @@ def run(
     tg_interval: int = 10,
     signal_interval: int = 5,
     auto_every: int = 0,
-    auto_provider: str = "claude",
 ) -> None:
     from life.daemon.morning import morning_thread
 
@@ -241,7 +240,7 @@ def run(
     if auto_every > 0:
         auto = threading.Thread(
             target=_auto_thread,
-            args=(stop, auto_every, auto_provider),
+            args=(stop, auto_every),
             daemon=True,
             name="auto",
         )

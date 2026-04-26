@@ -32,7 +32,15 @@ def _launch(model: str, session_id: str, name: str | None = None, resume: bool =
     if name:
         cmd.extend(["--name", name])
 
-    return subprocess.call(cmd, cwd=LIFE_DIR, env=os.environ.copy())
+    env = os.environ.copy()
+    env["STEWARD_MODE"] = "chat"
+    env["STEWARD_SESSION_ID"] = session_id
+    env["GIT_AUTHOR_NAME"] = "steward"
+    env["GIT_AUTHOR_EMAIL"] = "steward@life.local"
+    env["GIT_COMMITTER_NAME"] = "steward"
+    env["GIT_COMMITTER_EMAIL"] = "steward@life.local"
+
+    return subprocess.call(cmd, cwd=LIFE_DIR, env=env)
 
 
 @cli("steward", default=True, flags={"model": ["-m", "--model"], "name": ["-n", "--name"], "opus": ["--opus"]})
