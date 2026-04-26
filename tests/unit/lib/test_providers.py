@@ -21,3 +21,15 @@ def test_tg_env_skips_spawn_flags():
     env = build_env("tg")
     assert env["STEWARD_MODE"] == "tg"
     assert "CLAUDE_CODE_DISABLE_AUTO_MEMORY" not in env
+
+
+def test_all_modes_whitelist_only(monkeypatch):
+    """No mode should leak secrets — all go through build_base_env."""
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-secret")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-other")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "supersecret")
+    for m in ("auto", "chat", "tg"):
+        env = build_env(m)  # type: ignore[arg-type]
+        assert "ANTHROPIC_API_KEY" not in env
+        assert "OPENAI_API_KEY" not in env
+        assert "AWS_SECRET_ACCESS_KEY" not in env

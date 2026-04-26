@@ -29,6 +29,7 @@ CREATE TABLE habits (
     parent_id TEXT REFERENCES habits(id) ON DELETE CASCADE,
     private BOOLEAN NOT NULL DEFAULT 0,
     cadence TEXT NOT NULL DEFAULT 'daily' CHECK (cadence IN ('daily', 'weekly')),
+    scheduled_time TEXT,
     deleted_at TEXT,
     CHECK (length(content) > 0)
 );
@@ -71,7 +72,10 @@ CREATE TABLE mutations (
 CREATE TABLE sessions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     summary TEXT NOT NULL,
-    logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    claude_session_id TEXT,
+    name TEXT,
+    model TEXT
 );
 
 CREATE TABLE observations (

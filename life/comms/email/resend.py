@@ -1,6 +1,6 @@
 import os
 
-import httpx  # type: ignore[import-untyped]
+import httpx
 import keyring
 
 SERVICE_NAME = "comms-cli/resend"

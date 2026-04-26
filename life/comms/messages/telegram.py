@@ -1,7 +1,5 @@
 import contextlib
-import tempfile
 import threading
-from pathlib import Path
 from typing import Any
 
 import keyring
@@ -106,8 +104,6 @@ def _poll(tok: str, timeout: int) -> list[dict[str, Any]]:
         last_name = sender.get("last_name", "")
         body = msg.get("text") or msg.get("caption") or "[photo]"
         photo_path = None
-        if has_photo:
-            photo_path = _download_photo(tok, msg["photo"])
         parsed = {
             "id": msg["message_id"],
             "chat_id": msg["chat"]["id"],

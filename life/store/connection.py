@@ -17,7 +17,7 @@ from typing import Any, ClassVar, Literal, Protocol, get_args, get_origin
 
 from life.core.errors import StoreError, StoreIntegrityError
 from life.core.types import Conn
-from life.store.sqlite import LifeConnection, connect, connect_readonly
+from life.store.sqlite import connect
 
 logger = logging.getLogger(__name__)
 

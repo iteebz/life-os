@@ -21,7 +21,7 @@ def test_observe_tag_filters_on_boot(tmp_life_dir):
 
 
 def test_steward_close_persists_session(tmp_life_dir):
-    result = invoke(["steward", "summary", "closed tax loop, mood 3"])
+    result = invoke(["steward", "sleep", "closed tax loop, mood 3"])
     assert result.exit_code == 0
 
     result = invoke(["steward", "wake"])

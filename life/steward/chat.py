@@ -1,6 +1,5 @@
 """steward — interactive sessions with tracking. Default command."""
 
-import os
 import subprocess
 import uuid
 from datetime import datetime
@@ -32,8 +31,9 @@ def _launch(model: str, session_id: str, name: str | None = None, resume: bool =
     if name:
         cmd.extend(["--name", name])
 
-    env = os.environ.copy()
-    env["STEWARD_MODE"] = "chat"
+    from life.lib.providers.claude import build_env
+
+    env = build_env("chat")
     env["STEWARD_SESSION_ID"] = session_id
     env["GIT_AUTHOR_NAME"] = "steward"
     env["GIT_AUTHOR_EMAIL"] = "steward@life.local"

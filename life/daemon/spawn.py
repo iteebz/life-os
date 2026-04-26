@@ -1,6 +1,5 @@
 """Shared Claude spawning for daemon threads."""
 
-import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -51,10 +50,9 @@ def spawn_claude(prompt: str, timeout: int = 120, photo_path: str | None = None)
     if photo_path:
         cmd += ["--image", photo_path]
 
-    env = os.environ.copy()
-    env["STEWARD_MODE"] = "tg"
-    env.pop("ANTHROPIC_BASE_URL", None)
-    env.pop("ANTHROPIC_AUTH_TOKEN", None)
+    from life.lib.env import build_base_env
+
+    env = build_base_env("tg")
 
     try:
         result = subprocess.run(
