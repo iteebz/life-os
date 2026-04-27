@@ -2,7 +2,7 @@
 
 from fncli import cli
 
-from life.daemon.inbound import pending_inbox
+from life.lib.inbox import pending_inbox
 
 
 @cli("life")

@@ -21,6 +21,7 @@ from life.lib.clock import today
 from life.lib.dates import list_dates
 from life.lib.format import format_elapsed
 from life.lib.ids import short
+from life.lib.inbox import pending_inbox
 from life.mood import get_recent_moods
 from life.steward import get_observations, get_sessions
 from life.task import get_all_tasks, get_tasks
@@ -304,7 +305,6 @@ def render_telegram() -> str:
 
 def render_inbox() -> str:
     try:
-        from life.daemon.inbound import pending_inbox  # noqa: PLC0415, I001 — cycle: ctx.sections→daemon.inbound→daemon.session→daemon.spawn→ctx.assemble
         inbox = pending_inbox()
         return f"INBOX:\n{inbox}" if inbox else ""
     except Exception:

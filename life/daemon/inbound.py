@@ -8,7 +8,6 @@ Routing:
 
 import contextlib
 import time
-from pathlib import Path
 
 from life.comms import events
 from life.comms.messages import telegram as tg
@@ -17,22 +16,9 @@ from life.daemon.session import build_reply_prompt, build_tg_boot_prompt, load_h
 from life.daemon.shared import log
 from life.daemon.spawn import fetch_wake_context, spawn_claude
 from life.lib.clock import is_quiet_now
+from life.lib.inbox import write_inbox
 from life.lib.store import get_db
 from life.steward import create_session, current_session, hookable_session, set_session_idle, touch_session
-
-INBOX_FILE = Path.home() / ".life" / "steward" / "inbox"
-
-
-def _write_inbox(channel: str, sender: str, body: str) -> None:
-    INBOX_FILE.parent.mkdir(parents=True, exist_ok=True)
-    ts = time.strftime("%H:%M")
-    entry = f"[{ts}] [{channel}] {sender}: {body}\n"
-    with INBOX_FILE.open("a") as f:
-        f.write(entry)
-
-
-def _clear_inbox() -> None:
-    INBOX_FILE.unlink(missing_ok=True)
 
 
 def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> str:
@@ -64,14 +50,14 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> 
 
     if is_quiet_now():
         log(f"[inbound] quiet hours — queueing {channel} from {sender}")
-        _write_inbox(channel, sender, body)
+        write_inbox(channel, sender, body)
         _emit("queued", error="quiet_hours")
         return "queued"
 
     # 1. Hookable session (cli window open)?
     hooked = hookable_session()
     if hooked:
-        _write_inbox(channel, sender, body)
+        write_inbox(channel, sender, body)
         log(f"[inbound] notified hookable session {hooked.id}")
         _emit("notified", session_id=hooked.id)
         return "notified"
@@ -108,7 +94,7 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> 
         _emit("responded", session_id=db_sid)
         return "responded"
 
-    _write_inbox(channel, sender, body)
+    write_inbox(channel, sender, body)
     log(f"[inbound] queued {channel} message from {sender}")
     _emit("queued", error="no_chat_id")
     return "queued"
@@ -130,12 +116,6 @@ def _latest_inbound_event(channel: str, address: str) -> int | None:
         return None
 
 
-def pending_inbox() -> str:
-    if not INBOX_FILE.exists():
-        return ""
-    content = INBOX_FILE.read_text().strip()
-    _clear_inbox()
-    return content
 
 
 def catch_up(chat_id: int) -> str:
