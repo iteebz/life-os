@@ -298,6 +298,16 @@ def wake():
     except Exception:  # noqa: S110
         pass
 
+    # Surface any pending inbox messages
+    try:
+        from life.daemon.inbound import pending_inbox
+
+        inbox = pending_inbox()
+        if inbox:
+            print(f"\nINBOX:\n{inbox}")
+    except Exception:  # noqa: S110
+        pass
+
 
 def main():
     import sys
