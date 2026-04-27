@@ -6,7 +6,7 @@ import fncli
 from fncli import cli
 
 from life.ctx.assemble import build_wake
-from life.db import init
+from life.store.migrations import init
 
 
 @cli("steward")

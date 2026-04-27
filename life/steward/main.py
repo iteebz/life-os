@@ -2,7 +2,7 @@ import sys
 
 import fncli
 
-from life.db import init
+from life.store.migrations import init
 
 from . import __all__ as _  # registers all steward submodules with fncli  # noqa: F401
 

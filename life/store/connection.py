@@ -187,7 +187,7 @@ def ensure() -> _ConnContext:
 
     migrations_loaded = _get_migrations_loaded()
     if cache_key not in migrations_loaded:
-        from life.db import _apply_migrations  # noqa: PLC0415 — circular: db imports store/connection
+        from life.store.migrations import _apply_migrations
 
         conn_raw = connect(db_path)
         try:

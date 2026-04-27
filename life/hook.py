@@ -13,7 +13,7 @@ import time
 from pathlib import Path
 
 from life.daemon.inbound import pending_inbox
-from life.db import init
+from life.store.migrations import init
 from life.habit import get_habits
 from life.lib.clock import today
 from life.lib.store import get_db
