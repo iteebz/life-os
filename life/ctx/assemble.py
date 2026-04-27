@@ -1,10 +1,21 @@
 """Assemble sections into prompt strings.
 
 build_wake() — full wake snapshot, used by `steward wake` CLI and daemon spawns.
-build_chat_prompt() — wake content for chat --append-system-prompt (no shell-out).
+build_chat_prompt() — wake + constitution for chat --append-system-prompt.
 """
 
+from pathlib import Path
+
 from . import sections
+
+LIFE_DIR = Path.home() / "life"
+STEWARD_DIR = LIFE_DIR / "steward"
+
+CONSTITUTION = [
+    ("life", LIFE_DIR / "LIFE.md"),
+    ("memory", STEWARD_DIR / "memory.md"),
+    ("human", STEWARD_DIR / "human.md"),
+]
 
 # Order = priority. Identity-ish first, ambient state last.
 WAKE_ORDER = [
@@ -39,6 +50,14 @@ def build_wake() -> str:
 
 
 def build_chat_prompt() -> str:
-    """Wake snapshot wrapped for system-prompt injection."""
+    """Wake snapshot + constitution markdowns for system-prompt injection."""
+    parts: list[str] = []
+    for tag, path in CONSTITUTION:
+        if path.exists():
+            text = path.read_text().strip()
+            if text:
+                parts.append(f"<{tag}>\n{text}\n</{tag}>")
     wake = build_wake()
-    return f"<wake>\n{wake}\n</wake>" if wake else ""
+    if wake:
+        parts.append(f"<wake>\n{wake}\n</wake>")
+    return "\n\n".join(parts)

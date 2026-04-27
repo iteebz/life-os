@@ -27,7 +27,7 @@ life-os replicates spacebrr's proven patterns at smaller scale.
 | hook injection | space hook tool (PreToolUse) | life-hook tool (PreToolUse) | same _HOOK_SETTINGS shape |
 | daemon | launchd KeepAlive, spawns claude | launchd KeepAlive, spawns claude | identical plist pattern |
 | wake context | fetch_wake_context → prompt | fetch_wake_context → prompt | same subprocess injection |
-| human model | brr/memory/human.md | steward/TYSON.md | same semantics, different name |
+| human model | brr/memory/human.md | steward/human.md | same semantics |
 | agent memory | brr/memory/{agent}.md | steward/memory.md | same: overwrite-only, self-model |
 | store | store/{sqlite,connection,query} | store/{sqlite,connection,query} | same triple |
 | core types | core/{errors,models,types} | core/{errors,models,types} | same |
