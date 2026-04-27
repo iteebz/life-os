@@ -176,18 +176,24 @@ WRAP_THRESHOLD_SECONDS = 3300    # 55m
 
 
 def _log_turn(direction: str, body: str, session_id: str) -> None:
+    from life.comms import events
+
     if len(body) > 10000:
         body = body[:10000] + f"\n... [{len(body) - 10000} chars truncated]"
     ts = int(time.time())
     msg_id = f"chat-{session_id[:8]}-{ts}-{direction}"
+    peer_name = "tyson" if direction == "in" else "steward"
     try:
-        with get_db() as conn:
-            conn.execute(
-                "INSERT OR IGNORE INTO messages "
-                "(id, channel, direction, peer, peer_name, body, timestamp) "
-                "VALUES (?, 'chat', ?, ?, ?, ?, ?)",
-                (msg_id, direction, session_id, "tyson" if direction == "in" else "steward", body, ts),
-            )
+        events.record_message(
+            channel="chat",
+            address=session_id,
+            direction=direction,
+            body=body,
+            timestamp=ts,
+            raw_id=msg_id,
+            peer_name=peer_name,
+            sent_by=peer_name,
+        )
     except Exception:
         pass
 

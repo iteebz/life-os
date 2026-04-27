@@ -128,45 +128,46 @@ def _track_outbound(
     group_id: str | None = None,
     success: bool = True,
 ) -> None:
+    from life.comms import events
+
     ts = int(datetime.now().timestamp() * 1000)
     msg_id = f"sig-out-{ts}-{peer[-4:] if len(peer) >= 4 else peer}"
     try:
-        with get_db() as conn:
-            conn.execute(
-                """
-                INSERT OR IGNORE INTO messages
-                (id, channel, direction, peer, body, group_id, success, timestamp)
-                VALUES (?, 'signal', 'out', ?, ?, ?, ?, ?)
-                """,
-                (msg_id, peer, body, group_id, 1 if success else 0, ts),
-            )
+        events.record_message(
+            channel="signal",
+            address=peer,
+            direction="out",
+            body=body,
+            timestamp=ts,
+            raw_id=msg_id,
+            group_id=group_id,
+            success=1 if success else 0,
+            sent_by="steward",
+        )
     except Exception:
         logger.exception("failed to track outbound signal message to %s", peer)
 
 
 def _store_messages(phone: str, messages: list[dict[str, Any]]) -> int:
+    from life.comms import events
+
     stored = 0
-    with get_db() as conn:
-        for msg in messages:
-            try:
-                conn.execute(
-                    """
-                    INSERT OR IGNORE INTO messages
-                    (id, channel, direction, peer, peer_name, body, group_id, read_at, timestamp)
-                    VALUES (?, 'signal', 'in', ?, ?, ?, ?, NULL, ?)
-                    """,
-                    (
-                        msg["id"],
-                        msg["from"],
-                        msg.get("from_name", ""),
-                        msg["body"],
-                        msg.get("group"),
-                        msg["timestamp"],
-                    ),
-                )
-                stored += 1
-            except Exception:
-                logger.exception("failed to store signal message %s", msg.get("id"))
+    for msg in messages:
+        try:
+            events.record_message(
+                channel="signal",
+                address=msg["from"],
+                direction="in",
+                body=msg["body"],
+                timestamp=msg["timestamp"],
+                raw_id=msg["id"],
+                peer_name=msg.get("from_name") or None,
+                group_id=msg.get("group"),
+                sent_by=msg.get("from_name") or msg["from"],
+            )
+            stored += 1
+        except Exception:
+            logger.exception("failed to store signal message %s", msg.get("id"))
     return stored
 
 

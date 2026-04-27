@@ -140,11 +140,42 @@ def _should_rollover(spawn: dict[str, str | int | None]) -> bool:
 def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> str:
     """Handle an inbound message. Returns action taken.
 
-    Actions: 'notified', 'woke', 'spawned', 'queued', 'responded'
+    Actions: 'notified', 'queued', 'resumed', 'responded'.
+    Writes a corresponding event row referencing the latest inbound event
+    for (channel, address) for coverage instrumentation.
     """
+    started_ms = time.time() * 1000
+    address = str(chat_id) if channel == "telegram" and chat_id is not None else sender
+
+    def _emit(action: str, error: str | None = None, spawn_id: int | None = None) -> None:
+        from life.comms import events
+        from life.comms.peers import resolve_or_create
+
+        try:
+            peer_id = resolve_or_create(channel, address, sender)
+            ref_id = _latest_inbound_event(channel, address)
+            payload = {
+                "sender": sender,
+                "preview": body[:120],
+                "latency_ms": int(time.time() * 1000 - started_ms),
+            }
+            if error:
+                payload["error"] = error
+            events.record(
+                action,
+                peer_id=peer_id,
+                channel=channel,
+                ref_id=ref_id,
+                spawn_id=spawn_id,
+                payload=payload,
+            )
+        except Exception as e:
+            log(f"[inbound] event record failed: {e}")
+
     if is_quiet_now():
         log(f"[inbound] quiet hours — queueing {channel} from {sender}")
         _write_inbox(channel, sender, body)
+        _emit("queued", error="quiet_hours")
         return "queued"
 
     spawn = _active_spawn()
@@ -152,16 +183,16 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> 
     if spawn and spawn["mode"] == "chat":
         if _should_rollover(spawn):
             log("[inbound] active session over limits — will start fresh")
-            # Don't kill the session — let it finish. Queue the message.
             _write_inbox(channel, sender, body)
+            _emit("queued", error="rollover")
             return "queued"
 
-        # Active interactive session — notify via inbox
         _write_inbox(channel, sender, body)
         log(f"[inbound] notified active session (spawn {spawn['id']})")
+        spawn_id_raw = spawn.get("id")
+        _emit("notified", spawn_id=int(spawn_id_raw) if isinstance(spawn_id_raw, int) else None)
         return "notified"
 
-    # No active interactive session — try resuming a warm one, else stateless
     if channel == "telegram" and chat_id is not None:
         warm = _warm_session()
         if warm:
@@ -169,6 +200,7 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> 
             log(f"[inbound] resuming warm session {db_id} ({claude_id[:8]})")
             response = spawn_claude(body, resume_session_id=claude_id)
             tg.send(chat_id, response)
+            _emit("resumed")
             return "resumed"
 
         history = load_history_from_db(chat_id)
@@ -181,12 +213,30 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> 
         response = spawn_claude(prompt)
         tg.send(chat_id, response)
         log(f"[inbound] responded via telegram ({len(response)} chars)")
+        _emit("responded")
         return "responded"
 
-    # Non-telegram or no chat_id — queue for next session
     _write_inbox(channel, sender, body)
     log(f"[inbound] queued {channel} message from {sender}")
+    _emit("queued", error="no_chat_id")
     return "queued"
+
+
+def _latest_inbound_event(channel: str, address: str) -> int | None:
+    """Find the most recent inbound event id for (channel, address)."""
+    try:
+        with get_db() as conn:
+            row = conn.execute(
+                "SELECT e.id FROM events e "
+                "JOIN peer_addresses pa ON pa.peer_id = e.peer_id "
+                "WHERE e.kind = 'inbound' AND e.channel = ? "
+                "AND pa.channel = ? AND pa.address = ? "
+                "ORDER BY e.id DESC LIMIT 1",
+                (channel, channel, str(address)),
+            ).fetchone()
+        return row[0] if row else None
+    except Exception:
+        return None
 
 
 def pending_inbox() -> str:

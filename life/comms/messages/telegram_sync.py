@@ -61,14 +61,20 @@ def _store_message(
     timestamp: int,
     image_path: str | None = None,
 ) -> None:
+    from life.comms import events
+
     try:
-        with get_db() as conn:
-            conn.execute(
-                "INSERT OR IGNORE INTO messages "
-                "(id, channel, direction, peer, peer_name, body, timestamp, image_path) "
-                "VALUES (?, 'telegram', ?, ?, ?, ?, ?, ?)",
-                (f"tg-{msg_id}", direction, peer, peer_name, body, timestamp, image_path),
-            )
+        events.record_message(
+            channel="telegram",
+            address=peer,
+            direction=direction,
+            body=body,
+            timestamp=timestamp,
+            raw_id=f"tg-{msg_id}",
+            peer_name=peer_name,
+            image_path=image_path,
+            sent_by="steward" if direction == "out" else peer_name,
+        )
     except Exception:  # noqa: S110
         pass
 
