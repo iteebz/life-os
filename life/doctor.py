@@ -60,17 +60,21 @@ def doctor() -> int:
     print("\nchat hook config:")
     if SETTINGS.exists():
         try:
-            data = json.loads(SETTINGS.read_text())
-            hooks = data.get("hooks", {})
+            hooks = json.loads(SETTINGS.read_text()).get("hooks", {})
             for event in ("UserPromptSubmit", "Stop"):
                 cmd = hooks.get(event, [{}])[0].get("hooks", [{}])[0].get("command", "")
-                if "life-hook" in cmd and "log-turn" not in cmd:
-                    _ok(f"{event} → {cmd}")
-                else:
-                    _fail(f"{event} stale: {cmd}")
+                if not cmd:
+                    _fail(f"{event} unset")
+                    failures += 1
+                    continue
+                rc = subprocess.run(
+                    cmd, shell=True, input="{}", capture_output=True, text=True, timeout=15
+                ).returncode
+                (_ok if rc == 0 else _fail)(f"{event}: {cmd} (rc={rc})")
+                if rc != 0:
                     failures += 1
         except Exception as e:
-            _fail(f"settings.local.json unreadable: {e}")
+            _fail(f"settings.local.json: {e}")
             failures += 1
     else:
         _fail(f"{SETTINGS} missing")
