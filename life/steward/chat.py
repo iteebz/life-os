@@ -10,7 +10,6 @@ from pathlib import Path
 
 from fncli import cli
 
-from life.ctx.assemble import build_chat_prompt
 from life.lib.providers.claude import build_env
 
 from . import (
@@ -92,6 +91,7 @@ def _build_system_prompt(source: str, raw: bool) -> str:
     """Compose --append-system-prompt: wake context (unless raw) + session meta."""
     parts = []
     if not raw:
+        from life.ctx.assemble import build_chat_prompt  # noqa: PLC0415, I001 — cycle: steward.chat→ctx.assemble→ctx.sections→life.steward→steward.chat
         wake = build_chat_prompt()
         if wake:
             parts.append(wake)

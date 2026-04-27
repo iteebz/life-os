@@ -16,7 +16,6 @@ from pathlib import Path
 from typing import Any
 
 from life.comms import events
-from life.daemon.inbound import pending_inbox
 from life.habit import get_habits
 from life.lib.clock import today
 from life.lib.store import get_db
@@ -63,39 +62,30 @@ def _touch(state: dict[str, str], key: str) -> None:
     state[key] = str(time.time())
 
 
-def _new_messages(state: dict[str, str], parts: list[str]) -> None:
-    """Inject new telegram messages since last check."""
-    if _throttled(state, "messages_at", 10):
-        return
-    _touch(state, "messages_at")
+def _drain_inbox(state: dict[str, str]) -> list[tuple[str, str, str]]:
+    """Return (channel, peer_name, body) tuples for unsurfaced inbound messages.
 
-    last_ts = state.get("messages_last_ts")
+    Watermark advances atomically — each message is surfaced exactly once
+    across prompt/tool hooks.
+    """
+    last_ts = state.get("inbox_last_ts")
     if last_ts is None:
-        state["messages_last_ts"] = str(time.time())
-        return
+        state["inbox_last_ts"] = str(time.time())
+        return []
 
     with get_db() as conn:
         rows = conn.execute(
-            "SELECT direction, peer_name, body, timestamp FROM messages "
-            "WHERE channel = 'telegram' AND timestamp > ? "
+            "SELECT channel, peer_name, body, timestamp FROM messages "
+            "WHERE direction = 'in' AND timestamp > ? "
             "ORDER BY timestamp ASC LIMIT 10",
             (float(last_ts),),
         ).fetchall()
 
     if not rows:
-        return
+        return []
 
-    # Update watermark to newest message
-    state["messages_last_ts"] = str(max(r[3] for r in rows))
-
-    lines = []
-    for direction, peer_name, body, _ts in rows:
-        arrow = "←" if direction == "in" else "→"
-        name = peer_name or "?"
-        text = (body or "")[:120]
-        lines.append(f"  {arrow} {name}: {text}")
-
-    parts.append("new messages:\n" + "\n".join(lines))
+    state["inbox_last_ts"] = str(max(r[3] for r in rows))
+    return [(r[0], r[1] or "?", (r[2] or "")[:200]) for r in rows]
 
 
 def _habit_status(state: dict[str, str], parts: list[str]) -> None:
@@ -147,13 +137,6 @@ def _mood(state: dict[str, str], parts: list[str]) -> None:
     parts.append(f"mood: {bar} {latest.score}/5{label}")
 
 
-def _check_inbox(parts: list[str]) -> None:
-    """Drain the inbox file — messages queued while steward was busy."""
-    content = pending_inbox()
-    if content:
-        parts.append(f"inbox (queued messages):\n{content}")
-
-
 def _active_tasks(state: dict[str, str], parts: list[str]) -> None:
     """Inject open tasks."""
     if _throttled(state, "tasks_at", 60):
@@ -171,7 +154,6 @@ def _active_tasks(state: dict[str, str], parts: list[str]) -> None:
     parts.append(header + "\n" + "\n".join(lines))
 
 
-INBOX_FILE = Path.home() / ".life" / "steward" / "inbox"
 WRAP_THRESHOLD_CHARS = 100_000   # ~33k tokens
 SLEEP_THRESHOLD_CHARS = 150_000  # ~50k tokens
 WRAP_THRESHOLD_SECONDS = 3300    # 55m
@@ -226,16 +208,6 @@ def _surface_session_meta(session_id: str) -> None:
             print(f"\n<session-meta>session: {age_str} elapsed, {chars} chars logged{nudge}\n</session-meta>")
 
 
-def _surface_inbox() -> None:
-    if not INBOX_FILE.exists():
-        return
-    content = INBOX_FILE.read_text().strip()
-    if not content:
-        return
-    INBOX_FILE.unlink(missing_ok=True)
-    print(f"\n[new messages received while you were working]\n{content}")
-
-
 def _read_event() -> dict[str, Any]:
     try:
         return json.load(sys.stdin)
@@ -252,7 +224,12 @@ def cmd_hook_prompt() -> None:
         return
     session_id = os.environ.get("STEWARD_SESSION_ID", "unknown")
     _log_turn("in", body, session_id)
-    _surface_inbox()
+    state = _load_state()
+    msgs = _drain_inbox(state)
+    _save_state(state)
+    if msgs:
+        lines = [f"  [{ch}] {name}: {body}" for ch, name, body in msgs]
+        print("\n[new messages received while you were working]\n" + "\n".join(lines))
     _surface_session_meta(session_id)
 
 
@@ -276,8 +253,10 @@ def cmd_hook_tool() -> None:
     state = _load_state()
     parts: list[str] = []
 
-    _check_inbox(parts)
-    _new_messages(state, parts)
+    msgs = _drain_inbox(state)
+    if msgs:
+        lines = [f"  [{ch}] {name}: {body}" for ch, name, body in msgs]
+        parts.append("inbox:\n" + "\n".join(lines))
     _habit_status(state, parts)
     _mood(state, parts)
     _active_tasks(state, parts)

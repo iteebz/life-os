@@ -5,6 +5,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from life.ctx.assemble import build_wake
 from life.lib.providers.claude import SPAWN_SETTINGS
 from life.lib.providers.claude import build_env as build_claude_env
 
@@ -25,7 +26,6 @@ def _claude_bin() -> str:
 def fetch_wake_context() -> str:
     """Build wake snapshot for prompt injection (in-process, no subprocess)."""
     try:
-        from life.ctx.assemble import build_wake  # noqa: PLC0415, I001 — cycle: ctx.sections→inbound→session→spawn→ctx.assemble
         return build_wake()
     except Exception as e:
         return f"(wake context unavailable: {e})"

@@ -10,6 +10,7 @@ from life.daemon.commands import handle_command
 from life.daemon.shared import TG_SESSION_TIMEOUT, log
 from life.daemon.spawn import spawn_claude
 from life.lib.clock import is_quiet_now
+from life.lib.inbox import mark_read_for_session
 from life.lib.resolve import resolve_people_field
 from life.lib.store import get_db
 
@@ -175,7 +176,6 @@ def run_session(
             log(f"[{label}] responded ({len(reply)} chars)")
 
     claimed_chat.clear()
-    from life.daemon.inbound import mark_read_for_session  # noqa: PLC0415, I001 — cycle: inbound→session→spawn→ctx.assemble→ctx.sections→inbound
     mark_read_for_session(chat_id)
     log_session(label, history)
     log(f"[{label}] session ended")
