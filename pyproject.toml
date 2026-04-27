@@ -36,7 +36,6 @@ dev = [
 
 [project.scripts]
 life = "life.cli:main"
-steward = "life.steward.main:main"
 comms = "life.comms.main:main"
 life-hook = "life.hook:main"
 
