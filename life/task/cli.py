@@ -12,7 +12,7 @@ from life.lib.clock import today
 from life.lib.format import format_status, format_task
 from life.lib.parsing import parse_due_and_item
 from life.lib.resolve import resolve_item, resolve_task
-from life.render import render_task_detail
+from life.task.render import render_task_detail
 
 from .domain import (
     cancel_task,
@@ -336,6 +336,6 @@ def task(
 
     if not tag:
         raise UsageError('Tag required: life task "name" -t <tag>')
-    from life.item import add as _add  # noqa: PLC0415 — circular: item imports task
+    from life.task.item import add as _add
 
     _add(ref, tag=tag, due=due or schedule, focus=focus, done=done)

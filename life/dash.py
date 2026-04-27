@@ -12,7 +12,7 @@ from .lib.clock import now, today
 from .lib.format import format_elapsed, format_task
 from .lib.store import get_db
 from .domain.momentum import weekly_momentum
-from .render import render_dashboard, render_day_summary, render_momentum
+from .task.render import render_dashboard, render_day_summary, render_momentum
 from .task import fetch_tasks, get_all_tasks, get_completed_today, get_tasks, last_completion
 
 # --- dashboard queries (inlined from dashboard.py) ---

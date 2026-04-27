@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 
-from .domain.habit import get_habits
-from .lib.converters import row_to_task
-from .lib.fuzzy import find_in_pool
-from .lib.store import get_db
-from .task import get_tasks
+from life.domain.habit import get_habits
+from life.lib.converters import row_to_task
+from life.lib.fuzzy import find_in_pool
+from life.lib.store import get_db
+from life.task import get_tasks
 
 
 @dataclass(frozen=True)

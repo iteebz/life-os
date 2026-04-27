@@ -7,9 +7,9 @@ from life.core.models import Habit, Task, TaskMutation, Weekly
 from life.domain.habit import get_subhabits
 from life.task import task_sort_key
 
-from .lib import clock
-from .lib.ansi import POOL, bold, dim, gold, gray, green, purple, red, theme, white
-from .lib.dates import upcoming_dates
+from life.lib import clock
+from life.lib.ansi import POOL, bold, dim, gold, gray, green, purple, red, theme, white
+from life.lib.dates import upcoming_dates
 
 __all__ = [
     "render_dashboard",
