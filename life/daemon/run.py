@@ -135,6 +135,7 @@ def _get_signal_phones() -> list[str]:
 
 def _signal_thread(stop: threading.Event, interval: int) -> None:
     from life.comms.messages import signal as signal_adapter
+    from life.daemon.inbound import handle as handle_inbound
 
     phones = _get_signal_phones()
     if not phones:
@@ -151,6 +152,8 @@ def _signal_thread(stop: threading.Event, interval: int) -> None:
                     for m in msgs:
                         sender = m.get("from_name", m.get("peer", "Unknown"))
                         log(f"[signal] [{phone}] {sender}: {m['body'][:50]}")
+                        action = handle_inbound("signal", sender, m["body"])
+                        log(f"[signal] inbound → {action}")
             except Exception as e:
                 log(f"[signal] [{phone}] error: {e}")
 

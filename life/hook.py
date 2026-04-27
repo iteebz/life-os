@@ -176,9 +176,7 @@ def cmd_hook_tool() -> None:
 
     init()
 
-    raw = sys.stdin.read()
-    # We don't need to parse the tool call for now — context is ambient.
-    # Future: use tool_name/file_path for targeted injection.
+    sys.stdin.read()  # consume stdin (tool-call JSON) — ambient context only for now
 
     state = _load_state()
     parts: list[str] = []

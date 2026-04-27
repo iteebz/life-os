@@ -113,8 +113,7 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> 
         log(f"[inbound] notified active session (spawn {spawn['id']})")
         return "notified"
 
-    # No active interactive session — respond via daemon's existing spawn_claude
-    # For telegram, use the existing stateless response path
+    # No active interactive session — respond via stateless spawn + queue for next session
     if channel == "telegram" and chat_id is not None:
         from life.comms.messages import telegram as tg
         from life.daemon.session import build_reply_prompt, load_history_from_db
@@ -134,7 +133,7 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> 
         log(f"[inbound] responded via telegram ({len(response)} chars)")
         return "responded"
 
-    # Unknown channel or no chat_id — queue for next session
+    # Non-telegram or no chat_id — queue for next session
     _write_inbox(channel, sender, body)
     log(f"[inbound] queued {channel} message from {sender}")
     return "queued"
