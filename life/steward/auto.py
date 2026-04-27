@@ -50,7 +50,7 @@ CLI errors are yours to fix:
 Invariants:
 - `~/space/` is swarm domain, not yours
 - `life backup` before risk
-- `life steward close "<what you did>"` before stopping
+- `life steward sleep "<what you did>"` before stopping
 - commit atomic, then stop
 
 Run exactly one autonomous loop for ~/life. Make concrete progress, then stop."""
