@@ -20,7 +20,7 @@ from life.lib.clock import today
 from life.lib.dates import parse_due_date
 from life.lib.format import render_done_row, render_row, render_uncheck_row
 from life.lib.parsing import parse_due_datetime, validate_content
-from life.lib.resolve import resolve_item, resolve_item_any, resolve_task
+from life.domain.resolve import resolve_item, resolve_item_any, resolve_task
 from life.task import (
     add_task,
     check_task_cmd,

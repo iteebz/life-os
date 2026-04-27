@@ -11,7 +11,7 @@ from life.lib import ansi, clock
 from life.lib.clock import today
 from life.lib.format import format_status, format_task
 from life.lib.parsing import parse_due_and_item
-from life.lib.resolve import resolve_item, resolve_task
+from life.domain.resolve import resolve_item, resolve_task
 from life.task.render import render_task_detail
 
 from .domain import (

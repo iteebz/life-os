@@ -145,7 +145,7 @@ def load_tags_for_habits(
 @cli("life", name="tag", flags={"remove": ["-r"]})
 def tag_cmd(ref: str, tag_name: str, remove: bool = False) -> None:
     """Add or remove a tag from an item (-r to remove)"""
-    from life.lib.resolve import resolve_item_exact  # noqa: PLC0415 — circular: tag→resolve→task→tag
+    from life.domain.resolve import resolve_item_exact  # noqa: PLC0415 — circular: tag→resolve→task→tag
     task, habit = resolve_item_exact(ref)
     if task:
         if remove:
