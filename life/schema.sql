@@ -191,24 +191,55 @@ CREATE TABLE senders (
 );
 
 
-CREATE TABLE messages (
-    id          TEXT PRIMARY KEY,
-    channel     TEXT NOT NULL,
-    direction   TEXT NOT NULL,
-    peer        TEXT NOT NULL,
-    peer_name   TEXT,
-    body        TEXT NOT NULL,
-    subject     TEXT,
-    sent_by     TEXT DEFAULT 'steward',
-    draft_id    TEXT,
-    group_id    TEXT,
-    success     INTEGER,
-    error       TEXT,
-    read_at     TEXT,
-    image_path  TEXT,
-    timestamp   INTEGER NOT NULL,
-    created_at  TEXT DEFAULT (datetime('now'))
+CREATE TABLE peers (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  display_name TEXT NOT NULL,
+  contact_id   INTEGER,
+  created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE peer_addresses (
+  id      INTEGER PRIMARY KEY AUTOINCREMENT,
+  peer_id INTEGER NOT NULL REFERENCES peers(id),
+  channel TEXT NOT NULL,
+  address TEXT NOT NULL,
+  UNIQUE(channel, address)
+);
+
+CREATE TABLE events (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  ts         INTEGER NOT NULL,
+  kind       TEXT NOT NULL,
+  peer_id    INTEGER REFERENCES peers(id),
+  channel    TEXT,
+  ref_id     INTEGER REFERENCES events(id),
+  spawn_id   INTEGER REFERENCES spawns(id),
+  payload    TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE VIEW messages AS
+SELECT
+  json_extract(e.payload, '$.raw_id') AS id,
+  e.channel AS channel,
+  CASE e.kind WHEN 'inbound' THEN 'in' WHEN 'outbound' THEN 'out' ELSE e.kind END AS direction,
+  pa.address AS peer,
+  p.display_name AS peer_name,
+  json_extract(e.payload, '$.body') AS body,
+  json_extract(e.payload, '$.subject') AS subject,
+  COALESCE(json_extract(e.payload, '$.sent_by'), 'steward') AS sent_by,
+  NULL AS draft_id,
+  json_extract(e.payload, '$.group_id') AS group_id,
+  json_extract(e.payload, '$.success') AS success,
+  json_extract(e.payload, '$.error') AS error,
+  json_extract(e.payload, '$.read_at') AS read_at,
+  e.ts AS timestamp,
+  e.created_at AS created_at,
+  json_extract(e.payload, '$.image_path') AS image_path
+FROM events e
+LEFT JOIN peers p ON p.id = e.peer_id
+LEFT JOIN peer_addresses pa ON pa.peer_id = e.peer_id AND pa.channel = e.channel
+WHERE e.kind IN ('inbound', 'outbound');
 
 
 CREATE INDEX idx_tasks_due ON tasks(scheduled_date) WHERE scheduled_date IS NOT NULL;
@@ -231,11 +262,11 @@ CREATE INDEX idx_tasks_deleted_at ON tasks(deleted_at) WHERE deleted_at IS NOT N
 CREATE INDEX idx_observations_tag ON observations(tag) WHERE tag IS NOT NULL;
 CREATE INDEX idx_achievements_at ON achievements(achieved_at);
 CREATE INDEX idx_drafts_approved ON drafts(approved_at);
-CREATE INDEX idx_messages_channel ON messages(channel);
-CREATE INDEX idx_messages_peer ON messages(peer);
-CREATE INDEX idx_messages_direction ON messages(direction);
-CREATE INDEX idx_messages_timestamp ON messages(timestamp DESC);
-CREATE INDEX idx_messages_channel_peer_ts ON messages(channel, peer, timestamp DESC);
+CREATE INDEX idx_peer_addr_peer ON peer_addresses(peer_id);
+CREATE INDEX idx_events_ts ON events(ts DESC);
+CREATE INDEX idx_events_peer_ts ON events(peer_id, ts DESC);
+CREATE INDEX idx_events_kind_ts ON events(kind, ts DESC);
+CREATE INDEX idx_events_ref ON events(ref_id);
 
 CREATE TABLE nudge_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
