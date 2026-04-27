@@ -139,13 +139,12 @@ def _launch(
         "--dangerously-skip-permissions",
         "--tools", TOOLS,
         "--append-system-prompt", _build_system_prompt(source, raw or resume),
+        "--name", "steward",
     ]
     if resume:
         cmd.extend(["--resume", session_id])
     else:
         cmd.extend(["--session-id", session_id])
-    if name:
-        cmd.extend(["--name", name])
 
     env = build_env("chat")
     env["STEWARD_SESSION_ID"] = session_id
