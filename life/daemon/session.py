@@ -3,7 +3,6 @@
 import threading
 import time
 from datetime import datetime
-
 from life.daemon.shared import TG_SESSION_TIMEOUT, log
 from life.daemon.spawn import spawn_claude
 
@@ -149,7 +148,8 @@ def run_session(
 
             history.append({"role": "user", "text": body})
             prompt = build_reply_prompt(history, body, tone=tone)
-            reply = spawn_claude(prompt)
+            photo = msg.get("photo_path")
+            reply = spawn_claude(prompt, photo_path=photo)
             history.append({"role": "assistant", "text": reply})
 
             tg.send(chat_id, reply)

@@ -170,7 +170,7 @@ def get_history(
     params.append(limit)
     with get_db() as conn:
         rows = conn.execute(
-            f"SELECT id, direction, peer, peer_name, body, timestamp "
+            f"SELECT id, direction, peer, peer_name, body, timestamp, photo_path "
             f"FROM messages WHERE {where} ORDER BY timestamp DESC LIMIT ?",
             params,
         ).fetchall()
@@ -182,6 +182,7 @@ def get_history(
             "peer_name": r[3],
             "body": r[4],
             "timestamp": r[5],
+            "photo_path": r[6],
         }
         for r in rows
     ]
@@ -192,14 +193,15 @@ def _store_incoming(msg: dict[str, Any]) -> None:
         with get_db() as conn:
             conn.execute(
                 "INSERT OR IGNORE INTO messages "
-                "(id, channel, direction, peer, peer_name, body, timestamp) "
-                "VALUES (?, 'telegram', 'in', ?, ?, ?, ?)",
+                "(id, channel, direction, peer, peer_name, body, timestamp, photo_path) "
+                "VALUES (?, 'telegram', 'in', ?, ?, ?, ?, ?)",
                 (
                     f"tg-{msg['id']}",
                     str(msg["chat_id"]),
                     msg["from_name"],
                     msg["body"],
                     msg["timestamp"],
+                    msg.get("photo_path"),
                 ),
             )
     except Exception:  # noqa: S110
