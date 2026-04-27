@@ -1,5 +1,5 @@
 import sys
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 from . import ansi
 
@@ -16,9 +16,16 @@ __all__ = [
 
 
 def format_elapsed(dt: datetime, now: datetime | None = None) -> str:
-    """Format a datetime as a human-readable relative string (e.g. '5m ago', '3h ago')."""
+    """Format a datetime as a human-readable relative string (e.g. '5m ago', '3h ago').
+
+    DB timestamps are naive UTC. Normalize both sides to UTC-aware before subtracting.
+    """
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
     if now is None:
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
+    elif now.tzinfo is None:
+        now = now.astimezone(timezone.utc)
     s = int((now - dt).total_seconds())
     if s < 60:
         return f"{s}s ago"

@@ -67,9 +67,9 @@ def _surface_session_meta(session_id: str) -> None:
             ).fetchone()
             chars = char_row[0] if char_row else 0
 
-        from datetime import datetime
-        started = datetime.fromisoformat(logged_at)
-        age = int((datetime.now() - started).total_seconds())
+        from datetime import datetime, timezone
+        started = datetime.fromisoformat(logged_at).replace(tzinfo=timezone.utc)
+        age = int((datetime.now(timezone.utc) - started).total_seconds())
         age_str = f"{age // 60}m" if age >= 60 else f"{age}s"
 
         nudge = ""

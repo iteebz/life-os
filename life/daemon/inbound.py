@@ -11,7 +11,7 @@ Steward reads the inbox file via a UserPromptSubmit hook.
 """
 
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from life.comms.messages import telegram as tg
@@ -55,8 +55,8 @@ def _session_age_seconds(spawn: dict[str, str | int | None]) -> float:
         started_at = spawn["started_at"]
         if not isinstance(started_at, str):
             return 0
-        started = datetime.fromisoformat(started_at)
-        return (datetime.now() - started).total_seconds()
+        started = datetime.fromisoformat(started_at).replace(tzinfo=timezone.utc)
+        return (datetime.now(timezone.utc) - started).total_seconds()
     except Exception:
         return 0
 
@@ -120,8 +120,8 @@ def _warm_session() -> tuple[str, int] | None:
             ).fetchone()
         if not end_row or not end_row[0]:
             return None
-        last_active = datetime.fromisoformat(end_row[0])
-        age = (datetime.now() - last_active).total_seconds()
+        last_active = datetime.fromisoformat(end_row[0]).replace(tzinfo=timezone.utc)
+        age = (datetime.now(timezone.utc) - last_active).total_seconds()
         if age > WARM_AGE_SECONDS:
             return None
         return claude_id, db_id
