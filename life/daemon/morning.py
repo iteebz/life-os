@@ -13,7 +13,7 @@ from life.daemon.shared import log
 from life.daemon.spawn import fetch_wake_context
 
 MORNING_HOUR = 8
-NIGHTLY_HOUR = 21
+NIGHTLY_HOUR = 20
 
 
 def _gather_nudge_context() -> str:
@@ -61,7 +61,7 @@ def _build_nightly_opener() -> str:
         parts.append(f"\nSteward memory:\n{memory}")
     parts.append(
         "\n<brief>"
-        "\nObjective: end-of-day check-in via Telegram. It's 9pm."
+        "\nObjective: end-of-day check-in via Telegram. It's 8pm."
         "\nTyson was active today. Reflect what got done, what didn't."
         "\nIf something important slipped, name it. If the day was good, say so."
         "\nStart with 🌙. Plain text only. 2-3 sentences max."
