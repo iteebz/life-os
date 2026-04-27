@@ -72,7 +72,7 @@ def record(
     peer_id: int | None = None,
     channel: str | None = None,
     ref_id: int | None = None,
-    spawn_id: int | None = None,
+    session_id: int | None = None,
     payload: Mapping[str, object] | None = None,
     timestamp: int | None = None,
 ) -> int:
@@ -83,8 +83,8 @@ def record(
     body = json.dumps(payload or {})
     with get_db() as conn:
         cursor = conn.execute(
-            "INSERT INTO events (ts, kind, peer_id, channel, ref_id, spawn_id, payload) "
+            "INSERT INTO events (ts, kind, peer_id, channel, ref_id, session_id, payload) "
             "VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (ts, kind, peer_id, channel, ref_id, spawn_id, body),
+            (ts, kind, peer_id, channel, ref_id, session_id, body),
         )
         return cursor.lastrowid

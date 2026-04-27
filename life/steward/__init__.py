@@ -1,4 +1,5 @@
 import json
+import os
 import uuid
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -8,7 +9,7 @@ from life.lib.store import get_db
 
 
 @dataclass(frozen=True)
-class StewardSession:
+class Session:
     id: int
     summary: str
     logged_at: datetime
@@ -17,6 +18,11 @@ class StewardSession:
     model: str | None = None
     source: str | None = None
     follow_ups: list[str] | None = None
+    state: str = "closed"
+    started_at: datetime | None = None
+    last_active_at: datetime | None = None
+    ended_at: datetime | None = None
+    pid: int | None = None
 
 
 @dataclass(frozen=True)
@@ -28,114 +34,129 @@ class Observation:
     about_date: date | None = None
 
 
-def add_session(
+# --- Session CRUD ---
+
+def create_session(
     summary: str,
     claude_session_id: str | None = None,
     name: str | None = None,
     model: str | None = None,
     source: str | None = None,
-) -> int:
-    with get_db() as conn:
-        cursor = conn.execute(
-            "INSERT INTO sessions (summary, claude_session_id, name, model, source) VALUES (?, ?, ?, ?, ?)",
-            (summary, claude_session_id, name, model, source),
-        )
-        return cursor.lastrowid or 0
-
-
-@dataclass(frozen=True)
-class Spawn:
-    id: int
-    mode: str
-    source: str | None
-    session_id: int | None
-    started_at: datetime
-    ended_at: datetime | None
-    runtime_seconds: int | None
-    prompt_chars: int | None
-    response_chars: int | None
-    status: str
-
-
-def add_spawn(
-    mode: str,
-    source: str | None = None,
-    session_id: int | None = None,
-    prompt_chars: int | None = None,
     pid: int | None = None,
 ) -> int:
     with get_db() as conn:
         cursor = conn.execute(
-            "INSERT INTO spawns (mode, source, session_id, prompt_chars, pid) VALUES (?, ?, ?, ?, ?)",
-            (mode, source, session_id, prompt_chars, pid),
+            "INSERT INTO sessions (summary, claude_session_id, name, model, source, "
+            "state, started_at, last_active_at, pid) "
+            "VALUES (?, ?, ?, ?, ?, 'active', STRFTIME('%Y-%m-%dT%H:%M:%S', 'now'), "
+            "STRFTIME('%Y-%m-%dT%H:%M:%S', 'now'), ?)",
+            (summary, claude_session_id, name, model, source, pid),
         )
         return cursor.lastrowid or 0
 
 
-def set_spawn_pid(spawn_id: int, pid: int) -> None:
-    with get_db() as conn:
-        conn.execute("UPDATE spawns SET pid = ? WHERE id = ?", (pid, spawn_id))
-
-
-def touch_spawn(spawn_id: int) -> None:
+def touch_session(session_id: int) -> None:
     with get_db() as conn:
         conn.execute(
-            "UPDATE spawns SET last_active_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now') WHERE id = ?",
-            (spawn_id,),
+            "UPDATE sessions SET last_active_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now') WHERE id = ?",
+            (session_id,),
         )
 
 
-def update_spawn_provider_session(spawn_id: int, provider_session_id: str) -> None:
+def set_session_pid(session_id: int, pid: int) -> None:
+    with get_db() as conn:
+        conn.execute("UPDATE sessions SET pid = ? WHERE id = ?", (pid, session_id))
+
+
+def set_session_active(session_id: int) -> None:
     with get_db() as conn:
         conn.execute(
-            "UPDATE spawns SET provider_session_id = ? WHERE id = ?",
-            (provider_session_id, spawn_id),
+            "UPDATE sessions SET state = 'active', "
+            "last_active_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now') WHERE id = ?",
+            (session_id,),
         )
 
 
-def close_spawn(spawn_id: int, status: str = "complete", response_chars: int | None = None) -> None:
+def set_session_idle(session_id: int) -> None:
     with get_db() as conn:
         conn.execute(
-            "UPDATE spawns SET ended_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now'), "
-            "last_active_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now'), "
-            "runtime_seconds = CAST((JULIANDAY('now') - JULIANDAY(started_at)) * 86400 AS INTEGER), "
-            "status = ?, response_chars = ? "
-            "WHERE id = ?",
-            (status, response_chars, spawn_id),
+            "UPDATE sessions SET state = 'idle', "
+            "last_active_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now') WHERE id = ?",
+            (session_id,),
         )
 
 
-def get_spawns(mode: str | None = None, limit: int = 20) -> list[Spawn]:
+def close_session(session_id: int, summary: str | None = None) -> None:
     with get_db() as conn:
-        if mode:
+        if summary:
+            conn.execute(
+                "UPDATE sessions SET state = 'closed', "
+                "ended_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now'), "
+                "last_active_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now'), "
+                "runtime_seconds = CAST((JULIANDAY('now') - JULIANDAY(started_at)) * 86400 AS INTEGER), "
+                "summary = ?, pid = NULL WHERE id = ?",
+                (summary, session_id),
+            )
+        else:
+            conn.execute(
+                "UPDATE sessions SET state = 'closed', "
+                "ended_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now'), "
+                "last_active_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now'), "
+                "runtime_seconds = CAST((JULIANDAY('now') - JULIANDAY(started_at)) * 86400 AS INTEGER), "
+                "pid = NULL WHERE id = ?",
+                (session_id,),
+            )
+
+
+def current_session() -> Session | None:
+    """Most recently active resumable session (active or idle within warm window)."""
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT id, summary, logged_at, claude_session_id, name, model, source, "
+            "follow_ups, state, started_at, last_active_at, ended_at, pid "
+            "FROM sessions "
+            "WHERE state IN ('active', 'idle') "
+            "ORDER BY last_active_at DESC LIMIT 1"
+        ).fetchone()
+    if not row:
+        return None
+    return _row_to_session(row)
+
+
+def hookable_session() -> Session | None:
+    """Find an interactive session with a live process (pid alive = cli window open)."""
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT id, summary, logged_at, claude_session_id, name, model, source, "
+            "follow_ups, state, started_at, last_active_at, ended_at, pid "
+            "FROM sessions "
+            "WHERE state IN ('active', 'idle') AND pid IS NOT NULL "
+            "ORDER BY last_active_at DESC"
+        ).fetchall()
+    for row in rows:
+        pid = row[12]
+        if pid and _pid_alive(pid):
+            return _row_to_session(row)
+    return None
+
+
+def get_sessions(limit: int = 10, state: str | None = None) -> list[Session]:
+    with get_db() as conn:
+        if state:
             rows = conn.execute(
-                "SELECT id, mode, source, session_id, started_at, ended_at, "
-                "runtime_seconds, prompt_chars, response_chars, status "
-                "FROM spawns WHERE mode = ? ORDER BY started_at DESC LIMIT ?",
-                (mode, limit),
+                "SELECT id, summary, logged_at, claude_session_id, name, model, source, "
+                "follow_ups, state, started_at, last_active_at, ended_at, pid "
+                "FROM sessions WHERE state = ? ORDER BY COALESCE(last_active_at, logged_at) DESC LIMIT ?",
+                (state, limit),
             ).fetchall()
         else:
             rows = conn.execute(
-                "SELECT id, mode, source, session_id, started_at, ended_at, "
-                "runtime_seconds, prompt_chars, response_chars, status "
-                "FROM spawns ORDER BY started_at DESC LIMIT ?",
+                "SELECT id, summary, logged_at, claude_session_id, name, model, source, "
+                "follow_ups, state, started_at, last_active_at, ended_at, pid "
+                "FROM sessions ORDER BY COALESCE(last_active_at, logged_at) DESC LIMIT ?",
                 (limit,),
             ).fetchall()
-        return [
-            Spawn(
-                id=row[0],
-                mode=row[1],
-                source=row[2],
-                session_id=row[3],
-                started_at=datetime.fromisoformat(row[4]),
-                ended_at=datetime.fromisoformat(row[5]) if row[5] else None,
-                runtime_seconds=row[6],
-                prompt_chars=row[7],
-                response_chars=row[8],
-                status=row[9],
-            )
-            for row in rows
-        ]
+    return [_row_to_session(row) for row in rows]
 
 
 def update_session_summary(session_id: int, summary: str) -> None:
@@ -150,6 +171,34 @@ def update_session_followups(session_id: int, follow_ups: list[str]) -> None:
             (json.dumps(follow_ups), session_id),
         )
 
+
+def _row_to_session(row: tuple) -> Session:  # type: ignore[type-arg]
+    return Session(
+        id=row[0],
+        summary=row[1],
+        logged_at=datetime.fromisoformat(row[2]),
+        claude_session_id=row[3],
+        name=row[4],
+        model=row[5],
+        source=row[6],
+        follow_ups=json.loads(row[7]) if row[7] else None,
+        state=row[8],
+        started_at=datetime.fromisoformat(row[9]) if row[9] else None,
+        last_active_at=datetime.fromisoformat(row[10]) if row[10] else None,
+        ended_at=datetime.fromisoformat(row[11]) if row[11] else None,
+        pid=row[12],
+    )
+
+
+def _pid_alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+        return True
+    except OSError:
+        return False
+
+
+# --- Observations ---
 
 def add_observation(body: str, tag: str | None = None, about_date: date | None = None) -> str:
     obs_id = str(uuid.uuid4())
@@ -208,54 +257,37 @@ def delete_observation(prefix: str, hard: bool = False) -> bool:
         return cursor.rowcount > 0
 
 
-def get_sessions(limit: int = 10) -> list[StewardSession]:
-    with get_db() as conn:
-        rows = conn.execute(
-            "SELECT id, summary, logged_at, claude_session_id, name, model, source, follow_ups "
-            "FROM sessions ORDER BY logged_at DESC LIMIT ?",
-            (limit,),
-        ).fetchall()
-        return [
-            StewardSession(
-                id=row[0],
-                summary=row[1],
-                logged_at=datetime.fromisoformat(row[2]),
-                claude_session_id=row[3],
-                name=row[4],
-                model=row[5],
-                source=row[6],
-                follow_ups=json.loads(row[7]) if row[7] else None,
-            )
-            for row in rows
-        ]
+# --- Compat alias (used by close.py add_session fallback) ---
+add_session = create_session
 
 
 from . import auto, chat, close, dash, improve, inbox, log, wake  # noqa: E402
 
 __all__ = [
     "Observation",
-    "Spawn",
-    "StewardSession",
+    "Session",
     "add_observation",
     "add_session",
-    "add_spawn",
     "auto",
     "chat",
     "close",
-    "close_spawn",
+    "close_session",
+    "create_session",
+    "current_session",
     "dash",
     "delete_observation",
     "get_observations",
     "get_sessions",
-    "get_spawns",
+    "hookable_session",
     "improve",
     "inbox",
     "log",
     "resolve_prefix",
-    "set_spawn_pid",
-    "touch_spawn",
+    "set_session_active",
+    "set_session_idle",
+    "set_session_pid",
+    "touch_session",
     "update_session_followups",
     "update_session_summary",
-    "update_spawn_provider_session",
     "wake",
 ]

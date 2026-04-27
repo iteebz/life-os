@@ -20,7 +20,7 @@ from life.lib.providers import claude
 from life.loop import load_loop_state, require_real_world_closure, save_loop_state, update_loop_state
 from life.task import get_all_tasks, get_tasks
 
-from . import add_session
+from . import close_session, create_session
 
 _STEWARD_DIR = Path.home() / ".life" / "steward"
 _OFF_SENTINEL = _STEWARD_DIR / "off"
@@ -209,7 +209,7 @@ def _build_cmd_env(prompt: str) -> tuple[list[str], dict[str, str]]:
 
 def run_autonomous() -> None:
     ts_label = datetime.now().strftime("%b %d %H:%M").lstrip("0").lower()
-    db_session_id = add_session("(active)", name=f"auto {ts_label}", model="claude", source="auto")
+    db_session_id = create_session("(active)", name=f"auto {ts_label}", model="claude", source="daemon")
 
     tasks_before = get_tasks()
     all_before = get_all_tasks()
@@ -286,6 +286,8 @@ def run_autonomous() -> None:
     save_loop_state(state)
 
     print("\n".join(render_feedback_snapshot(snapshot_after)))
+    close_session(db_session_id, summary=f"auto {ts_label}: {'ok' if shipped_life else 'code_only'}")
+
     if gate_required and not shipped_life:
         raise LifeError("steward gate failed: no real-world task was closed")
 

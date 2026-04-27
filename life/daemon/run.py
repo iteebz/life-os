@@ -86,9 +86,7 @@ def _telegram_thread(
                 for msg in chat_msgs:
                     body = str(msg["body"])
                     if body.startswith("/"):
-                        cutoff_cmd = time.time() - 3600
-                        active_spawns = sum(1 for t in spawn_times if t > cutoff_cmd)
-                        resp = handle_command(body, [], 0.0, 0, active_spawns)
+                        resp = handle_command(body, [], 0.0, 0)
                         if resp is not None:
                             tg.send(chat_id, resp)
                             log(f"[telegram] command: {body.split()[0]}")

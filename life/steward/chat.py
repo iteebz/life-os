@@ -14,14 +14,12 @@ from life.ctx.assemble import build_chat_prompt
 from life.lib.providers.claude import build_env
 
 from . import (
-    add_session,
-    add_spawn,
-    close_spawn,
+    create_session,
     get_sessions,
-    set_spawn_pid,
+    set_session_active,
+    set_session_idle,
+    set_session_pid,
     update_session_followups,
-    update_session_summary,
-    update_spawn_provider_session,
 )
 
 LIFE_DIR = Path.home() / "life"
@@ -42,7 +40,7 @@ def _load_session_state(db_id: int) -> None:
     sessions = get_sessions(limit=50)
     match = next((s for s in sessions if s.id == db_id), None)
     if match:
-        _session_start = match.logged_at
+        _session_start = match.started_at or match.logged_at
         _followups = [datetime.fromisoformat(ts) for ts in (match.follow_ups or [])]
     _db_session_id = db_id
 
@@ -126,6 +124,7 @@ def _launch(
         _load_session_state(db_session_id)
         _followups.append(datetime.now())
         update_session_followups(db_session_id, [ts.isoformat() for ts in _followups])
+        set_session_active(db_session_id)
     else:
         if _session_start is None:
             _session_start = datetime.now()
@@ -134,7 +133,6 @@ def _launch(
             if db_session_id is not None:
                 update_session_followups(db_session_id, [ts.isoformat() for ts in _followups])
 
-    spawn_id = add_spawn(mode="chat", source=source, session_id=db_session_id)
     _ensure_hooks_config()
 
     cmd = [
@@ -153,17 +151,19 @@ def _launch(
     _unlock_keychain()
     env = build_env("chat")
     env["STEWARD_SESSION_ID"] = session_id
-    env["STEWARD_SPAWN_ID"] = str(spawn_id)
+    if db_session_id is not None:
+        env["STEWARD_DB_SESSION_ID"] = str(db_session_id)
     env["GIT_AUTHOR_NAME"] = "steward"
     env["GIT_AUTHOR_EMAIL"] = "steward@life-os"
     env["GIT_COMMITTER_NAME"] = "steward"
     env["GIT_COMMITTER_EMAIL"] = "steward@life-os"
 
     proc = subprocess.Popen(cmd, cwd=LIFE_DIR, env=env)
-    set_spawn_pid(spawn_id, proc.pid)
-    update_spawn_provider_session(spawn_id, session_id)
+    if db_session_id is not None:
+        set_session_pid(db_session_id, proc.pid)
     rc = proc.wait()
-    close_spawn(spawn_id, status="complete" if rc == 0 else "error")
+    if db_session_id is not None:
+        set_session_idle(db_session_id)
     return rc
 
 
@@ -177,7 +177,7 @@ def chat(model: str | None = None, name: str | None = None, opus: bool = False, 
     label = name or datetime.now().strftime("%b %d %H:%M").lower()
 
     source = os.environ.get("STEWARD_SOURCE", "cli")
-    db_id = add_session(
+    db_id = create_session(
         summary=f"(active) {label}",
         claude_session_id=session_id,
         name=label,
@@ -187,7 +187,6 @@ def chat(model: str | None = None, name: str | None = None, opus: bool = False, 
 
     print(f"session {db_id} → {session_id[:8]}  model={model}  source={source}{'  raw' if raw else ''}")
     rc = _launch(model, session_id, name=label, source=source, db_session_id=db_id, raw=raw)
-    update_session_summary(db_id, f"(closed) {label}")
     return rc
 
 

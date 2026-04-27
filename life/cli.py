@@ -16,19 +16,19 @@ def _smart_resume() -> int:
     from .steward.chat import DEFAULT_MODEL, _launch, chat
 
     sessions = get_sessions(limit=5)
-    resumable = [s for s in sessions if s.claude_session_id]
+    resumable = [s for s in sessions if s.claude_session_id and s.state in ("active", "idle")]
 
     if resumable:
         target = resumable[0]
-        last_touch = target.logged_at
-        if target.follow_ups:
-            last_touch = max(last_touch, datetime.fromisoformat(target.follow_ups[-1]))
+        last_touch = target.last_active_at or target.started_at or target.logged_at
         if (datetime.now() - last_touch).total_seconds() < _RESUME_WINDOW_SECONDS:
             import os
+            sid = target.claude_session_id
+            assert sid is not None
             m = target.model or DEFAULT_MODEL
             source = os.environ.get("STEWARD_SOURCE", "cli")
-            print(f"resuming {target.id} → {target.claude_session_id[:8]}  model={m}  source={source}")
-            return _launch(m, target.claude_session_id, name=target.name, resume=True, source=source, db_session_id=target.id)
+            print(f"resuming {target.id} → {sid[:8]}  model={m}  source={source}")
+            return _launch(m, sid, name=target.name, resume=True, source=source, db_session_id=target.id)
 
     return chat() or 0
 

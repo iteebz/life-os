@@ -2,7 +2,7 @@
 
 import time
 
-from life.daemon.shared import DAEMON_START_TIME, MAX_TG_SPAWNS_PER_HOUR, TG_SESSION_MAX_CHARS, TG_SESSION_TIMEOUT
+from life.daemon.shared import DAEMON_START_TIME, TG_SESSION_MAX_CHARS, TG_SESSION_TIMEOUT
 from life.mood import get_recent_moods
 from life.task import get_tasks
 
@@ -12,7 +12,6 @@ def handle_command(
     session_history: list[dict[str, str]],
     session_last_time: float,
     session_chars: int,
-    spawn_count: int = 0,
 ) -> str | None:
     """Return a response string if command is handled, else None."""
     cmd = command.strip().split()[0].lower() if command.strip() else ""
@@ -24,7 +23,7 @@ def handle_command(
     if cmd == "/session":
         return _cmd_session(session_history, session_last_time, session_chars)
     if cmd == "/status":
-        return _cmd_status(session_history, session_last_time, session_chars, spawn_count)
+        return _cmd_status(session_history, session_last_time, session_chars)
     if cmd == "/help":
         return _cmd_help()
     return None
@@ -93,7 +92,6 @@ def _cmd_status(
     history: list[dict[str, str]],
     last_time: float,
     chars: int,
-    spawn_count: int,
 ) -> str:
     lines = ["🌱 status"]
 
@@ -127,9 +125,6 @@ def _cmd_status(
             lines.append(f"session timeout: {int(timeout_left // 60)}m {int(timeout_left % 60)}s")
     else:
         lines.append("session: inactive")
-
-    # spawns
-    lines.append(f"spawns this hour: {spawn_count}/{MAX_TG_SPAWNS_PER_HOUR}")
 
     return "\n".join(lines)
 

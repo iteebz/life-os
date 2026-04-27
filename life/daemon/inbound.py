@@ -1,84 +1,32 @@
-"""Inbound message handler — wake or notify steward on new messages.
+"""Inbound message handler — route to current steward session.
 
-When a message arrives from any channel:
-1. Active interactive session? → notify via hook (write to inbox file)
-2. No active session, within rollover limits? → continue last session
-3. No active session, stale? → start fresh session
-4. Quiet hours? → queue for morning
-
-The daemon thread calls handle() for each inbound message.
-Steward reads the inbox file via a UserPromptSubmit hook.
+Routing:
+1. Hookable session (cli with live pid)? → write inbox, hook surfaces it.
+2. Resumable session (active/idle within warm window)? → resume turn.
+3. Neither? → spawn fresh session.
 """
 
 import time
-from datetime import datetime, timezone
 from pathlib import Path
 
 from life.comms.messages import telegram as tg
 from life.daemon.session import build_reply_prompt, build_tg_boot_prompt, load_history_from_db
-from life.daemon.shared import TG_SESSION_MAX_CHARS, TG_SESSION_TIMEOUT, log
+from life.daemon.shared import log
 from life.daemon.spawn import fetch_wake_context, spawn_claude
 from life.lib.clock import is_quiet_now
 from life.lib.store import get_db
+from life.steward import (
+    create_session,
+    current_session,
+    hookable_session,
+    set_session_idle,
+    touch_session,
+)
 
 INBOX_FILE = Path.home() / ".life" / "steward" / "inbox"
-# Cache TTL is 60m. Resume within this window = cached context = fast + cheap.
-# 55m gives 5m buffer before cache dies.
-WARM_AGE_SECONDS = 3300
-WARM_MAX_CHARS = 100_000
-
-
-def _active_spawn() -> dict[str, str | int | None] | None:
-    """Check if there's an active steward spawn (chat or tg)."""
-    try:
-        with get_db() as conn:
-            row = conn.execute(
-                "SELECT id, mode, source, started_at, session_id FROM spawns "
-                "WHERE status = 'active' ORDER BY started_at DESC LIMIT 1"
-            ).fetchone()
-        if not row:
-            return None
-        return {
-            "id": row[0],
-            "mode": row[1],
-            "source": row[2],
-            "started_at": row[3],
-            "session_id": row[4],
-        }
-    except Exception:
-        return None
-
-
-def _session_age_seconds(spawn: dict[str, str | int | None]) -> float:
-    """How old is the current spawn in seconds."""
-    try:
-        started_at = spawn["started_at"]
-        if not isinstance(started_at, str):
-            return 0
-        started = datetime.fromisoformat(started_at).replace(tzinfo=timezone.utc)
-        return (datetime.now(timezone.utc) - started).total_seconds()
-    except Exception:
-        return 0
-
-
-def _session_chars(session_id: int | None) -> int:
-    """Total chars in the current session's messages."""
-    if not session_id:
-        return 0
-    try:
-        with get_db() as conn:
-            row = conn.execute(
-                "SELECT COALESCE(SUM(LENGTH(body)), 0) FROM messages "
-                "WHERE channel = 'chat' AND peer = ?",
-                (str(session_id),),
-            ).fetchone()
-        return row[0] if row else 0
-    except Exception:
-        return 0
 
 
 def _write_inbox(channel: str, sender: str, body: str) -> None:
-    """Write to inbox file for active session to pick up via hook."""
     INBOX_FILE.parent.mkdir(parents=True, exist_ok=True)
     ts = time.strftime("%H:%M")
     entry = f"[{ts}] [{channel}] {sender}: {body}\n"
@@ -90,64 +38,12 @@ def _clear_inbox() -> None:
     INBOX_FILE.unlink(missing_ok=True)
 
 
-def _warm_session() -> tuple[str, int] | None:
-    """Find the most recent chat session that's warm enough to resume.
-
-    Returns (claude_session_id, db_session_id) or None.
-    Warm = closed cleanly + last activity <55m + accumulated chars <100k.
-    """
-    try:
-        with get_db() as conn:
-            row = conn.execute(
-                "SELECT s.claude_session_id, s.id, s.logged_at "
-                "FROM sessions s "
-                "JOIN spawns sp ON sp.session_id = s.id "
-                "WHERE sp.mode = 'chat' AND sp.status = 'complete' "
-                "AND s.claude_session_id IS NOT NULL "
-                "ORDER BY sp.ended_at DESC LIMIT 1"
-            ).fetchone()
-        if not row:
-            return None
-        claude_id, db_id, _logged_at = row
-        chars = _session_chars(db_id)
-        if chars > WARM_MAX_CHARS:
-            return None
-        # Use most recent spawn end as activity proxy
-        with get_db() as conn:
-            end_row = conn.execute(
-                "SELECT MAX(ended_at) FROM spawns WHERE session_id = ?",
-                (db_id,),
-            ).fetchone()
-        if not end_row or not end_row[0]:
-            return None
-        last_active = datetime.fromisoformat(end_row[0]).replace(tzinfo=timezone.utc)
-        age = (datetime.now(timezone.utc) - last_active).total_seconds()
-        if age > WARM_AGE_SECONDS:
-            return None
-        return claude_id, db_id
-    except Exception:
-        return None
-
-
-def _should_rollover(spawn: dict[str, str | int | None]) -> bool:
-    """Check if current session exceeds time or char limits."""
-    age = _session_age_seconds(spawn)
-    raw_id = spawn.get("session_id")
-    chars = _session_chars(int(raw_id) if isinstance(raw_id, int) else None)
-    return age > TG_SESSION_TIMEOUT or chars > TG_SESSION_MAX_CHARS
-
-
 def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> str:
-    """Handle an inbound message. Returns action taken.
-
-    Actions: 'notified', 'queued', 'resumed', 'responded'.
-    Writes a corresponding event row referencing the latest inbound event
-    for (channel, address) for coverage instrumentation.
-    """
+    """Handle an inbound message. Returns action taken."""
     started_ms = time.time() * 1000
     address = str(chat_id) if channel == "telegram" and chat_id is not None else sender
 
-    def _emit(action: str, error: str | None = None, spawn_id: int | None = None) -> None:
+    def _emit(action: str, error: str | None = None, session_id: int | None = None) -> None:
         from life.comms import events
         from life.comms.peers import resolve_or_create
 
@@ -166,7 +62,7 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> 
                 peer_id=peer_id,
                 channel=channel,
                 ref_id=ref_id,
-                spawn_id=spawn_id,
+                session_id=session_id,
                 payload=payload,
             )
         except Exception as e:
@@ -178,31 +74,27 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> 
         _emit("queued", error="quiet_hours")
         return "queued"
 
-    spawn = _active_spawn()
-
-    if spawn and spawn["mode"] == "chat":
-        if _should_rollover(spawn):
-            log("[inbound] active session over limits — will start fresh")
-            _write_inbox(channel, sender, body)
-            _emit("queued", error="rollover")
-            return "queued"
-
+    # 1. Hookable session (cli window open)?
+    hooked = hookable_session()
+    if hooked:
         _write_inbox(channel, sender, body)
-        log(f"[inbound] notified active session (spawn {spawn['id']})")
-        spawn_id_raw = spawn.get("id")
-        _emit("notified", spawn_id=int(spawn_id_raw) if isinstance(spawn_id_raw, int) else None)
+        log(f"[inbound] notified hookable session {hooked.id}")
+        _emit("notified", session_id=hooked.id)
         return "notified"
 
-    if channel == "telegram" and chat_id is not None:
-        warm = _warm_session()
-        if warm:
-            claude_id, db_id = warm
-            log(f"[inbound] resuming warm session {db_id} ({claude_id[:8]})")
-            response = spawn_claude(body, resume_session_id=claude_id)
-            tg.send(chat_id, response)
-            _emit("resumed")
-            return "resumed"
+    # 2. Resumable session?
+    current = current_session()
+    if current and current.claude_session_id and channel == "telegram" and chat_id is not None:
+        log(f"[inbound] resuming session {current.id} ({current.claude_session_id[:8]})")
+        touch_session(current.id)
+        response = spawn_claude(body, resume_session_id=current.claude_session_id)
+        tg.send(chat_id, response)
+        set_session_idle(current.id)
+        _emit("resumed", session_id=current.id)
+        return "resumed"
 
+    # 3. Fresh session
+    if channel == "telegram" and chat_id is not None:
         history = load_history_from_db(chat_id)
         if history:
             prompt = build_reply_prompt(history, body)
@@ -210,10 +102,16 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> 
             context = fetch_wake_context()
             prompt = build_tg_boot_prompt(body, sender, context)
 
+        session_id = create_session(
+            summary=f"(tg) {sender}",
+            source="tg",
+            name=f"tg {sender}",
+        )
         response = spawn_claude(prompt)
         tg.send(chat_id, response)
-        log(f"[inbound] responded via telegram ({len(response)} chars)")
-        _emit("responded")
+        set_session_idle(session_id)
+        log(f"[inbound] new session {session_id}, responded ({len(response)} chars)")
+        _emit("responded", session_id=session_id)
         return "responded"
 
     _write_inbox(channel, sender, body)
@@ -223,7 +121,6 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> 
 
 
 def _latest_inbound_event(channel: str, address: str) -> int | None:
-    """Find the most recent inbound event id for (channel, address)."""
     try:
         with get_db() as conn:
             row = conn.execute(
@@ -240,7 +137,6 @@ def _latest_inbound_event(channel: str, address: str) -> int | None:
 
 
 def pending_inbox() -> str:
-    """Read and clear the inbox. Called by steward on wake or via hook."""
     if not INBOX_FILE.exists():
         return ""
     content = INBOX_FILE.read_text().strip()
@@ -249,12 +145,7 @@ def pending_inbox() -> str:
 
 
 def catch_up(chat_id: int) -> str:
-    """Process unread inbound telegram messages on daemon start.
-
-    Queries messages table for inbound telegram messages with read_at IS NULL,
-    batches them into a single steward spawn, marks them read, and replies.
-    Returns action: 'caught_up' or 'nothing'.
-    """
+    """Process unread inbound telegram messages on daemon start."""
     try:
         with get_db() as conn:
             rows = conn.execute(
@@ -286,9 +177,15 @@ def catch_up(chat_id: int) -> str:
         f"Start with 🌱. Short and actionable."
     )
 
-    log(f"[catch-up] {len(rows)} unread message(s), spawning steward")
+    session_id = create_session(
+        summary=f"(catch-up) {len(rows)} msgs",
+        source="daemon",
+        name="catch-up",
+    )
+    log(f"[catch-up] {len(rows)} unread message(s), session {session_id}")
     response = spawn_claude(prompt)
     tg.send(chat_id, response)
+    set_session_idle(session_id)
 
     _mark_read(msg_ids)
     log(f"[catch-up] responded ({len(response)} chars), marked {len(msg_ids)} read")
@@ -296,7 +193,6 @@ def catch_up(chat_id: int) -> str:
 
 
 def mark_read_for_session(chat_id: int) -> None:
-    """Mark all inbound messages as read for a chat. Called after live handling."""
     try:
         with get_db() as conn:
             conn.execute(

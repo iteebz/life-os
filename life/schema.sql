@@ -77,24 +77,15 @@ CREATE TABLE sessions (
     name TEXT,
     model TEXT,
     source TEXT,
-    follow_ups TEXT
-);
-
-CREATE TABLE spawns (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    mode TEXT NOT NULL,
-    source TEXT,
-    session_id INTEGER REFERENCES sessions(id),
-    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    follow_ups TEXT,
+    state TEXT NOT NULL DEFAULT 'closed',
+    started_at TIMESTAMP,
+    last_active_at TIMESTAMP,
     ended_at TIMESTAMP,
+    pid INTEGER,
     runtime_seconds INTEGER,
     prompt_chars INTEGER,
-    response_chars INTEGER,
-    status TEXT NOT NULL DEFAULT 'active',
-    pid INTEGER,
-    last_active_at TIMESTAMP,
-    provider_session_id TEXT,
-    slept_at TIMESTAMP
+    response_chars INTEGER
 );
 
 CREATE TABLE observations (
@@ -213,7 +204,7 @@ CREATE TABLE events (
   peer_id    INTEGER REFERENCES peers(id),
   channel    TEXT,
   ref_id     INTEGER REFERENCES events(id),
-  spawn_id   INTEGER REFERENCES spawns(id),
+  session_id INTEGER REFERENCES sessions(id),
   payload    TEXT NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
