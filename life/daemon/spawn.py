@@ -10,6 +10,7 @@ from life.lib.providers.claude import build_env as build_claude_env
 MAX_RESPONSE_LEN = 4000
 
 _HOOK_SETTINGS = {
+    "spinnerTipsEnabled": False,
     "hooks": {
         "PreToolUse": [{"matcher": "", "hooks": [{"type": "command", "command": "life-hook tool"}]}],
     },
@@ -31,7 +32,7 @@ def fetch_wake_context() -> str:
     """Run `life steward wake` and capture output for prompt injection."""
     try:
         result = subprocess.run(
-            ["life", "steward", "wake"],
+            ["steward", "wake"],
             cwd=Path.home() / "life",
             capture_output=True,
             text=True,
@@ -42,7 +43,12 @@ def fetch_wake_context() -> str:
         return f"(wake context unavailable: {e})"
 
 
-def spawn_claude(prompt: str, timeout: int = 300, image_path: str | None = None) -> str:
+def spawn_claude(
+    prompt: str,
+    timeout: int = 300,
+    image_path: str | None = None,
+    resume_session_id: str | None = None,
+) -> str:
     try:
         claude = _claude_bin()
     except FileNotFoundError as e:
@@ -51,13 +57,16 @@ def spawn_claude(prompt: str, timeout: int = 300, image_path: str | None = None)
     cmd = [
         claude,
         "--print",
-        "--no-session-persistence",
         "--dangerously-skip-permissions",
         "--model",
         "claude-sonnet-4-6",
         "--settings",
         json.dumps(_HOOK_SETTINGS),
     ]
+    if resume_session_id:
+        cmd += ["--resume", resume_session_id]
+    else:
+        cmd += ["--no-session-persistence"]
     if image_path:
         cmd += ["--image", image_path]
 
