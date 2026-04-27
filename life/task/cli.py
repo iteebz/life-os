@@ -6,7 +6,7 @@ from fncli import UsageError, cli
 
 from life.core.errors import ConflictError, ValidationError
 from life.core.types import UNSET
-from life.habit import update_habit
+from life.domain.habit import update_habit
 from life.lib import ansi, clock
 from life.lib.clock import today
 from life.lib.format import format_status, format_task

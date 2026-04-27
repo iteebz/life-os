@@ -4,7 +4,7 @@ from datetime import date, datetime
 from fncli import cli
 
 from life.core.errors import NotFoundError
-from life.improvements import delete_improvement, get_improvements
+from life.domain.improvements import delete_improvement, get_improvements
 from life.lib import ansi
 from life.lib.dates import parse_due_date
 from life.lib.format import format_elapsed

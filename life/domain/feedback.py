@@ -2,9 +2,9 @@ import dataclasses
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
-from .core.config import get_partner_tag
-from .core.models import Habit, Task
-from .lib.store import get_db
+from life.core.config import get_partner_tag
+from life.core.models import Habit, Task
+from life.lib.store import get_db
 
 DISCOMFORT_TAGS = {"finance", "legal", "janice"}
 

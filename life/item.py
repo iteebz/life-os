@@ -4,7 +4,7 @@ from fncli import UsageError, cli
 
 from .core.errors import NotFoundError, ValidationError
 from .core.models import Task
-from .habit import (
+from .domain.habit import (
     add_habit,
     check_habit,
     check_habit_cmd,

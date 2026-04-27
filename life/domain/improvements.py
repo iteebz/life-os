@@ -2,8 +2,8 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime
 
-from .lib.ids import resolve_prefix
-from .lib.store import get_db
+from life.lib.ids import resolve_prefix
+from life.lib.store import get_db
 
 
 @dataclass(frozen=True)

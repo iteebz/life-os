@@ -13,11 +13,11 @@ from fncli import cli
 
 from life.core.errors import LifeError
 from life.core.models import Task
-from life.feedback import build_feedback_snapshot, render_feedback_snapshot
-from life.habit import get_habits
+from life.domain.feedback import build_feedback_snapshot, render_feedback_snapshot
+from life.domain.habit import get_habits
 from life.lib.clock import today
 from life.lib.providers import claude
-from life.loop import load_loop_state, require_real_world_closure, save_loop_state, update_loop_state
+from life.domain.loop import load_loop_state, require_real_world_closure, save_loop_state, update_loop_state
 from life.task import get_all_tasks, get_tasks
 
 from . import add_session

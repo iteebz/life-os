@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from .habit import get_habits
+from .domain.habit import get_habits
 from .lib.converters import row_to_task
 from .lib.fuzzy import find_in_pool
 from .lib.store import get_db

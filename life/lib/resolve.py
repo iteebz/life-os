@@ -58,7 +58,7 @@ def resolve_task(ref: str) -> Task:
 
 def _find_item(ref: str, find_task_fn) -> tuple[Task | None, Habit | None]:
     """Common logic for finding a task/habit pair."""
-    from life.habit import find_habit  # noqa: PLC0415 — circular: habit→tag→resolve→habit
+    from life.domain.habit import find_habit  # noqa: PLC0415 — circular: habit→tag→resolve→habit
     task = find_task_fn(ref)
     habit = find_habit(ref) if not task else None
     return task, habit
@@ -83,7 +83,7 @@ def resolve_item_any(ref: str) -> tuple[Task | None, Habit | None]:
 
 def resolve_item_exact(ref: str) -> tuple[Task | None, Habit | None]:
     """Like resolve_item but no fuzzy matching — exact/substring/UUID only."""
-    from life.habit import find_habit_exact  # noqa: PLC0415 — circular: habit→tag→resolve→habit
+    from life.domain.habit import find_habit_exact  # noqa: PLC0415 — circular: habit→tag→resolve→habit
     task, habit = _find_item(ref, find_task_exact)
     if not task:
         habit = find_habit_exact(ref)

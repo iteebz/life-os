@@ -14,10 +14,10 @@ from pathlib import Path
 
 from life.daemon.inbound import pending_inbox
 from life.store.migrations import init
-from life.habit import get_habits
+from life.domain.habit import get_habits
 from life.lib.clock import today
 from life.lib.store import get_db
-from life.mood import get_recent_moods
+from life.domain.mood import get_recent_moods
 from life.task import get_tasks
 
 # Hook state file — throttle map persisted per session.

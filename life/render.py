@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from datetime import date, datetime, timedelta
 
 from life.core.models import Habit, Task, TaskMutation, Weekly
-from life.habit import get_subhabits
+from life.domain.habit import get_subhabits
 from life.task import task_sort_key
 
 from .lib import clock

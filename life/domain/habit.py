@@ -5,14 +5,14 @@ from datetime import date, datetime, timedelta
 
 from fncli import UsageError, cli
 
-from .core.errors import NotFoundError, StoreIntegrityError, ValidationError
-from .core.models import Habit
-from .lib import ansi, clock
-from .lib.converters import row_to_habit
-from .lib.format import render_done_row, render_row
-from .lib.fuzzy import find_in_pool, find_in_pool_exact
-from .lib.store import get_db
-from .tag import get_tags_for_habit, load_tags_for_habits
+from life.core.errors import NotFoundError, StoreIntegrityError, ValidationError
+from life.core.models import Habit
+from life.lib import ansi, clock
+from life.lib.converters import row_to_habit
+from life.lib.format import render_done_row, render_row
+from life.lib.fuzzy import find_in_pool, find_in_pool_exact
+from life.lib.store import get_db
+from life.domain.tag import get_tags_for_habit, load_tags_for_habits
 
 __all__ = [
     "add_habit",

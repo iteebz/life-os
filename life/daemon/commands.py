@@ -3,7 +3,7 @@
 import time
 
 from life.daemon.shared import DAEMON_START_TIME, MAX_TG_SPAWNS_PER_HOUR, TG_SESSION_MAX_CHARS, TG_SESSION_TIMEOUT
-from life.mood import get_recent_moods
+from life.domain.mood import get_recent_moods
 from life.task import get_tasks
 
 

@@ -1,9 +1,9 @@
 from datetime import date, timedelta
 
-from .core.models import Weekly
-from .lib import clock
-from .lib.dates import parse_created_date
-from .lib.store import get_db
+from life.core.models import Weekly
+from life.lib import clock
+from life.lib.dates import parse_created_date
+from life.lib.store import get_db
 
 __all__ = ["weekly_momentum"]
 
