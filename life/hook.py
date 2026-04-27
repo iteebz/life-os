@@ -59,7 +59,10 @@ def _new_messages(state: dict[str, str], parts: list[str]) -> None:
 
     from life.lib.store import get_db
 
-    last_ts = state.get("messages_last_ts", "0")
+    last_ts = state.get("messages_last_ts")
+    if last_ts is None:
+        state["messages_last_ts"] = str(time.time())
+        return
 
     with get_db() as conn:
         rows = conn.execute(
@@ -137,15 +140,6 @@ def _mood(state: dict[str, str], parts: list[str]) -> None:
     bar = "█" * latest.score + "░" * (5 - latest.score)
     label = f"  {latest.label}" if latest.label else ""
     parts.append(f"mood: {bar} {latest.score}/5{label}")
-
-
-def _check_inbox(parts: list[str]) -> None:
-    """Surface any pending inbox messages from daemon."""
-    from life.daemon.inbound import pending_inbox
-
-    content = pending_inbox()
-    if content:
-        parts.append(f"new messages received:\n{content}")
 
 
 def _check_inbox(parts: list[str]) -> None:

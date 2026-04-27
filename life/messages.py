@@ -221,6 +221,27 @@ def messages_cmd(
     _format(msgs, context)
 
 
+@cli("life messages", name="sync", flags={"full": ["--full"]})
+def sync_cmd(person: str, full: bool = False):
+    """Sync message history from telegram"""
+    from life.comms.messages.telegram_sync import sync
+
+    chat_id = _tg.resolve_chat_id(person)
+    chat_ref: str | int = chat_id if chat_id is not None else person
+
+    n = sync(chat_ref, full=full)
+    print(f"synced {n} messages from {person}")
+
+
+@cli("life messages", name="auth")
+def auth_cmd(api_id: int, api_hash: str):
+    """Store Telegram user API credentials (from my.telegram.org)"""
+    from life.comms.messages.telegram_sync import save_credentials
+
+    save_credentials(api_id, api_hash)
+    print(f"saved — api_id={api_id}. run: life messages sync <person> to pull history")
+
+
 @cli("life message", default=True, flags={"channel": ["-c", "--channel"]})
 def send_cmd(person: str, text: str, channel: str = ""):
     """Send a message (auto-routes telegram or signal)"""
