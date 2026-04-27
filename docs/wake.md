@@ -3,12 +3,16 @@
 every steward session starts cold. wake is the total context snapshot — everything steward
 knows at boot. daemon captures it and injects it into the claude prompt.
 
-## current shape (flat)
+## current shape
 
-one function dumps ~15 sections with no priority ordering: steward tasks, feedback,
-last session, contracts, observations, dates, contacts, improvements, mood, commits,
-comms, telegram, inbox. if context grows, model attention dilutes equally across
-everything. no control over what survives truncation.
+`life/ctx/` owns prompt assembly:
+- `sections.py` — one renderer per data slice, returns string or "" to omit.
+- `assemble.py` — `build_wake()` composes sections in priority order; `build_chat_prompt()` wraps for system-prompt injection.
+- `fragments.py` — static atoms (templates, constants).
+
+`steward/wake.py` is a thin CLI wrapper that prints `build_wake()`. Chat sessions
+inject `build_chat_prompt()` directly via `--append-system-prompt` (no subprocess).
+Daemon paths use `fetch_wake_context()` which calls `build_wake()` in-process.
 
 ## target shape (tiered)
 
@@ -38,14 +42,15 @@ context is ambient — queryable on demand.
 
 ## design principles
 
-**all surfaces use the same wake.** chat, telegram, auto, morning — all go through the
-same function. tier ordering benefits all of them.
+**all surfaces use the same wake.** chat, telegram, auto, morning — all go through
+`build_wake()`. tier ordering benefits all of them.
 
 **char budget with tier priority.** set a total wake budget. fill from top tier down.
 stop when exhausted. sections within a tier drop items before dropping whole sections.
+not yet implemented — currently emits everything.
 
-**wake is stdout.** daemon captures it via subprocess. this means wake must be pure
-print output — no side effects, no state mutation. the function is a lens, not an actor.
+**sections are pure.** each `render_*()` returns a string or "" (no print, no I/O
+contracts beyond DB reads). composable, testable, side-effect-free.
 
 ## spawn surfaces
 

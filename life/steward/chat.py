@@ -10,7 +10,7 @@ from pathlib import Path
 
 from fncli import cli
 
-from life.daemon.spawn import fetch_wake_context
+from life.ctx.assemble import build_chat_prompt
 from life.lib import ansi
 from life.lib.format import format_elapsed
 from life.lib.providers.claude import build_env
@@ -100,9 +100,9 @@ def _build_system_prompt(source: str, raw: bool) -> str:
     """Compose --append-system-prompt: wake context (unless raw) + session meta."""
     parts = []
     if not raw:
-        wake = fetch_wake_context()
+        wake = build_chat_prompt()
         if wake:
-            parts.append(f"<wake>\n{wake}\n</wake>")
+            parts.append(wake)
     parts.append(_session_meta_fragment(source))
     return "\n\n".join(parts)
 

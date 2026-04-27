@@ -29,16 +29,10 @@ def _claude_bin() -> str:
 
 
 def fetch_wake_context() -> str:
-    """Run `life steward wake` and capture output for prompt injection."""
+    """Build wake snapshot for prompt injection (in-process, no subprocess)."""
     try:
-        result = subprocess.run(
-            ["steward", "wake"],
-            cwd=Path.home() / "life",
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-        return result.stdout.strip()
+        from life.ctx.assemble import build_wake
+        return build_wake()
     except Exception as e:
         return f"(wake context unavailable: {e})"
 
