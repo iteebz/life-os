@@ -65,28 +65,38 @@ def _telegram_thread(
                 continue
 
             messages = tg.poll(timeout=interval)
+
+            # Group by chat_id so a burst of messages → one spawn, not many
+            batched: dict[int, list[dict[str, object]]] = {}
             for msg in messages:
                 if claimed_chat.is_set():
                     break
-
                 chat_id = msg["chat_id"]
                 if chat_id not in allowed:
                     log(f"[telegram] ignored unknown chat {chat_id}")
                     continue
+                batched.setdefault(chat_id, []).append(msg)
 
-                body = msg["body"]
-                sender = msg.get("from_name", "unknown")
-                log(f"[telegram] [{sender}] {body[:80]}")
+            for chat_id, chat_msgs in batched.items():
+                if claimed_chat.is_set():
+                    break
 
-                # slash commands — instant, no spawn
-                if body.startswith("/"):
-                    cutoff_cmd = time.time() - 3600
-                    active_spawns = sum(1 for t in spawn_times if t > cutoff_cmd)
-                    resp = handle_command(body, [], 0.0, 0, active_spawns)
-                    if resp is not None:
-                        tg.send(chat_id, resp)
-                        log(f"[telegram] command: {body.split()[0]}")
-                        continue
+                # Handle slash commands immediately, remove them from batch
+                remaining = []
+                for msg in chat_msgs:
+                    body = str(msg["body"])
+                    if body.startswith("/"):
+                        cutoff_cmd = time.time() - 3600
+                        active_spawns = sum(1 for t in spawn_times if t > cutoff_cmd)
+                        resp = handle_command(body, [], 0.0, 0, active_spawns)
+                        if resp is not None:
+                            tg.send(chat_id, resp)
+                            log(f"[telegram] command: {body.split()[0]}")
+                    else:
+                        remaining.append(msg)
+
+                if not remaining:
+                    continue
 
                 now = time.time()
                 cutoff = now - 3600
@@ -96,6 +106,14 @@ def _telegram_thread(
                     log("[telegram] rate limited, skipping spawn")
                     continue
 
+                sender = remaining[-1].get("from_name", "unknown")
+                if len(remaining) == 1:
+                    body = remaining[0]["body"]
+                else:
+                    body = "\n".join(m["body"] for m in remaining)
+                    log(f"[telegram] bundling {len(remaining)} messages from {sender}")
+
+                log(f"[telegram] [{sender}] {body[:80]}")
                 spawn_times.append(now)
                 action = handle_inbound("telegram", sender, body, chat_id=chat_id)
                 if action in ("responded", "resumed"):
