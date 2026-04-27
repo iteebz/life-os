@@ -2,7 +2,7 @@
 
 import time
 
-from life.daemon.shared import TG_SESSION_MAX_CHARS, TG_SESSION_TIMEOUT
+from life.daemon.shared import MAX_TG_SPAWNS_PER_HOUR, TG_SESSION_MAX_CHARS, TG_SESSION_TIMEOUT
 
 
 def handle_command(
@@ -10,6 +10,7 @@ def handle_command(
     session_history: list[dict[str, str]],
     session_last_time: float,
     session_chars: int,
+    spawn_count: int = 0,
 ) -> str | None:
     """Return a response string if command is handled, else None."""
     cmd = command.strip().split()[0].lower() if command.strip() else ""
@@ -20,6 +21,8 @@ def handle_command(
         return _cmd_stats()
     if cmd == "/session":
         return _cmd_session(session_history, session_last_time, session_chars)
+    if cmd == "/status":
+        return _cmd_status(session_history, session_last_time, session_chars, spawn_count)
     if cmd == "/help":
         return _cmd_help()
     return None
@@ -88,9 +91,57 @@ def _cmd_session(
     )
 
 
+def _cmd_status(
+    history: list[dict[str, str]],
+    last_time: float,
+    chars: int,
+    spawn_count: int,
+) -> str:
+    from life.daemon.shared import DAEMON_START_TIME
+
+    lines = ["🌱 status"]
+
+    # uptime
+    if DAEMON_START_TIME > 0:
+        elapsed = time.time() - DAEMON_START_TIME
+        h, rem = divmod(int(elapsed), 3600)
+        m, s = divmod(rem, 60)
+        lines.append(f"uptime: {h}h {m}m {s}s")
+    else:
+        lines.append("uptime: unknown")
+
+    # context window
+    pct = (chars / TG_SESSION_MAX_CHARS) * 100
+    remaining_chars = TG_SESSION_MAX_CHARS - chars
+    bar_len = 15
+    filled = int(pct / 100 * bar_len)
+    bar = "█" * filled + "░" * (bar_len - filled)
+    lines.append(f"ctx: [{bar}] {pct:.0f}% ({remaining_chars:,} chars left)")
+
+    # session
+    if history:
+        msg_count = len(history)
+        user_msgs = sum(1 for h in history if h["role"] == "user")
+        assistant_msgs = msg_count - user_msgs
+        lines.append(f"messages: {user_msgs} you / {assistant_msgs} steward")
+
+        if last_time > 0:
+            ago = int(time.time() - last_time)
+            timeout_left = max(0, TG_SESSION_TIMEOUT - ago)
+            lines.append(f"session timeout: {int(timeout_left // 60)}m {int(timeout_left % 60)}s")
+    else:
+        lines.append("session: inactive")
+
+    # spawns
+    lines.append(f"spawns this hour: {spawn_count}/{MAX_TG_SPAWNS_PER_HOUR}")
+
+    return "\n".join(lines)
+
+
 def _cmd_help() -> str:
     return (
         "🌱 commands\n"
+        "/status — full dashboard\n"
         "/ctx — context utilization\n"
         "/stats — tasks, mood\n"
         "/session — active session info\n"

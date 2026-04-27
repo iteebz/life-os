@@ -14,6 +14,9 @@ MAX_TG_SPAWNS_PER_HOUR = 12
 PEOPLE_DIR = Path.home() / "life" / "steward" / "people"
 
 
+DAEMON_START_TIME: float = 0.0
+
+
 def log(msg: str) -> None:
     DAEMON_DIR.mkdir(parents=True, exist_ok=True)
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")

@@ -4,6 +4,7 @@ import threading
 import time
 from pathlib import Path
 
+import life.daemon.shared as shared
 from life.daemon.shared import (
     DAEMON_DIR,
     MAX_TG_SPAWNS_PER_HOUR,
@@ -107,7 +108,9 @@ def _telegram_thread(
 
                 # slash commands — instant, no spawn
                 if body.startswith("/"):
-                    resp = handle_command(body, session_history, session_last_time, session_chars)
+                    cutoff_cmd = time.time() - 3600
+                    active_spawns = sum(1 for t in spawn_times if t > cutoff_cmd)
+                    resp = handle_command(body, session_history, session_last_time, session_chars, active_spawns)
                     if resp is not None:
                         tg.send(chat_id, resp)
                         log(f"[telegram] command: {body.split()[0]}")
@@ -217,6 +220,7 @@ def run(
     from life.daemon.morning import morning_thread
 
     DAEMON_DIR.mkdir(parents=True, exist_ok=True)
+    shared.DAEMON_START_TIME = time.time()
 
     stop = threading.Event()
     claimed_chat = threading.Event()
