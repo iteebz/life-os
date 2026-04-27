@@ -1,5 +1,6 @@
 import contextlib
 import threading
+from pathlib import Path
 from typing import Any
 
 import keyring
@@ -15,6 +16,7 @@ API = "https://api.telegram.org/bot{token}"
 _cached_token: str | None = None
 _cached_update_id: int | None = None
 _poll_lock = threading.Lock()
+_PHOTO_DIR = Path.home() / ".life" / "images"
 
 
 def _token() -> str | None:
@@ -103,7 +105,7 @@ def _poll(tok: str, timeout: int) -> list[dict[str, Any]]:
         sender = msg.get("from", {})
         last_name = sender.get("last_name", "")
         body = msg.get("text") or msg.get("caption") or "[photo]"
-        photo_path = None
+        photo_path = _download_photo(msg, tok) if has_photo else None
         parsed = {
             "id": msg["message_id"],
             "chat_id": msg["chat"]["id"],
@@ -120,6 +122,69 @@ def _poll(tok: str, timeout: int) -> list[dict[str, Any]]:
 
     return messages
 
+
+
+def _download_photo(msg: dict[str, Any], token: str) -> str | None:
+    """Download the largest photo size via getFile. Returns local path or None."""
+    photos = msg.get("photo", [])
+    if not photos:
+        return None
+    best = max(photos, key=lambda p: p.get("file_size", 0))
+    file_id = best.get("file_id")
+    if not file_id:
+        return None
+    try:
+        result = _api("getFile", token, file_id=file_id)
+        if not result.get("ok"):
+            return None
+        file_path = result["result"].get("file_path")
+        if not file_path:
+            return None
+        url = f"https://api.telegram.org/file/bot{token}/{file_path}"
+        resp = requests.get(url, timeout=30)
+        resp.raise_for_status()
+        _PHOTO_DIR.mkdir(parents=True, exist_ok=True)
+        ext = Path(file_path).suffix or ".jpg"
+        local = _PHOTO_DIR / f"tg-{msg['message_id']}{ext}"
+        local.write_bytes(resp.content)
+        return str(local)
+    except Exception:
+        return None
+
+
+def get_history(
+    chat_id: int | None = None, limit: int = 50, hours: int | None = None
+) -> list[dict[str, Any]]:
+    """Read stored telegram messages from DB."""
+    conditions = ["channel = 'telegram'"]
+    params: list[Any] = []
+    if chat_id is not None:
+        conditions.append("peer = ?")
+        params.append(str(chat_id))
+    if hours is not None:
+        import time
+        cutoff = int(time.time()) - (hours * 3600)
+        conditions.append("timestamp > ?")
+        params.append(cutoff)
+    where = " AND ".join(conditions)
+    params.append(limit)
+    with get_db() as conn:
+        rows = conn.execute(
+            f"SELECT id, direction, peer, peer_name, body, timestamp "
+            f"FROM messages WHERE {where} ORDER BY timestamp DESC LIMIT ?",
+            params,
+        ).fetchall()
+    return [
+        {
+            "id": r[0],
+            "direction": r[1],
+            "peer": r[2],
+            "peer_name": r[3],
+            "body": r[4],
+            "timestamp": r[5],
+        }
+        for r in rows
+    ]
 
 
 def _store_incoming(msg: dict[str, Any]) -> None:

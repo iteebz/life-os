@@ -85,6 +85,23 @@ def receive_cmd(timeout: int = 5, signal: bool = False, telegram: bool = False):
         print(f"{total} message(s)")
 
 
+@cli("life comms telegram", name="history")
+def telegram_history_cmd(limit: int = 20, hours: int = 0, chat: str = ""):
+    """Show stored telegram message history"""
+    chat_id = _telegram.resolve_chat_id(chat) if chat else None
+    msgs = _telegram.get_history(chat_id=chat_id, limit=limit, hours=hours or None)
+    if not msgs:
+        print("no telegram messages stored")
+        return
+    for m in reversed(msgs):
+        direction = "→" if m["direction"] == "out" else "←"
+        name = m["peer_name"] or m["peer"]
+        import time
+        ts = time.strftime("%m/%d %H:%M", time.localtime(m["timestamp"]))
+        body = m["body"][:120]
+        print(f"  {ts} {direction} {name}: {body}")
+
+
 @cli("life comms telegram", name="setup")
 def telegram_setup_cmd(token: str):
     """Store Telegram bot token"""

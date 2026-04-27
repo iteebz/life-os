@@ -131,7 +131,8 @@ def _telegram_thread(
                     context = fetch_wake_context()
                     prompt = _build_tg_boot_prompt(body, sender, context)
 
-                response = spawn_claude(prompt)
+                photo = msg.get("photo_path")
+                response = spawn_claude(prompt, photo_path=photo)
                 log(f"[telegram] response ({len(response)} chars)")
                 tg.send(chat_id, response)
 
