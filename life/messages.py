@@ -1,13 +1,14 @@
 """Unified messaging surface across all channels.
 
-life messages                         recent messages, all channels
-life messages <person>                full conversation with person
-life messages <person> --human        only messages FROM you
-life messages <person> --steward      only messages FROM steward/agents
-life messages <person> -s "keyword"   search within conversation
-life messages <person> --since 7d     time filter
-life messages <person> -n 50          last N messages
-life message <person> "text"          send a message (auto-routes channel)
+life messages                             recent messages, all channels
+life messages <person>                    full conversation with person
+life messages <person> --sent             only outbound (steward → person)
+life messages <person> --received         only inbound (person → steward)
+life messages <person> --channel tg       filter by channel (tg, signal, chat)
+life messages <person> -s "keyword"       search within conversation
+life messages <person> --since 7d         time filter
+life messages <person> -n 50             last N messages
+life message <person> "text"               send a message (auto-routes channel)
 """
 
 import re
@@ -22,6 +23,8 @@ from life.comms.messages import telegram as _tg
 from life.core.errors import LifeError, ValidationError
 from life.lib.store import get_db
 
+_CHANNEL_ALIASES = {"tg": "telegram", "tel": "telegram", "sig": "signal"}
+
 
 def _parse_since(since: str) -> int:
     """Parse '7d', '24h', '2w' into a unix timestamp cutoff."""
@@ -31,6 +34,11 @@ def _parse_since(since: str) -> int:
     n, unit = int(m.group(1)), m.group(2)
     seconds = {"h": 3600, "d": 86400, "w": 604800}[unit]
     return int(time.time()) - (n * seconds)
+
+
+def _resolve_channel(raw: str) -> str:
+    """Normalize channel name: tg → telegram, sig → signal."""
+    return _CHANNEL_ALIASES.get(raw.lower(), raw.lower())
 
 
 def _resolve_peer(name: str) -> tuple[str | None, str | None]:
@@ -140,7 +148,7 @@ def _format(msgs: list[dict[str, Any]], context: str = "") -> None:
         else:
             ts = "??:??"
 
-        # channel tag when showing mixed channels
+        # channel tag when showing mixed channels or channel switches
         ch = ""
         if not context or (m["channel"] != last_channel and last_channel):
             ch = f"[{m['channel'][:3]}] "
@@ -163,57 +171,73 @@ def _format(msgs: list[dict[str, Any]], context: str = "") -> None:
 @cli(
     "life messages",
     default=True,
-    flags={"person": [], "limit": ["-n"], "search": ["-s"], "since": ["--since"], "human": ["--human"], "steward": ["--steward"]},
+    flags={
+        "person": [],
+        "limit": ["-n"],
+        "search": ["-s"],
+        "since": ["--since"],
+        "channel": ["-c", "--channel"],
+        "sent": ["--sent"],
+        "received": ["--received"],
+    },
 )
 def messages_cmd(
     person: str = "",
     limit: int = 0,
     since: str = "",
     search: str = "",
-    human: bool = False,
-    steward: bool = False,
+    channel: str = "",
+    sent: bool = False,
+    received: bool = False,
 ):
     """View message history"""
-    if human and steward:
-        raise ValidationError("pick one: --human or --steward")
+    if sent and received:
+        raise ValidationError("pick one: --sent or --received")
 
     direction = None
-    if human:
-        direction = "in"  # messages FROM the human (inbound to steward)
-    elif steward:
-        direction = "out"  # messages FROM steward (outbound)
+    if sent:
+        direction = "out"
+    elif received:
+        direction = "in"
+
+    resolved_channel = _resolve_channel(channel) if channel else None
 
     peer_id = None
-    channel = None
+    peer_channel = None
     context = person
 
     if person:
-        peer_id, channel = _resolve_peer(person)
+        peer_id, peer_channel = _resolve_peer(person)
         if peer_id is None:
             raise ValidationError(f"can't resolve '{person}' — add to people profile or use raw ID")
 
-    if not person and not since and limit == 0:
-        limit = 50  # sensible default for browsing
+    # explicit --channel overrides peer's default channel for filtering
+    filter_channel = resolved_channel or (peer_channel if person else None)
 
-    msgs = _query(peer_id=peer_id, channel=channel, direction=direction, limit=limit, since=since, search=search)
+    if not person and not since and limit == 0:
+        limit = 50
+
+    msgs = _query(peer_id=peer_id, channel=filter_channel, direction=direction, limit=limit, since=since, search=search)
     _format(msgs, context)
 
 
-@cli("life message", default=True)
-def message_send_cmd(person: str, text: str):
+@cli("life message", default=True, flags={"channel": ["-c", "--channel"]})
+def send_cmd(person: str, text: str, channel: str = ""):
     """Send a message (auto-routes telegram or signal)"""
-    peer_id, channel = _resolve_peer(person)
+    peer_id, peer_channel = _resolve_peer(person)
     if peer_id is None:
         raise ValidationError(f"can't resolve '{person}' — add to people profile or use raw ID")
 
-    if channel == "telegram":
+    use_channel = _resolve_channel(channel) if channel else peer_channel
+
+    if use_channel == "telegram":
         success, result = _tg.send(int(peer_id), text)
-    elif channel == "signal":
+    elif use_channel == "signal":
         success, result = _signal.send(peer_id, text)
     else:
-        raise ValidationError(f"unknown channel '{channel}' for {person}")
+        raise ValidationError(f"unknown channel '{use_channel}' for {person}")
 
     if success:
-        print(f"sent → {person} ({channel})")
+        print(f"sent → {person} ({use_channel})")
     else:
         raise LifeError(f"failed: {result}")
