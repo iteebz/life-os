@@ -14,13 +14,16 @@ _CLAUDE_FLAGS: dict[str, str] = {
     # quota — no speculative prefill, extended cache
     "CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION": "false",
     "ENABLE_PROMPT_CACHING_1H": "1",
-    # privacy — zero telemetry, zero phoning home
+    # privacy — zero phoning home
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
     "DISABLE_ERROR_REPORTING": "1",
     "DISABLE_TELEMETRY": "1",
-    # tooling — no self-mutation
+    "CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY": "1",
+    # install — no self-mutation
     "DISABLE_AUTOUPDATER": "1",
     "DISABLE_INSTALLATION_CHECKS": "1",
+    "DISABLE_UPGRADE_COMMAND": "1",
+    "DISABLE_INSTALL_GITHUB_APP_COMMAND": "1",
 }
 
 
