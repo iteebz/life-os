@@ -18,7 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from life.db import init
+from life.store.migrations import init
 from life.lib.store import get_db
 
 INBOX_FILE = Path.home() / ".life" / "steward" / "inbox"
