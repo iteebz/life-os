@@ -16,9 +16,23 @@ from . import add_observation, add_session, delete_observation, get_observations
 @cli("steward")
 def sleep(note: str):
     """Write handover summary for the next steward — what happened, what's open, what's next"""
+    from life.lib.store import get_db
+
     session_id_env = os.environ.get("STEWARD_SESSION_ID")
+    db_id: int | None = None
     if session_id_env:
-        update_session_summary(int(session_id_env), note)
+        try:
+            with get_db() as conn:
+                row = conn.execute(
+                    "SELECT id FROM sessions WHERE claude_session_id = ? ORDER BY id DESC LIMIT 1",
+                    (session_id_env,),
+                ).fetchone()
+            if row:
+                db_id = row[0]
+        except Exception:
+            pass
+    if db_id is not None:
+        update_session_summary(db_id, note)
     else:
         add_session(note)
     print("→ summary logged")
