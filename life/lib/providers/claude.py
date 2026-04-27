@@ -9,7 +9,6 @@ _CLAUDE_FLAGS: dict[str, str] = {
     "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1",
     "CLAUDE_CODE_DISABLE_1M_CONTEXT": "1",
     "DISABLE_AUTO_COMPACT": "1",
-    "DISABLE_COMPACT": "1",
     # quota — no speculative prefill, extended cache
     "CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION": "false",
     "ENABLE_PROMPT_CACHING_1H": "1",
@@ -36,7 +35,7 @@ SPAWN_SETTINGS: dict[str, object] = {
     "feedbackSurveyRate": 0,
     "spinnerTipsEnabled": False,
     "hooks": {
-        "PreToolUse": [{"matcher": "", "hooks": [{"type": "command", "command": "life-hook tool"}]}],
+        "PreToolUse": [{"matcher": "", "hooks": [{"type": "command", "command": "steward-hook tool"}]}],
     },
 }
 
