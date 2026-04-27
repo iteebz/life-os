@@ -9,7 +9,7 @@ from life.lib.format import format_elapsed
 from life.lib.ids import short
 
 
-@cli("steward", flags={"body": []})
+@cli("life", flags={"body": []})
 def improve(
     body: str | None = None,
     log: bool = False,

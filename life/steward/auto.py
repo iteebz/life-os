@@ -50,7 +50,7 @@ CLI errors are yours to fix:
 Invariants:
 - `~/space/` is swarm domain, not yours
 - `life backup` before risk
-- `steward sleep "<what you did>"` before stopping
+- `life sleep "<what you did>"` before stopping
 - commit atomic, then stop
 
 Run exactly one autonomous loop for ~/life. Make concrete progress, then stop."""
@@ -290,7 +290,7 @@ def run_autonomous() -> None:
         raise LifeError("steward gate failed: no real-world task was closed")
 
 
-@cli("steward")
+@cli("life steward")
 def on(
     cycles: int = 1,
     every: int = 0,
@@ -313,7 +313,7 @@ def on(
                 time.sleep(every)
 
 
-@cli("steward")
+@cli("life steward")
 def off() -> None:
     """signal steward to stop after current spawn"""
     _STEWARD_DIR.mkdir(parents=True, exist_ok=True)
@@ -321,7 +321,7 @@ def off() -> None:
     print("[steward] off signal set — will stop after current spawn")
 
 
-@cli("steward", flags={"watch": ["-w", "--watch"]})
+@cli("life steward", flags={"watch": ["-w", "--watch"]})
 def tail(watch: bool = False) -> None:
     """replay last steward spawn; -w to follow live"""
     path = _latest_spawn_file()

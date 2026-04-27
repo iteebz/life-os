@@ -167,7 +167,7 @@ def _launch(
     return rc
 
 
-@cli("steward", flags={"model": ["-m", "--model"], "name": ["-n", "--name"], "opus": ["--opus"], "raw": ["--raw"]})
+@cli("life steward", flags={"model": ["-m", "--model"], "name": ["-n", "--name"], "opus": ["--opus"], "raw": ["--raw"]})
 def chat(model: str | None = None, name: str | None = None, opus: bool = False, raw: bool = False):
     """Start a tracked interactive steward session"""
     if opus:
@@ -191,7 +191,7 @@ def chat(model: str | None = None, name: str | None = None, opus: bool = False, 
     return rc
 
 
-@cli("steward", flags={"ref": [], "model": ["-m", "--model"]})
+@cli("life steward", flags={"ref": [], "model": ["-m", "--model"]})
 def resume(ref: str, model: str | None = None):
     """Resume a session by DB id or session UUID prefix"""
     sessions = get_sessions(limit=20)

@@ -10,21 +10,21 @@ from .messages import signal as signal_module
 from life.core.errors import AmbiguousError, LifeError, NotFoundError, ValidationError
 
 
-@cli("life comms accounts", name="ls")
+@cli("life accounts", name="ls")
 def accounts_list():
     """List all linked accounts"""
     accts = accts_module.list_accounts()
     if not accts:
         print("no accounts linked")
-        print("  link email:  life comms accounts link gmail")
-        print("  link signal: life comms accounts link signal")
+        print("  link email:  life accounts link gmail")
+        print("  link signal: life accounts link signal")
         return
     for a in accts:
         status = "✓" if a["enabled"] else "✗"
         print(f"  {status} {a['provider']:10} {a['email']}")
 
 
-@cli("life comms accounts", name="link")
+@cli("life accounts", name="link")
 def link(provider: str, client_id: str | None = None, client_secret: str | None = None):
     """Link an account: gmail, outlook, signal"""
     if provider == "gmail":
@@ -66,7 +66,7 @@ def link(provider: str, client_id: str | None = None, client_secret: str | None 
         raise ValidationError(f"unknown provider: {provider}. use: gmail, outlook, signal")
 
 
-@cli("life comms accounts", name="unlink")
+@cli("life accounts", name="unlink")
 def unlink(account_id: str):
     """Unlink an account by ID or email"""
     accts = accts_module.list_accounts()

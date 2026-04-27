@@ -36,7 +36,6 @@ def _smart_resume() -> int:
 def main():
     db.init()
     fncli.autodiscover(Path(__file__).parent, "life")
-    fncli.alias_namespace("steward", "life steward")
 
     user_args = sys.argv[1:]
     if not user_args or user_args == ["-v"] or user_args == ["--verbose"]:

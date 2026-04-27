@@ -13,7 +13,7 @@ from life.lib.ids import resolve_prefix, short
 from . import add_observation, add_session, delete_observation, get_observations, update_session_summary
 
 
-@cli("steward")
+@cli("life")
 def sleep(note: str):
     """Write handover summary for the next steward — what happened, what's open, what's next"""
     from life.lib.store import get_db
@@ -38,7 +38,7 @@ def sleep(note: str):
     print("→ summary logged")
 
 
-@cli("steward", flags={"body": [], "tag": ["-t", "--tag"], "about": ["-a", "--about"]})
+@cli("life", flags={"body": [], "tag": ["-t", "--tag"], "about": ["-a", "--about"]})
 def observe(
     body: str | None = None,
     tag: str | None = None,
@@ -68,9 +68,9 @@ def observe(
     print(f"→ {body}{suffix}{about_str}")
 
 
-@cli("steward")
+@cli("life", name="rm-obs")
 def rm(prefix: str, hard: bool = False):
-    """Remove any steward item by UUID prefix — observations or improvements"""
+    """Remove an observation or improvement by UUID prefix"""
     obs = resolve_prefix(prefix, get_observations(limit=200))
     if obs:
         delete_observation(obs.id, hard=hard)

@@ -5,7 +5,7 @@ from fncli import cli
 from life.daemon.inbound import pending_inbox
 
 
-@cli("steward")
+@cli("life")
 def inbox():
     """Check for messages received while steward was idle"""
     content = pending_inbox()

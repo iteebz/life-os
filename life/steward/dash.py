@@ -9,7 +9,7 @@ from life.lib.ids import short
 from . import get_observations, get_sessions
 
 
-@cli("steward")
+@cli("life steward")
 def dash():
     """Steward dashboard — improvements, patterns, observations, sessions"""
     improvements = get_improvements()

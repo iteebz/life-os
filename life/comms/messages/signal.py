@@ -343,7 +343,7 @@ def list_contacts() -> list[dict[str, Any]]:
 # --- CLI commands ---
 
 
-@cli("life comms signal", name="send")
+@cli("life signal", name="send")
 def send_cmd(
     recipient: str,
     message: str,
@@ -359,7 +359,7 @@ def send_cmd(
         raise LifeError(f"failed: {result}")
 
 
-@cli("life comms signal", name="check")
+@cli("life signal", name="check")
 def check(timeout: int = 5):
     """Pull and display recent Signal messages"""
     messages = receive(timeout=timeout)
@@ -371,7 +371,7 @@ def check(timeout: int = 5):
         print(f"{sender}: {msg['body']}")
 
 
-@cli("life comms signal", name="receive")
+@cli("life signal", name="receive")
 def receive_cmd(timeout: int = 5):
     """Receive and store Signal messages"""
     phone = _default_account()
@@ -387,7 +387,7 @@ def receive_cmd(timeout: int = 5):
         print(f"  {sender}: {msg['body']}")
 
 
-@cli("life comms signal", name="inbox")
+@cli("life signal", name="inbox")
 def signal_inbox():
     """Show Signal conversations"""
     phone = _default_account()
@@ -395,7 +395,7 @@ def signal_inbox():
         raise NotFoundError("no Signal account registered")
     conversations = get_conversations(phone)
     if not conversations:
-        print("no conversations — run `life comms signal receive` first")
+        print("no conversations — run `life signal receive` first")
         return
     for c in conversations:
         name = c["sender_name"] or c["sender_phone"]
@@ -404,7 +404,7 @@ def signal_inbox():
         print(f"  {phone_col:16} | {name:20} | {c['message_count']} msgs{unread}")
 
 
-@cli("life comms signal", name="history")
+@cli("life signal", name="history")
 def signal_history(contact: str, limit: int = 20):
     """Show message history with a contact"""
     phone = _default_account()
@@ -421,7 +421,7 @@ def signal_history(contact: str, limit: int = 20):
         print(f"{mid} [{ts}] {sender}: {msg['body']}")
 
 
-@cli("life comms signal", name="reply")
+@cli("life signal", name="reply")
 def reply_cmd(message_id: str, message: str):
     """Reply to a Signal message"""
     phone = _default_account()
@@ -435,7 +435,7 @@ def reply_cmd(message_id: str, message: str):
         raise LifeError(f"failed: {err}")
 
 
-@cli("life comms signal", name="status")
+@cli("life signal", name="status")
 def status():
     """Show registered Signal accounts"""
     accounts = list_accounts()
@@ -446,7 +446,7 @@ def status():
         print(account)
 
 
-@cli("life comms signal", name="contacts")
+@cli("life signal", name="contacts")
 def contacts_cmd():
     """List Signal contacts"""
     phone = _default_account()
@@ -460,7 +460,7 @@ def contacts_cmd():
         print(f"  {c['number']:20} {c.get('name', '')}")
 
 
-@cli("life comms signal", name="groups")
+@cli("life signal", name="groups")
 def groups_cmd():
     """List Signal groups"""
     phone = _default_account()
