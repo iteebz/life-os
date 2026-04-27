@@ -7,7 +7,7 @@
     <string>com.life.daemon</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/iteebz/bin/life</string>
+        <string>/Users/iteebz/.local/bin/life</string>
         <string>daemon</string>
         <string>run</string>
     </array>
@@ -24,7 +24,7 @@
         <key>HOME</key>
         <string>/Users/iteebz</string>
         <key>PATH</key>
-        <string>/Users/iteebz/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <string>/Users/iteebz/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
     </dict>
 </dict>
 </plist>

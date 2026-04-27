@@ -1,25 +1,24 @@
 default:
     @just --list
 
-install: bin
+install:
     @uv sync
+    @uv tool install --force --editable .
     @just hooks
+    @just plist
     @uv run life daemon restart
 
 hooks:
     @git config core.hooksPath .githooks
 
-bin:
+plist:
     #!/bin/sh
     set -e
-    mkdir -p ~/bin
-    REPO=$(pwd)
-    UV=$(which uv)
-    for BIN in life comms steward; do
-        SCRIPT=~/bin/$BIN
-        printf '#!/bin/sh\n# managed by space launch\ncd %s || exit 1\nexec %s run "$(basename "$0")" "$@"\n' "$REPO" "$UV" > "$SCRIPT"
-        chmod 755 "$SCRIPT"
-    done
+    SRC="scripts/com.life.daemon.plist"
+    DST="$HOME/Library/LaunchAgents/com.life.daemon.plist"
+    cp "$SRC" "$DST"
+    launchctl bootout gui/$(id -u) "$DST" 2>/dev/null || true
+    launchctl bootstrap gui/$(id -u) "$DST"
 
 format:
     uv run ruff format . && uv run ruff check --fix . || true
