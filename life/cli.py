@@ -19,8 +19,8 @@ def main():
         from .dash import dashboard  # noqa: PLC0415 — circular: cli→dash→habit→tag→resolve→task→tag
         dashboard()
         return
-    # life steward [--opus] → smart resume: continue if recent, else new chat
-    if user_args[0] == "steward" and (len(user_args) == 1 or (len(user_args) >= 2 and user_args[1] in _STEWARD_CHAT_FLAGS)):
+    # life steward --opus → life steward chat --opus
+    if len(user_args) >= 2 and user_args[0] == "steward" and user_args[1] in _STEWARD_CHAT_FLAGS:
         user_args = ["steward", "chat", *user_args[1:]]
     argv = ["life", *user_args]
     try:
