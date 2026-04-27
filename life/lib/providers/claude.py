@@ -2,8 +2,6 @@
 
 from life.lib.env import Mode, build_base_env
 
-_DEFAULT_MODEL = "claude-sonnet-4-6"
-
 # Claude Code overrides — parity with spacebrr SPAWN_ENV_FLAGS.
 # We own context, memory, and compaction. All modes get the full set.
 _CLAUDE_FLAGS: dict[str, str] = {
@@ -33,17 +31,3 @@ def build_env(spawn_mode: Mode) -> dict[str, str]:
     env = build_base_env(spawn_mode)
     env.update(_CLAUDE_FLAGS)
     return env
-
-
-def build_command(prompt: str, model: str = _DEFAULT_MODEL) -> list[str]:
-    return [
-        "claude",
-        "--print",
-        "--output-format",
-        "stream-json",
-        "--verbose",
-        "--dangerously-skip-permissions",
-        "--model",
-        model,
-        prompt,
-    ]
