@@ -9,11 +9,8 @@ from life.daemon.shared import (
     DAEMON_DIR,
     MAX_TG_SPAWNS_PER_HOUR,
     PEOPLE_DIR,
-    TG_SESSION_MAX_CHARS,
-    TG_SESSION_TIMEOUT,
     log,
 )
-from life.daemon.spawn import fetch_wake_context, spawn_claude
 
 
 def _load_allowed_tg_chats() -> set[int]:
@@ -65,7 +62,7 @@ def _telegram_thread(
 ) -> None:
     from life.comms.messages import telegram as tg
     from life.daemon.commands import handle_command
-    from life.daemon.session import build_reply_prompt
+    from life.daemon.inbound import handle as handle_inbound
 
     allowed = _load_allowed_tg_chats()
     if not allowed:
@@ -73,14 +70,10 @@ def _telegram_thread(
         return
 
     spawn_times: list[float] = []
-    session_history: list[dict[str, str]] = []
-    session_last_time: float = 0.0
-    session_chars: int = 0
 
     log(f"[telegram] started, {len(allowed)} allowed chat(s), polling every {interval}s")
 
     while not stop.is_set():
-        # scheduled session owns the poll loop — back off
         if claimed_chat.is_set():
             stop.wait(2)
             continue
@@ -110,7 +103,7 @@ def _telegram_thread(
                 if body.startswith("/"):
                     cutoff_cmd = time.time() - 3600
                     active_spawns = sum(1 for t in spawn_times if t > cutoff_cmd)
-                    resp = handle_command(body, session_history, session_last_time, session_chars, active_spawns)
+                    resp = handle_command(body, [], 0.0, 0, active_spawns)
                     if resp is not None:
                         tg.send(chat_id, resp)
                         log(f"[telegram] command: {body.split()[0]}")
@@ -125,39 +118,8 @@ def _telegram_thread(
                     continue
 
                 spawn_times.append(now)
-
-                elapsed = now - session_last_time
-                continuing = (
-                    elapsed < TG_SESSION_TIMEOUT
-                    and session_chars < TG_SESSION_MAX_CHARS
-                    and bool(session_history)
-                )
-
-                if continuing:
-                    log(f"[telegram] continuing session ({session_chars} chars, {elapsed:.0f}s ago)")
-                    session_history.append({"role": "user", "text": body})
-                    prompt = build_reply_prompt(session_history, body)
-                else:
-                    log("[telegram] new session — boot context")
-                    session_history = []
-                    session_chars = 0
-                    context = fetch_wake_context()
-                    prompt = _build_tg_boot_prompt(body, sender, context)
-
-                image = msg.get("image_path")
-                response = spawn_claude(prompt, image_path=image)
-                log(f"[telegram] response ({len(response)} chars)")
-                tg.send(chat_id, response)
-
-                if not continuing:
-                    session_history = [
-                        {"role": "user", "text": body},
-                        {"role": "assistant", "text": response},
-                    ]
-                else:
-                    session_history.append({"role": "assistant", "text": response})
-                session_chars = sum(len(e["text"]) for e in session_history)
-                session_last_time = now
+                action = handle_inbound("telegram", sender, body, chat_id=chat_id)
+                log(f"[telegram] inbound → {action}")
 
         except Exception as e:
             log(f"[telegram] poll error: {e}")
