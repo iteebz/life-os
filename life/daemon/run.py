@@ -196,6 +196,12 @@ def run(
     threads.append(sig)
     sig.start()
 
+    reap = threading.Thread(
+        target=_reap_thread, args=(stop,), daemon=True, name="reap"
+    )
+    threads.append(reap)
+    reap.start()
+
     if auto_every > 0:
         auto = threading.Thread(
             target=_auto_thread,

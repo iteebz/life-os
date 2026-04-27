@@ -196,3 +196,79 @@ def pending_inbox() -> str:
     content = INBOX_FILE.read_text().strip()
     _clear_inbox()
     return content
+
+
+def catch_up(chat_id: int) -> str:
+    """Process unread inbound telegram messages on daemon start.
+
+    Queries messages table for inbound telegram messages with read_at IS NULL,
+    batches them into a single steward spawn, marks them read, and replies.
+    Returns action: 'caught_up' or 'nothing'.
+    """
+    try:
+        with get_db() as conn:
+            rows = conn.execute(
+                "SELECT id, peer_name, body, timestamp FROM messages "
+                "WHERE channel = 'telegram' AND direction = 'in' "
+                "AND read_at IS NULL AND peer = ? "
+                "ORDER BY timestamp ASC",
+                (str(chat_id),),
+            ).fetchall()
+    except Exception:
+        return "nothing"
+
+    if not rows:
+        return "nothing"
+
+    msg_ids = [r[0] for r in rows]
+    lines = []
+    for r in rows:
+        ts = time.strftime("%H:%M %b %d", time.localtime(r[3])) if r[3] else "?"
+        lines.append(f"[{ts}] {r[1] or 'unknown'}: {r[2]}")
+
+    batch = "\n".join(lines)
+    context = fetch_wake_context()
+    prompt = (
+        f"You are Steward responding via Telegram after being offline.\n\n"
+        f"Current life state:\n{context}\n\n"
+        f"While you were offline, {len(rows)} message(s) arrived:\n\n{batch}\n\n"
+        f"Respond to what needs a response. Acknowledge what doesn't. "
+        f"Start with 🌱. Short and actionable."
+    )
+
+    log(f"[catch-up] {len(rows)} unread message(s), spawning steward")
+    response = spawn_claude(prompt)
+    tg.send(chat_id, response)
+
+    _mark_read(msg_ids)
+    log(f"[catch-up] responded ({len(response)} chars), marked {len(msg_ids)} read")
+    return "caught_up"
+
+
+def mark_read_for_session(chat_id: int) -> None:
+    """Mark all inbound messages as read for a chat. Called after live handling."""
+    try:
+        with get_db() as conn:
+            conn.execute(
+                "UPDATE messages SET read_at = datetime('now') "
+                "WHERE channel = 'telegram' AND direction = 'in' "
+                "AND read_at IS NULL AND peer = ?",
+                (str(chat_id),),
+            )
+    except Exception:
+        pass
+
+
+def _mark_read(msg_ids: list[str]) -> None:
+    if not msg_ids:
+        return
+    try:
+        with get_db() as conn:
+            placeholders = ",".join("?" for _ in msg_ids)
+            conn.execute(
+                f"UPDATE messages SET read_at = datetime('now') "  # noqa: S608
+                f"WHERE id IN ({placeholders})",
+                msg_ids,
+            )
+    except Exception:
+        pass
