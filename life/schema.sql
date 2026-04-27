@@ -201,7 +201,7 @@ CREATE TABLE messages (
     success     INTEGER,
     error       TEXT,
     read_at     TEXT,
-    photo_path  TEXT,
+    image_path  TEXT,
     timestamp   INTEGER NOT NULL,
     created_at  TEXT DEFAULT (datetime('now'))
 );

@@ -101,14 +101,14 @@ def _query(
     if limit > 0:
         sql = (
             f"SELECT * FROM ("  # noqa: S608
-            f"SELECT id, channel, direction, peer, peer_name, body, timestamp, photo_path "
+            f"SELECT id, channel, direction, peer, peer_name, body, timestamp, image_path "
             f"FROM messages {where} ORDER BY timestamp DESC LIMIT ?"
             f") sub ORDER BY timestamp ASC"
         )
         params.append(limit)
     else:
         sql = (
-            f"SELECT id, channel, direction, peer, peer_name, body, timestamp, photo_path "  # noqa: S608
+            f"SELECT id, channel, direction, peer, peer_name, body, timestamp, image_path "  # noqa: S608
             f"FROM messages {where} ORDER BY timestamp ASC"
         )
 
@@ -124,7 +124,7 @@ def _query(
             "peer_name": r[4],
             "body": r[5],
             "timestamp": r[6],
-            "photo_path": r[7],
+            "image_path": r[7],
         }
         for r in rows
     ]
@@ -160,8 +160,8 @@ def _format(msgs: list[dict[str, Any]], context: str = "") -> None:
             label = m["peer_name"] or m["peer"]
 
         body = m["body"] or ""
-        if m.get("photo_path"):
-            body = f"[photo: {m['photo_path']}]" if not body or body == "[photo]" else f"{body} [photo]"
+        if m.get("image_path"):
+            body = f"[image: {m['image_path']}]" if not body or body == "[photo]" else f"{body} [image]"
 
         print(f"  {ts}  {ch}{label}: {body}")
 

@@ -57,15 +57,15 @@ def _store_message(
     peer_name: str,
     body: str,
     timestamp: int,
-    photo_path: str | None = None,
+    image_path: str | None = None,
 ) -> None:
     try:
         with get_db() as conn:
             conn.execute(
                 "INSERT OR IGNORE INTO messages "
-                "(id, channel, direction, peer, peer_name, body, timestamp, photo_path) "
+                "(id, channel, direction, peer, peer_name, body, timestamp, image_path) "
                 "VALUES (?, 'telegram', ?, ?, ?, ?, ?, ?)",
-                (f"tg-{msg_id}", direction, peer, peer_name, body, timestamp, photo_path),
+                (f"tg-{msg_id}", direction, peer, peer_name, body, timestamp, image_path),
             )
     except Exception:  # noqa: S110
         pass
@@ -124,16 +124,16 @@ async def _sync_chat(
         direction = "out" if is_outgoing else "in"
         body = message.text or message.message or ""
 
-        photo_path = await _download_media(client, message, message.id)
+        image_path = await _download_media(client, message, message.id)
 
-        if not body and not photo_path:
+        if not body and not image_path:
             continue
 
-        if not body and photo_path:
+        if not body and image_path:
             body = "[photo]"
 
         sender_name = "steward" if is_outgoing else peer_name
-        _store_message(message.id, direction, peer_id, sender_name, body, ts, photo_path)
+        _store_message(message.id, direction, peer_id, sender_name, body, ts, image_path)
         count += 1
 
     return count

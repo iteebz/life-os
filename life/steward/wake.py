@@ -293,7 +293,7 @@ def wake():
                 else:
                     rel = f"{ago // 86400}d ago"
                 body = m["body"][:80]
-                photo = " 📷" if m.get("photo_path") else ""
+                photo = " 📷" if m.get("image_path") else ""
                 print(f"  {rel:<10} {direction} {name}: {body}{photo}")
     except Exception:  # noqa: S110
         pass

@@ -105,7 +105,7 @@ def _poll(tok: str, timeout: int) -> list[dict[str, Any]]:
         sender = msg.get("from", {})
         last_name = sender.get("last_name", "")
         body = msg.get("text") or msg.get("caption") or "[photo]"
-        photo_path = _download_photo(msg, tok) if has_photo else None
+        image_path = _download_photo(msg, tok) if has_photo else None
         parsed = {
             "id": msg["message_id"],
             "chat_id": msg["chat"]["id"],
@@ -114,7 +114,7 @@ def _poll(tok: str, timeout: int) -> list[dict[str, Any]]:
                 sender.get("first_name", "") + (" " + last_name if last_name else "")
             ).strip(),
             "body": body,
-            "photo_path": photo_path,
+            "image_path": image_path,
             "timestamp": msg["date"],
         }
         messages.append(parsed)
@@ -170,7 +170,7 @@ def get_history(
     params.append(limit)
     with get_db() as conn:
         rows = conn.execute(
-            f"SELECT id, direction, peer, peer_name, body, timestamp, photo_path "  # noqa: S608
+            f"SELECT id, direction, peer, peer_name, body, timestamp, image_path "  # noqa: S608
             f"FROM messages WHERE {where} ORDER BY timestamp DESC LIMIT ?",
             params,
         ).fetchall()
@@ -182,7 +182,7 @@ def get_history(
             "peer_name": r[3],
             "body": r[4],
             "timestamp": r[5],
-            "photo_path": r[6],
+            "image_path": r[6],
         }
         for r in rows
     ]
@@ -193,7 +193,7 @@ def _store_incoming(msg: dict[str, Any]) -> None:
         with get_db() as conn:
             conn.execute(
                 "INSERT OR IGNORE INTO messages "
-                "(id, channel, direction, peer, peer_name, body, timestamp, photo_path) "
+                "(id, channel, direction, peer, peer_name, body, timestamp, image_path) "
                 "VALUES (?, 'telegram', 'in', ?, ?, ?, ?, ?)",
                 (
                     f"tg-{msg['id']}",
@@ -201,7 +201,7 @@ def _store_incoming(msg: dict[str, Any]) -> None:
                     msg["from_name"],
                     msg["body"],
                     msg["timestamp"],
-                    msg.get("photo_path"),
+                    msg.get("image_path"),
                 ),
             )
     except Exception:  # noqa: S110

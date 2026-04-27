@@ -33,7 +33,7 @@ def fetch_wake_context() -> str:
         return f"(wake context unavailable: {e})"
 
 
-def spawn_claude(prompt: str, timeout: int = 300, photo_path: str | None = None) -> str:
+def spawn_claude(prompt: str, timeout: int = 300, image_path: str | None = None) -> str:
     try:
         claude = _claude_bin()
     except FileNotFoundError as e:
@@ -47,8 +47,8 @@ def spawn_claude(prompt: str, timeout: int = 300, photo_path: str | None = None)
         "--model",
         "claude-sonnet-4-6",
     ]
-    if photo_path:
-        cmd += ["--image", photo_path]
+    if image_path:
+        cmd += ["--image", image_path]
 
     from life.lib.env import build_base_env
 

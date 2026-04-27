@@ -149,8 +149,8 @@ def run_session(
 
             history.append({"role": "user", "text": body})
             prompt = build_reply_prompt(history, body, tone=tone)
-            photo = msg.get("photo_path")
-            reply = spawn_claude(prompt, photo_path=photo)
+            image = msg.get("image_path")
+            reply = spawn_claude(prompt, image_path=image)
             history.append({"role": "assistant", "text": reply})
 
             tg.send(chat_id, reply)
