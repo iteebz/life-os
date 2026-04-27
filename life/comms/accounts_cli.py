@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from fncli import cli
 
+from life.core.errors import AmbiguousError, LifeError, NotFoundError, ValidationError
+
 from . import accounts as accts_module
 from .email import gmail, outlook
 from .messages import signal as signal_module
-from life.core.errors import AmbiguousError, LifeError, NotFoundError, ValidationError
 
 
 @cli("life accounts", name="ls")

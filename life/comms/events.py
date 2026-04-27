@@ -5,6 +5,7 @@ Channel-specific shape lives in payload (json).
 """
 
 import json
+import time
 from collections.abc import Mapping
 
 from life.comms.peers import resolve_or_create
@@ -77,8 +78,6 @@ def record(
     timestamp: int | None = None,
 ) -> int:
     """Record a non-message event (ack, resume, spawn, drop, error). Returns id."""
-    import time
-
     ts = timestamp if timestamp is not None else int(time.time())
     body = json.dumps(payload or {})
     with get_db() as conn:

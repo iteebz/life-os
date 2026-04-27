@@ -5,6 +5,7 @@ import yaml
 
 from life.core.errors import NotFoundError
 from life.core.models import Habit, Task
+from life.habit import find_habit, find_habit_exact
 from life.task import find_task, find_task_any, find_task_exact
 
 __all__ = [
@@ -56,8 +57,6 @@ def resolve_task(ref: str) -> Task:
 
 
 def _find_item(ref: str, find_task_fn) -> tuple[Task | None, Habit | None]:
-    from life.habit import find_habit
-
     task = find_task_fn(ref)
     habit = find_habit(ref) if not task else None
     return task, habit
@@ -80,8 +79,6 @@ def resolve_item_any(ref: str) -> tuple[Task | None, Habit | None]:
 
 
 def resolve_item_exact(ref: str) -> tuple[Task | None, Habit | None]:
-    from life.habit import find_habit_exact
-
     task, habit = _find_item(ref, find_task_exact)
     if not task:
         habit = find_habit_exact(ref)

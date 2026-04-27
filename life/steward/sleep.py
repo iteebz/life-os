@@ -1,3 +1,4 @@
+import contextlib
 import os
 from datetime import date, datetime
 
@@ -9,6 +10,7 @@ from life.lib import ansi
 from life.lib.dates import parse_due_date
 from life.lib.format import format_elapsed
 from life.lib.ids import resolve_prefix, short
+from life.lib.store import get_db
 
 from . import add_observation, close_session, create_session, delete_observation, get_observations
 
@@ -16,8 +18,6 @@ from . import add_observation, close_session, create_session, delete_observation
 @cli("life")
 def sleep(note: str):
     """Write handover summary for the next steward — what happened, what's open, what's next"""
-    from life.lib.store import get_db
-
     db_id_env = os.environ.get("STEWARD_DB_SESSION_ID")
     session_id_env = os.environ.get("STEWARD_SESSION_ID")
     db_id: int | None = None
@@ -25,7 +25,7 @@ def sleep(note: str):
     if db_id_env:
         db_id = int(db_id_env)
     elif session_id_env:
-        try:
+        with contextlib.suppress(Exception):
             with get_db() as conn:
                 row = conn.execute(
                     "SELECT id FROM sessions WHERE claude_session_id = ? ORDER BY id DESC LIMIT 1",
@@ -33,8 +33,6 @@ def sleep(note: str):
                 ).fetchone()
             if row:
                 db_id = row[0]
-        except Exception:
-            pass
 
     if db_id is not None:
         close_session(db_id, summary=note)

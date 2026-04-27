@@ -4,6 +4,7 @@
 55m: hard close if it didn't self-sleep.
 """
 
+import contextlib
 import os
 import shutil
 import signal
@@ -12,7 +13,7 @@ from datetime import datetime
 from pathlib import Path
 
 from life.daemon.shared import IDLE_REAP_SECS, IDLE_WAKE_SECS, log
-from life.steward import Session, close_session, get_sessions
+from life.steward import Session, close_session, get_sessions, set_session_idle
 
 WAKE_MARKER_DIR = Path.home() / ".life"
 LIFE_DIR = Path.home() / "life"
@@ -74,10 +75,8 @@ def _wake_to_sleep(session: Session) -> None:
 def _hard_reap(session: Session) -> None:
     log(f"[reap] hard reap: session {session.id} (pid {session.pid})")
     if session.pid and _pid_alive(session.pid):
-        try:
+        with contextlib.suppress(OSError):
             os.kill(session.pid, signal.SIGTERM)
-        except OSError:
-            pass
     close_session(session.id)
     _wake_marker(session.id).unlink(missing_ok=True)
 
@@ -87,7 +86,6 @@ def sweep() -> None:
     for session in sessions:
         # Clean up sessions with dead pids
         if session.pid and not _pid_alive(session.pid) and session.state == "active":
-            from life.steward import set_session_idle
             set_session_idle(session.id)
             continue
 

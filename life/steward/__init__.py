@@ -265,11 +265,10 @@ def delete_observation(prefix: str, hard: bool = False) -> bool:
         return cursor.rowcount > 0
 
 
-# --- Compat alias (used by close.py add_session fallback) ---
 add_session = create_session
 
 
-from . import auto, chat, close, dash, improve, inbox, log, wake  # noqa: E402
+from . import auto, chat, dash, improve, inbox, log, sleep, wake  # noqa: E402
 
 __all__ = [
     "Observation",
@@ -278,7 +277,6 @@ __all__ = [
     "add_session",
     "auto",
     "chat",
-    "close",
     "close_session",
     "create_session",
     "current_session",
@@ -294,6 +292,7 @@ __all__ = [
     "set_session_active",
     "set_session_idle",
     "set_session_pid",
+    "sleep",
     "touch_session",
     "update_session_claude_id",
     "update_session_followups",

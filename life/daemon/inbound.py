@@ -6,15 +6,19 @@ Routing:
 3. Neither? → spawn fresh session.
 """
 
+import contextlib
 import time
 from pathlib import Path
 
+from life.comms import events
 from life.comms.messages import telegram as tg
+from life.comms.peers import resolve_or_create
 from life.daemon.session import build_reply_prompt, build_tg_boot_prompt, load_history_from_db
 from life.daemon.shared import log
 from life.daemon.spawn import fetch_wake_context, spawn_claude
 from life.lib.clock import is_quiet_now
 from life.lib.store import get_db
+from life.steward import create_session, current_session, hookable_session, set_session_idle, touch_session
 
 INBOX_FILE = Path.home() / ".life" / "steward" / "inbox"
 
@@ -37,9 +41,6 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> 
     address = str(chat_id) if channel == "telegram" and chat_id is not None else sender
 
     def _emit(action: str, error: str | None = None, session_id: int | None = None) -> None:
-        from life.comms import events
-        from life.comms.peers import resolve_or_create
-
         try:
             peer_id = resolve_or_create(channel, address, sender)
             ref_id = _latest_inbound_event(channel, address)
@@ -67,16 +68,8 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> 
         _emit("queued", error="quiet_hours")
         return "queued"
 
-    from life.steward import (
-        create_session as _create_session,
-        current_session as _current_session,
-        hookable_session as _hookable_session,
-        set_session_idle as _set_session_idle,
-        touch_session as _touch_session,
-    )
-
     # 1. Hookable session (cli window open)?
-    hooked = _hookable_session()
+    hooked = hookable_session()
     if hooked:
         _write_inbox(channel, sender, body)
         log(f"[inbound] notified hookable session {hooked.id}")
@@ -84,13 +77,13 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> 
         return "notified"
 
     # 2. Resumable session?
-    current = _current_session()
+    current = current_session()
     if current and current.claude_session_id and channel == "telegram" and chat_id is not None:
         log(f"[inbound] resuming session {current.id} ({current.claude_session_id[:8]})")
-        _touch_session(current.id)
+        touch_session(current.id)
         response = spawn_claude(body, resume_session_id=current.claude_session_id)
         tg.send(chat_id, response)
-        _set_session_idle(current.id)
+        set_session_idle(current.id)
         _emit("resumed", session_id=current.id)
         return "resumed"
 
@@ -103,14 +96,14 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> 
             context = fetch_wake_context()
             prompt = build_tg_boot_prompt(body, sender, context)
 
-        db_sid = _create_session(
+        db_sid = create_session(
             summary=f"(tg) {sender}",
             source="tg",
             name=f"tg {sender}",
         )
         response = spawn_claude(prompt)
         tg.send(chat_id, response)
-        _set_session_idle(db_sid)
+        set_session_idle(db_sid)
         log(f"[inbound] new session {db_sid}, responded ({len(response)} chars)")
         _emit("responded", session_id=db_sid)
         return "responded"
@@ -178,9 +171,7 @@ def catch_up(chat_id: int) -> str:
         f"Start with 🌱. Short and actionable."
     )
 
-    from life.steward import create_session as _cs, set_session_idle as _ssi
-
-    sid = _cs(
+    sid = create_session(
         summary=f"(catch-up) {len(rows)} msgs",
         source="daemon",
         name="catch-up",
@@ -188,7 +179,7 @@ def catch_up(chat_id: int) -> str:
     log(f"[catch-up] {len(rows)} unread message(s), session {sid}")
     response = spawn_claude(prompt)
     tg.send(chat_id, response)
-    _ssi(sid)
+    set_session_idle(sid)
 
     _mark_read(msg_ids)
     log(f"[catch-up] responded ({len(response)} chars), marked {len(msg_ids)} read")
@@ -196,33 +187,27 @@ def catch_up(chat_id: int) -> str:
 
 
 def mark_read_for_session(chat_id: int) -> None:
-    try:
-        with get_db() as conn:
-            conn.execute(
-                "UPDATE events SET payload = json_set(payload, '$.read_at', datetime('now')) "
-                "WHERE kind = 'inbound' AND channel = 'telegram' "
-                "AND json_extract(payload, '$.read_at') IS NULL "
-                "AND peer_id IN ("
-                "  SELECT pa.peer_id FROM peer_addresses pa "
-                "  WHERE pa.channel = 'telegram' AND pa.address = ?"
-                ")",
-                (str(chat_id),),
-            )
-    except Exception:
-        pass
+    with contextlib.suppress(Exception), get_db() as conn:
+        conn.execute(
+            "UPDATE events SET payload = json_set(payload, '$.read_at', datetime('now')) "
+            "WHERE kind = 'inbound' AND channel = 'telegram' "
+            "AND json_extract(payload, '$.read_at') IS NULL "
+            "AND peer_id IN ("
+            "  SELECT pa.peer_id FROM peer_addresses pa "
+            "  WHERE pa.channel = 'telegram' AND pa.address = ?"
+            ")",
+            (str(chat_id),),
+        )
 
 
 def _mark_read(msg_ids: list[str]) -> None:
     if not msg_ids:
         return
-    try:
-        with get_db() as conn:
-            placeholders = ",".join("?" for _ in msg_ids)
-            conn.execute(
-                f"UPDATE events SET payload = json_set(payload, '$.read_at', datetime('now')) "  # noqa: S608
-                f"WHERE kind = 'inbound' "
-                f"AND json_extract(payload, '$.raw_id') IN ({placeholders})",
-                msg_ids,
-            )
-    except Exception:
-        pass
+    with contextlib.suppress(Exception), get_db() as conn:
+        placeholders = ",".join("?" for _ in msg_ids)
+        conn.execute(
+            f"UPDATE events SET payload = json_set(payload, '$.read_at', datetime('now')) "  # noqa: S608
+            f"WHERE kind = 'inbound' "
+            f"AND json_extract(payload, '$.raw_id') IN ({placeholders})",
+            msg_ids,
+        )

@@ -186,8 +186,7 @@ def chat(model: str | None = None, name: str | None = None, opus: bool = False, 
     )
 
     print(f"session {db_id} → {session_id[:8]}  model={model}  source={source}{'  raw' if raw else ''}")
-    rc = _launch(model, session_id, name=label, source=source, db_session_id=db_id, raw=raw)
-    return rc
+    return _launch(model, session_id, name=label, source=source, db_session_id=db_id, raw=raw)
 
 
 @cli("life steward", flags={"ref": [], "model": ["-m", "--model"]})

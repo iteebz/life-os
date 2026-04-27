@@ -22,6 +22,7 @@ from life.lib.dates import list_dates
 from life.lib.format import format_elapsed
 from life.lib.ids import short
 from life.mood import get_recent_moods
+from life.steward import get_observations, get_sessions
 from life.task import get_all_tasks, get_tasks
 
 from .fragments import STEWARD_BIRTHDAY
@@ -38,8 +39,7 @@ def render_steward_tasks() -> str:
     if not tasks:
         return ""
     lines = ["STEWARD TASKS:"]
-    for t in tasks:
-        lines.append(f"  · {t.content}")
+    lines.extend(f"  · {t.content}" for t in tasks)
     return "\n".join(lines)
 
 
@@ -54,7 +54,6 @@ def render_feedback() -> str:
 
 
 def render_last_session() -> str:
-    from life.steward import get_sessions
     sessions = get_sessions(limit=1)
     if not sessions:
         return ""
@@ -90,7 +89,6 @@ def render_contracts() -> str:
 
 
 def render_observations() -> str:
-    from life.steward import get_observations
     now = datetime.now()
     today_d = date.today()
     recent = get_observations(limit=40)
@@ -160,8 +158,7 @@ def render_improvements() -> str:
     if not items:
         return ""
     out = ["IMPROVEMENTS:"]
-    for i in items[:5]:
-        out.append(f"  [{short('i', i.id)}] {i.body}")
+    out.extend(f"  [{short('i', i.id)}] {i.body}" for i in items[:5])
     return "\n".join(out)
 
 
@@ -268,7 +265,7 @@ def render_comms() -> str:
         parts = [f"{total_inbox} in inbox"]
         if drafts:
             parts.append(f"{len(drafts)} draft{'s' if len(drafts) != 1 else ''} pending")
-        out = [f"COMMS: {', '.join(parts)}"] + flagged_lines
+        out = [f"COMMS: {', '.join(parts)}", *flagged_lines]
         return "\n".join(out)
     except Exception as e:
         if os.environ.get("LIFE_DEBUG"):
@@ -306,8 +303,8 @@ def render_telegram() -> str:
 
 
 def render_inbox() -> str:
-    from life.daemon.inbound import pending_inbox
     try:
+        from life.daemon.inbound import pending_inbox  # noqa: PLC0415, I001 — cycle: ctx.sections→daemon.inbound→daemon.session→daemon.spawn→ctx.assemble
         inbox = pending_inbox()
         return f"INBOX:\n{inbox}" if inbox else ""
     except Exception:
@@ -315,7 +312,6 @@ def render_inbox() -> str:
 
 
 def render_xmit() -> str:
-    import subprocess
     try:
         result = subprocess.run(["xmit", "recv"], capture_output=True, text=True, timeout=5)
         out = result.stdout.strip()

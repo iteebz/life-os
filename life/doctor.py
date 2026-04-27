@@ -67,7 +67,7 @@ def doctor() -> int:
                     _fail(f"{event} unset")
                     failures += 1
                     continue
-                rc = subprocess.run(
+                rc = subprocess.run(  # noqa: S602 — executing user-configured hook command
                     cmd, shell=True, input="{}", capture_output=True, text=True, timeout=15
                 ).returncode
                 (_ok if rc == 0 else _fail)(f"{event}: {cmd} (rc={rc})")

@@ -7,6 +7,7 @@ from typing import Any
 import keyring
 import requests
 
+from life.comms import events
 from life.lib.resolve import resolve_people_field
 from life.lib.store import get_db
 
@@ -57,9 +58,7 @@ def send(chat_id: int, message: str, token: str | None = None) -> tuple[bool, st
 
 
 def _store_outgoing(chat_id: int, body: str, message_id: int, ts: int) -> None:
-    from life.comms import events
-
-    try:
+    with contextlib.suppress(Exception):
         events.record_message(
             channel="telegram",
             address=str(chat_id),
@@ -71,8 +70,6 @@ def _store_outgoing(chat_id: int, body: str, message_id: int, ts: int) -> None:
             success=1,
             sent_by="steward",
         )
-    except Exception:  # noqa: S110
-        pass
 
 
 def poll(timeout: int = 5, token: str | None = None) -> list[dict[str, Any]]:
@@ -195,9 +192,7 @@ def get_history(
 
 
 def _store_incoming(msg: dict[str, Any]) -> None:
-    from life.comms import events
-
-    try:
+    with contextlib.suppress(Exception):
         events.record_message(
             channel="telegram",
             address=str(msg["chat_id"]),
@@ -209,8 +204,6 @@ def _store_incoming(msg: dict[str, Any]) -> None:
             image_path=msg.get("image_path"),
             sent_by=msg["from_name"],
         )
-    except Exception:  # noqa: S110
-        pass
 
 
 def _last_update_id() -> int:

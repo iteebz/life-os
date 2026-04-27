@@ -5,11 +5,10 @@ from datetime import date, datetime, timedelta
 
 from life.core.models import Habit, Task, TaskMutation, Weekly
 from life.habit import get_subhabits
-from life.task import task_sort_key
-
 from life.lib import clock
 from life.lib.ansi import POOL, bold, dim, gold, gray, green, purple, red, theme, white
 from life.lib.dates import upcoming_dates
+from life.task import task_sort_key
 
 __all__ = [
     "render_dashboard",

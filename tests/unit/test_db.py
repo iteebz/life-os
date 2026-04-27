@@ -6,10 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from life.store.migrations import init as db_init
 from life.core.errors import StoreIntegrityError
 from life.core.models import Habit, Task, TaskMutation
 from life.lib.store import get_db
+from life.store.migrations import init as db_init
 
 
 def test_init_creates_schema(tmp_life_dir):
@@ -111,7 +111,10 @@ def test_no_phantom_table_references():
     conn.executescript(schema_sql)
 
     tables_in_schema = {
-        r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+        r[0]
+        for r in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type IN ('table', 'view')"
+        ).fetchall()
     }
     conn.close()
 

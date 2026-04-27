@@ -9,6 +9,7 @@ from typing import Any
 import qrcode
 from fncli import cli
 
+from life.comms import events
 from life.core.errors import LifeError, NotFoundError
 from life.lib.resolve import resolve_people_field
 from life.lib.store import get_db
@@ -128,8 +129,6 @@ def _track_outbound(
     group_id: str | None = None,
     success: bool = True,
 ) -> None:
-    from life.comms import events
-
     ts = int(datetime.now().timestamp() * 1000)
     msg_id = f"sig-out-{ts}-{peer[-4:] if len(peer) >= 4 else peer}"
     try:
@@ -149,8 +148,6 @@ def _track_outbound(
 
 
 def _store_messages(phone: str, messages: list[dict[str, Any]]) -> int:
-    from life.comms import events
-
     stored = 0
     for msg in messages:
         try:

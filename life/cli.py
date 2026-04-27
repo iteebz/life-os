@@ -1,3 +1,4 @@
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -5,6 +6,8 @@ from pathlib import Path
 import fncli
 
 from .core.errors import LifeError
+from .steward import get_sessions
+from .steward.chat import DEFAULT_MODEL, _launch, chat
 from .store import migrations as db
 
 _STEWARD_CHAT_FLAGS = {"--opus", "-m", "--model", "-n", "--name", "--raw"}
@@ -12,9 +15,6 @@ _RESUME_WINDOW_SECONDS = 3600
 
 
 def _smart_resume() -> int:
-    from .steward import get_sessions
-    from .steward.chat import DEFAULT_MODEL, _launch, chat
-
     sessions = get_sessions(limit=5)
     resumable = [s for s in sessions if s.claude_session_id and s.state in ("active", "idle")]
 
@@ -22,9 +22,8 @@ def _smart_resume() -> int:
         target = resumable[0]
         last_touch = target.last_active_at or target.started_at or target.logged_at
         if (datetime.now() - last_touch).total_seconds() < _RESUME_WINDOW_SECONDS:
-            import os
             sid = target.claude_session_id
-            assert sid is not None
+            assert sid is not None  # noqa: S101 — guaranteed by resumable filter
             m = target.model or DEFAULT_MODEL
             source = os.environ.get("STEWARD_SOURCE", "cli")
             print(f"resuming {target.id} → {sid[:8]}  model={m}  source={source}")

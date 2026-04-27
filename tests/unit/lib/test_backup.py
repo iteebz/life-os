@@ -1,7 +1,7 @@
 import sqlite3
 
-from life.core import config
 from life.backup import _is_snapshot_dir, _validate_backup, run_backup, run_prune
+from life.core import config
 from life.task import add_task
 
 

@@ -7,6 +7,7 @@ Session persists at ~/.life/telegram/user.session.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +15,7 @@ import keyring
 from telethon import TelegramClient
 from telethon.tl.types import MessageMediaPhoto, User
 
+from life.comms import events
 from life.lib.store import get_db
 
 SESSION_DIR = Path.home() / ".life" / "telegram"
@@ -61,9 +63,7 @@ def _store_message(
     timestamp: int,
     image_path: str | None = None,
 ) -> None:
-    from life.comms import events
-
-    try:
+    with contextlib.suppress(Exception):
         events.record_message(
             channel="telegram",
             address=peer,
@@ -75,8 +75,6 @@ def _store_message(
             image_path=image_path,
             sent_by="steward" if direction == "out" else peer_name,
         )
-    except Exception:  # noqa: S110
-        pass
 
 
 async def _download_media(client: Any, message: Any, msg_id: int) -> str | None:

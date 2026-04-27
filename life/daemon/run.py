@@ -11,9 +11,11 @@ from life.comms import accounts as accts_module
 from life.comms.messages import signal as signal_adapter
 from life.comms.messages import telegram as tg
 from life.daemon.commands import handle_command
-from life.daemon.inbound import catch_up, handle as handle_inbound, mark_read_for_session
+from life.daemon.inbound import catch_up, mark_read_for_session
+from life.daemon.inbound import handle as handle_inbound
 from life.daemon.morning import morning_thread
 from life.daemon.reap import sweep as reap_sweep
+from life.daemon.session import get_tyson_chat_id
 from life.daemon.shared import (
     DAEMON_DIR,
     MAX_TG_SPAWNS_PER_HOUR,
@@ -89,7 +91,7 @@ def _telegram_thread(
                         resp = handle_command(body, [], 0.0, 0)
                         if resp is not None:
                             tg.send(chat_id, resp)
-                            log(f"[telegram] command: {body.split()[0]}")
+                            log(f"[telegram] command: {body.split(maxsplit=1)[0]}")
                     else:
                         remaining.append(msg)
 
@@ -197,8 +199,6 @@ def run(
     threads: list[threading.Thread] = []
 
     # Catch up on unread messages in a background thread — never block startup.
-    from life.daemon.session import get_tyson_chat_id
-
     def _catchup_thread() -> None:
         tyson_chat = get_tyson_chat_id()
         if not tyson_chat or is_quiet_now():

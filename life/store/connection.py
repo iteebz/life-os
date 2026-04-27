@@ -18,6 +18,7 @@ from typing import Any, ClassVar, Literal, Protocol, get_args, get_origin
 
 from life.core.errors import StoreError, StoreIntegrityError
 from life.core.types import Conn
+from life.store.migrations import _apply_migrations
 from life.store.sqlite import connect
 
 logger = logging.getLogger(__name__)
@@ -187,8 +188,6 @@ def ensure() -> _ConnContext:
 
     migrations_loaded = _get_migrations_loaded()
     if cache_key not in migrations_loaded:
-        from life.store.migrations import _apply_migrations
-
         conn_raw = connect(db_path)
         try:
             _apply_migrations(conn_raw, db_path)

@@ -6,20 +6,22 @@ so steward stays oriented mid-flight without polling.
 Entry point: life hook tool (reads claude tool-call JSON from stdin).
 """
 
+import contextlib
 import json
 import os
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from life.comms import events
 from life.daemon.inbound import pending_inbox
-from life.store.migrations import init
 from life.habit import get_habits
 from life.lib.clock import today
 from life.lib.store import get_db
 from life.mood import get_recent_moods
+from life.store.migrations import init
 from life.task import get_tasks
 
 # Hook state file — throttle map persisted per session.
@@ -176,14 +178,12 @@ WRAP_THRESHOLD_SECONDS = 3300    # 55m
 
 
 def _log_turn(direction: str, body: str, session_id: str) -> None:
-    from life.comms import events
-
     if len(body) > 10000:
         body = body[:10000] + f"\n... [{len(body) - 10000} chars truncated]"
     ts = int(time.time())
     msg_id = f"chat-{session_id[:8]}-{ts}-{direction}"
     peer_name = "tyson" if direction == "in" else "steward"
-    try:
+    with contextlib.suppress(Exception):
         events.record_message(
             channel="chat",
             address=session_id,
@@ -194,12 +194,10 @@ def _log_turn(direction: str, body: str, session_id: str) -> None:
             peer_name=peer_name,
             sent_by=peer_name,
         )
-    except Exception:
-        pass
 
 
 def _surface_session_meta(session_id: str) -> None:
-    try:
+    with contextlib.suppress(Exception):
         with get_db() as conn:
             row = conn.execute(
                 "SELECT id, logged_at FROM sessions WHERE claude_session_id = ?",
@@ -214,8 +212,8 @@ def _surface_session_meta(session_id: str) -> None:
                 (str(db_id),),
             ).fetchone()
             chars = char_row[0] if char_row else 0
-        started = datetime.fromisoformat(logged_at).replace(tzinfo=timezone.utc)
-        age = int((datetime.now(timezone.utc) - started).total_seconds())
+        started = datetime.fromisoformat(logged_at).replace(tzinfo=UTC)
+        age = int((datetime.now(UTC) - started).total_seconds())
         age_str = f"{age // 60}m" if age >= 60 else f"{age}s"
         nudge = ""
         if chars >= SLEEP_THRESHOLD_CHARS:
@@ -226,8 +224,6 @@ def _surface_session_meta(session_id: str) -> None:
             nudge = "\nsession is long: consider closing soon."
         if nudge or chars > 50_000:
             print(f"\n<session-meta>session: {age_str} elapsed, {chars} chars logged{nudge}\n</session-meta>")
-    except Exception:
-        pass
 
 
 def _surface_inbox() -> None:

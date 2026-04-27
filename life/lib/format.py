@@ -1,5 +1,5 @@
 import sys
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 from . import ansi
 
@@ -21,11 +21,11 @@ def format_elapsed(dt: datetime, now: datetime | None = None) -> str:
     DB timestamps are naive UTC. Normalize both sides to UTC-aware before subtracting.
     """
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+        dt = dt.replace(tzinfo=UTC)
     if now is None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
     elif now.tzinfo is None:
-        now = now.astimezone(timezone.utc)
+        now = now.astimezone(UTC)
     s = int((now - dt).total_seconds())
     if s < 60:
         return f"{s}s ago"
