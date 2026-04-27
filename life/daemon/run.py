@@ -11,7 +11,7 @@ from life.comms import accounts as accts_module
 from life.comms.messages import signal as signal_adapter
 from life.comms.messages import telegram as tg
 from life.daemon.commands import handle_command
-from life.daemon.inbound import handle as handle_inbound
+from life.daemon.inbound import catch_up, handle as handle_inbound, mark_read_for_session
 from life.daemon.morning import morning_thread
 from life.daemon.reap import sweep as reap_sweep
 from life.daemon.shared import (
@@ -98,6 +98,8 @@ def _telegram_thread(
 
                 spawn_times.append(now)
                 action = handle_inbound("telegram", sender, body, chat_id=chat_id)
+                if action in ("responded", "resumed"):
+                    mark_read_for_session(chat_id)
                 log(f"[telegram] inbound → {action}")
 
         except Exception as e:
@@ -175,6 +177,18 @@ def run(
 
     signal.signal(signal.SIGTERM, handle_signal)
     signal.signal(signal.SIGINT, handle_signal)
+
+    # Catch up on unread messages before starting poll threads
+    from life.daemon.session import get_tyson_chat_id
+
+    tyson_chat = get_tyson_chat_id()
+    if tyson_chat and not is_quiet_now():
+        try:
+            action = catch_up(tyson_chat)
+            if action == "caught_up":
+                log("[startup] caught up on unread messages")
+        except Exception as e:
+            log(f"[startup] catch-up failed: {e}")
 
     threads: list[threading.Thread] = []
 

@@ -175,6 +175,8 @@ def run_session(
             log(f"[{label}] responded ({len(reply)} chars)")
 
     claimed_chat.clear()
+    from life.daemon.inbound import mark_read_for_session
+    mark_read_for_session(chat_id)
     log_session(label, history)
     log(f"[{label}] session ended")
 
