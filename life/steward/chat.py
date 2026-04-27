@@ -72,8 +72,11 @@ def _ensure_hooks_config() -> None:
             existing = json.loads(settings_path.read_text())
 
     project = str(LIFE_DIR / "life-os")
-    runner = f"uv run --project {project} life-hook"
+    runner = f"uv run --project {project} steward-hook"
     desired_hooks = {
+        "PreToolUse": [
+            {"matcher": "", "hooks": [{"type": "command", "command": f"{runner} tool"}]}
+        ],
         "UserPromptSubmit": [
             {"matcher": "", "hooks": [{"type": "command", "command": f"{runner} prompt"}]}
         ],
