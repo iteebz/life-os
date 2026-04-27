@@ -45,11 +45,10 @@ identity survives and instructions get trimmed. steward needs this.
 spacebrr enforces 2kb on agent memory files. forces curation, prevents bloat.
 steward/memory.md has no size discipline. will degrade over time.
 
-### hook watermarking (steal from spacebrr)
-hook.py has the scaffold (state path, load/save) but per-signal dedup and throttle
-patterns aren't wired. spacebrr's hook fires each signal exactly once or at throttled
-intervals via watermark timestamps. life needs same — otherwise steward gets
-duplicate context injections.
+### hook watermarking (mostly done)
+hook.py has watermark-based throttling wired for all five signals (inbox, messages,
+habits, mood, tasks). remaining gap: no tool-name routing (all signals fire on every
+tool call) and no per-signal error isolation. see `docs/hooks.md`.
 
 ## what life-os does NOT need
 
@@ -67,10 +66,10 @@ duplicate context injections.
 | cli.py | fncli entry point, dashboard fallback |
 | config.py | ~/.life/ paths, yaml config singleton |
 | core/ | errors, models, types |
-| daemon/ | launchd daemon: run, spawn, session, morning/nightly, inbound |
+| daemon/ | launchd daemon: run, spawn, session, morning/nightly, inbound. see `docs/daemon.md` |
 | steward/ | agent logic: auto, chat, wake, improve, inbox, log, close |
 | store/ | sqlite persistence: connection, query |
-| hook.py | PreToolUse context injection |
+| hook.py | PreToolUse context injection. see `docs/hooks.md` |
 | comms/ | email, telegram, contacts, messaging |
 | task/ | task domain |
 | lib/ | ansi, clock, dates, format, fuzzy, ids, parsing, providers, resolve |
