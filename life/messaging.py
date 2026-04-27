@@ -85,6 +85,23 @@ def receive_cmd(timeout: int = 5, signal: bool = False, telegram: bool = False):
         print(f"{total} message(s)")
 
 
+@cli("life comms telegram", name="auth")
+def telegram_auth_cmd(api_id: int, api_hash: str):
+    """Store Telegram user API credentials (from my.telegram.org)"""
+    from .comms.messages.telegram_sync import save_credentials
+    save_credentials(api_id, api_hash)
+    print(f"saved — api_id={api_id}. run: life comms telegram sync <chat> to pull history")
+
+
+@cli("life comms telegram", name="sync", flags={"limit": ["-n"], "full": ["--full"]})
+def telegram_sync_cmd(chat: str, limit: int = 0, full: bool = False):
+    """Sync telegram chat history into messages DB"""
+    from .comms.messages.telegram_sync import sync
+    chat_ref: str | int = int(chat) if chat.lstrip("-").isdigit() else chat
+    n = sync(chat_ref, limit=limit or None, full=full)
+    print(f"synced {n} messages from {chat}")
+
+
 @cli("life comms telegram", name="history")
 def telegram_history_cmd(limit: int = 20, hours: int = 0, chat: str = ""):
     """Show stored telegram message history"""
