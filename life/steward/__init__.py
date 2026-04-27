@@ -159,6 +159,14 @@ def get_sessions(limit: int = 10, state: str | None = None) -> list[Session]:
     return [_row_to_session(row) for row in rows]
 
 
+def update_session_claude_id(session_id: int, claude_session_id: str) -> None:
+    with get_db() as conn:
+        conn.execute(
+            "UPDATE sessions SET claude_session_id = ? WHERE id = ?",
+            (claude_session_id, session_id),
+        )
+
+
 def update_session_summary(session_id: int, summary: str) -> None:
     with get_db() as conn:
         conn.execute("UPDATE sessions SET summary = ? WHERE id = ?", (summary, session_id))
@@ -287,6 +295,7 @@ __all__ = [
     "set_session_idle",
     "set_session_pid",
     "touch_session",
+    "update_session_claude_id",
     "update_session_followups",
     "update_session_summary",
     "wake",

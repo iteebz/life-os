@@ -88,8 +88,8 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> 
     if current and current.claude_session_id and channel == "telegram" and chat_id is not None:
         log(f"[inbound] resuming session {current.id} ({current.claude_session_id[:8]})")
         _touch_session(current.id)
-        response = spawn_claude(body, resume_session_id=current.claude_session_id)
-        tg.send(chat_id, response)
+        result = spawn_claude(body, resume_session_id=current.claude_session_id)
+        tg.send(chat_id, result.text)
         _set_session_idle(current.id)
         _emit("resumed", session_id=current.id)
         return "resumed"
@@ -103,16 +103,19 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> 
             context = fetch_wake_context()
             prompt = build_tg_boot_prompt(body, sender, context)
 
-        session_id = _create_session(
+        db_sid = _create_session(
             summary=f"(tg) {sender}",
             source="tg",
             name=f"tg {sender}",
         )
-        response = spawn_claude(prompt)
-        tg.send(chat_id, response)
-        _set_session_idle(session_id)
-        log(f"[inbound] new session {session_id}, responded ({len(response)} chars)")
-        _emit("responded", session_id=session_id)
+        result = spawn_claude(prompt)
+        tg.send(chat_id, result.text)
+        if result.session_id:
+            from life.steward import update_session_claude_id
+            update_session_claude_id(db_sid, result.session_id)
+        _set_session_idle(db_sid)
+        log(f"[inbound] new session {db_sid}, responded ({len(result.text)} chars)")
+        _emit("responded", session_id=db_sid)
         return "responded"
 
     _write_inbox(channel, sender, body)
@@ -178,7 +181,7 @@ def catch_up(chat_id: int) -> str:
         f"Start with 🌱. Short and actionable."
     )
 
-    from life.steward import create_session as _cs, set_session_idle as _ssi
+    from life.steward import create_session as _cs, set_session_idle as _ssi, update_session_claude_id as _usci
 
     sid = _cs(
         summary=f"(catch-up) {len(rows)} msgs",
@@ -186,12 +189,14 @@ def catch_up(chat_id: int) -> str:
         name="catch-up",
     )
     log(f"[catch-up] {len(rows)} unread message(s), session {sid}")
-    response = spawn_claude(prompt)
-    tg.send(chat_id, response)
+    result = spawn_claude(prompt)
+    tg.send(chat_id, result.text)
+    if result.session_id:
+        _usci(sid, result.session_id)
     _ssi(sid)
 
     _mark_read(msg_ids)
-    log(f"[catch-up] responded ({len(response)} chars), marked {len(msg_ids)} read")
+    log(f"[catch-up] responded ({len(result.text)} chars), marked {len(msg_ids)} read")
     return "caught_up"
 
 
