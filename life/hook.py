@@ -148,6 +148,15 @@ def _check_inbox(parts: list[str]) -> None:
         parts.append(f"new messages received:\n{content}")
 
 
+def _check_inbox(parts: list[str]) -> None:
+    """Drain the inbox file — messages queued while steward was busy."""
+    from life.daemon.inbound import pending_inbox
+
+    content = pending_inbox()
+    if content:
+        parts.append(f"inbox (queued messages):\n{content}")
+
+
 def _active_tasks(state: dict[str, str], parts: list[str]) -> None:
     """Inject open tasks."""
     if _throttled(state, "tasks_at", 60):

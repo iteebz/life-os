@@ -1,10 +1,17 @@
 """Shared Claude spawning for daemon threads."""
 
+import json
 import shutil
 import subprocess
 from pathlib import Path
 
 MAX_RESPONSE_LEN = 4000
+
+_HOOK_SETTINGS = {
+    "hooks": {
+        "PreToolUse": [{"matcher": "", "hooks": [{"type": "command", "command": "life-hook tool"}]}],
+    },
+}
 
 
 def _claude_bin() -> str:
@@ -46,6 +53,8 @@ def spawn_claude(prompt: str, timeout: int = 300, image_path: str | None = None)
         "--dangerously-skip-permissions",
         "--model",
         "claude-sonnet-4-6",
+        "--settings",
+        json.dumps(_HOOK_SETTINGS),
     ]
     if image_path:
         cmd += ["--image", image_path]
