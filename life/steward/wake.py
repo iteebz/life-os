@@ -261,6 +261,29 @@ def wake():
         if os.environ.get("LIFE_DEBUG"):
             print(f"\nCOMMS: boot error — {e}")
 
+    try:
+        from life.comms.messages.telegram import get_history
+
+        recent_tg = get_history(limit=10, hours=24)
+        if recent_tg:
+            print("\nTELEGRAM (24h):")
+            for m in reversed(recent_tg):
+                direction = "→" if m["direction"] == "out" else "←"
+                name = m["peer_name"] or m["peer"]
+                ts_val = m["timestamp"]
+                ago = int(time.time() - ts_val)
+                if ago < 3600:
+                    rel = f"{ago // 60}m ago"
+                elif ago < 86400:
+                    rel = f"{ago // 3600}h ago"
+                else:
+                    rel = f"{ago // 86400}d ago"
+                body = m["body"][:80]
+                photo = " 📷" if m.get("photo_path") else ""
+                print(f"  {rel:<10} {direction} {name}: {body}{photo}")
+    except Exception:
+        pass
+
 
 def main():
     import sys
