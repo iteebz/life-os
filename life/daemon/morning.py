@@ -1,9 +1,10 @@
-"""Morning steward brief — single daily Telegram touchpoint.
+"""Morning + nightly steward sessions via Telegram.
 
-Fires once at 8am. If Tyson replies before 8pm, steward responds.
-No nightly session. No standalone nudges. Everything in one place.
+Morning: fires once at 8am unconditionally.
+Nightly: fires once at 9pm ONLY if tyson was active today (sent a telegram message).
 """
 
+import time
 import threading
 from datetime import datetime
 
@@ -12,7 +13,7 @@ from life.daemon.shared import log
 from life.daemon.spawn import fetch_wake_context
 
 MORNING_HOUR = 8
-CUTOFF_HOUR = 20  # replies after 8pm won't trigger a new session
+NIGHTLY_HOUR = 21
 
 
 def _gather_nudge_context() -> str:
@@ -52,26 +53,67 @@ def _build_opener() -> str:
     return "\n".join(parts)
 
 
+def _build_nightly_opener() -> str:
+    wake = fetch_wake_context()
+    memory = _load_memory()
+    parts = [f"Current life state:\n{wake}"]
+    if memory:
+        parts.append(f"\nSteward memory:\n{memory}")
+    parts.append(
+        "\n<brief>"
+        "\nObjective: end-of-day check-in via Telegram. It's 9pm."
+        "\nTyson was active today. Reflect what got done, what didn't."
+        "\nIf something important slipped, name it. If the day was good, say so."
+        "\nStart with 🌙. Plain text only. 2-3 sentences max."
+        "\n</brief>"
+    )
+    return "\n".join(parts)
+
+
+def _tyson_active_today(chat_id: int) -> bool:
+    """Check if tyson sent any telegram messages today."""
+    from life.comms.messages.telegram import get_history
+
+    now = time.time()
+    midnight = now - (datetime.now().hour * 3600 + datetime.now().minute * 60 + datetime.now().second)
+    hours_since_midnight = max(1, int((now - midnight) / 3600))
+    msgs = get_history(chat_id=chat_id, limit=5, hours=hours_since_midnight)
+    return any(m["direction"] == "in" for m in msgs)
+
+
 def morning_thread(stop: threading.Event, claimed_chat: threading.Event) -> None:
     chat_id = get_tyson_chat_id()
     if not chat_id:
         log("[morning] no telegram chat_id for tyson — disabled")
         return
 
-    log(f"[morning] thread started, activation at {MORNING_HOUR}:00")
-    triggered_today: str | None = None
+    log(f"[morning] thread started, morning={MORNING_HOUR}:00 nightly={NIGHTLY_HOUR}:00")
+    morning_triggered: str | None = None
+    nightly_triggered: str | None = None
 
     while not stop.is_set():
         now = datetime.now()
         today_str = now.strftime("%Y-%m-%d")
 
-        if now.hour == MORNING_HOUR and triggered_today != today_str:
-            triggered_today = today_str
+        if now.hour == MORNING_HOUR and morning_triggered != today_str:
+            morning_triggered = today_str
             if not claimed_chat.is_set():
                 opener = _build_opener()
                 run_session(
                     chat_id, opener, stop, claimed_chat,
                     label="morning", tone="Soft morning tone.",
                 )
+
+        if now.hour == NIGHTLY_HOUR and nightly_triggered != today_str:
+            nightly_triggered = today_str
+            if not claimed_chat.is_set() and _tyson_active_today(chat_id):
+                log("[nightly] tyson was active today — triggering")
+                opener = _build_nightly_opener()
+                run_session(
+                    chat_id, opener, stop, claimed_chat,
+                    label="nightly", tone="Warm wind-down tone.",
+                )
+            elif not _tyson_active_today(chat_id):
+                log("[nightly] tyson off-grid today — skipping")
 
         stop.wait(30)
