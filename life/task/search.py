@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from life.domain.habit import get_habits
+from life.habit import get_habits
 from life.lib.converters import row_to_task
 from life.lib.fuzzy import find_in_pool
 from life.lib.store import get_db

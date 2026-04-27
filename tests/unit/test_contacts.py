@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from life.domain.contacts import (
+from life.contacts import (
     add_contact,
     find_contact,
     get_contacts,

@@ -1,4 +1,4 @@
-from life.domain.resolve import resolve_item, resolve_item_any, resolve_task
+from life.resolve import resolve_item, resolve_item_any, resolve_task
 from life.task import add_task, check_task
 
 

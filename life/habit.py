@@ -12,7 +12,7 @@ from life.lib.converters import row_to_habit
 from life.lib.format import render_done_row, render_row
 from life.lib.fuzzy import find_in_pool, find_in_pool_exact
 from life.lib.store import get_db
-from life.domain.tag import get_tags_for_habit, load_tags_for_habits
+from life.tag import get_tags_for_habit, load_tags_for_habits
 
 __all__ = [
     "add_habit",

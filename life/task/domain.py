@@ -11,7 +11,7 @@ from life.lib.converters import row_to_task
 from life.lib.format import render_done_row
 from life.lib.fuzzy import find_in_pool, find_in_pool_exact
 from life.lib.store import get_db
-from life.domain.tag import add_tag, hydrate_tags, load_tags_for_tasks
+from life.tag import add_tag, hydrate_tags, load_tags_for_tasks
 
 __all__ = [
     "add_task",

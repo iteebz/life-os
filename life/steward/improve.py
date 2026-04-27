@@ -3,7 +3,7 @@ from datetime import datetime
 from fncli import cli
 
 from life.core.errors import NotFoundError
-from life.domain.improvements import add_improvement, get_improvements, mark_improvement_done
+from life.improvements import add_improvement, get_improvements, mark_improvement_done
 from life.lib import ansi
 from life.lib.format import format_elapsed
 from life.lib.ids import short

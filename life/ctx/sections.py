@@ -13,15 +13,15 @@ from life.comms.accounts import list_accounts
 from life.comms.drafts import list_pending_drafts
 from life.comms.messages.telegram import get_history
 from life.comms.services import get_email_adapter
-from life.domain.contacts import get_stale_contacts
-from life.domain.feedback import build_feedback_snapshot, render_feedback_headline
-from life.domain.habit import get_habits
-from life.domain.improvements import get_improvements
+from life.contacts import get_stale_contacts
+from life.feedback import build_feedback_snapshot, render_feedback_headline
+from life.habit import get_habits
+from life.improvements import get_improvements
 from life.lib.clock import today
 from life.lib.dates import list_dates
 from life.lib.format import format_elapsed
 from life.lib.ids import short
-from life.domain.mood import get_recent_moods
+from life.mood import get_recent_moods
 from life.task import get_all_tasks, get_tasks
 
 from .fragments import STEWARD_BIRTHDAY

@@ -1,10 +1,10 @@
 from datetime import date, datetime, time, timedelta
 
 import life.lib.clock as clock
-from life.domain.feedback import build_feedback_snapshot
-from life.domain.habit import add_habit, check_habit, get_habits, get_streak
+from life.feedback import build_feedback_snapshot
+from life.habit import add_habit, check_habit, get_habits, get_streak
 from life.lib.store import get_db
-from life.domain.momentum import weekly_momentum
+from life.momentum import weekly_momentum
 from life.task import get_all_tasks, get_tasks
 
 
