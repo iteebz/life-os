@@ -2,9 +2,9 @@ import sys
 
 import fncli
 
-import life.accounts  # pyright: ignore[reportUnusedImport]
+import life.comms.accounts_cli  # pyright: ignore[reportUnusedImport]
+import life.comms.email_cli  # pyright: ignore[reportUnusedImport]
 import life.comms.messages.signal  # pyright: ignore[reportUnusedImport]
-import life.email  # noqa: F401  # pyright: ignore[reportUnusedImport]
 
 
 def main():

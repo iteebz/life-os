@@ -6,14 +6,14 @@ from datetime import datetime
 
 from fncli import cli
 
-from .comms import claude, services
-from .comms import drafts as drafts_module
-from .comms import senders as senders_module
-from .comms.config import RULES_PATH
-from .comms.contacts import CONTACTS_PATH, get_all_contacts
-from .comms.drafts import get_draft, list_pending_drafts
-from .comms.services import compose_email_draft, get_unified_inbox, reply_to_thread
-from .core.errors import LifeError, NotFoundError, ValidationError
+from . import claude, services
+from . import drafts as drafts_module
+from . import senders as senders_module
+from .config import RULES_PATH
+from .contacts import CONTACTS_PATH, get_all_contacts
+from .drafts import get_draft, list_pending_drafts
+from .services import compose_email_draft, get_unified_inbox, reply_to_thread
+from life.core.errors import LifeError, NotFoundError, ValidationError
 
 
 def _run_service(fn, *args, **kwargs):
