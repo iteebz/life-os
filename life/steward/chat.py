@@ -154,9 +154,9 @@ def _launch(
     env["STEWARD_SESSION_ID"] = session_id
     env["STEWARD_SPAWN_ID"] = str(spawn_id)
     env["GIT_AUTHOR_NAME"] = "steward"
-    env["GIT_AUTHOR_EMAIL"] = "steward@life.local"
+    env["GIT_AUTHOR_EMAIL"] = "steward@life-os"
     env["GIT_COMMITTER_NAME"] = "steward"
-    env["GIT_COMMITTER_EMAIL"] = "steward@life.local"
+    env["GIT_COMMITTER_EMAIL"] = "steward@life-os"
 
     proc = subprocess.Popen(cmd, cwd=LIFE_DIR, env=env)
     set_spawn_pid(spawn_id, proc.pid)
