@@ -10,6 +10,10 @@ from life.lib.providers.claude import build_env as build_claude_env
 MAX_RESPONSE_LEN = 4000
 
 _HOOK_SETTINGS = {
+    "includeCoAuthoredBy": False,
+    "includeGitInstructions": False,
+    "promptSuggestionEnabled": False,
+    "feedbackSurveyRate": 0,
     "spinnerTipsEnabled": False,
     "hooks": {
         "PreToolUse": [{"matcher": "", "hooks": [{"type": "command", "command": "life-hook tool"}]}],
