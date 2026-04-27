@@ -78,5 +78,7 @@ def build_base_env(spawn_mode: Mode) -> dict[str, str]:
             environ[key] = val
 
     environ["STEWARD_MODE"] = spawn_mode
+    environ["DISABLE_AUTO_COMPACT"] = "1"
+    environ["DISABLE_CLAUDE_CODE_SM_COMPACT"] = "1"
 
     return environ
