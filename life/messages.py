@@ -151,7 +151,7 @@ def _format(msgs: list[dict[str, Any]], context: str = "") -> None:
         # channel tag when showing mixed channels or channel switches
         ch = ""
         if not context or (m["channel"] != last_channel and last_channel):
-            ch = f"[{m['channel'][:3]}] "
+            ch = f"[{m['channel']}] "
         last_channel = m["channel"]
 
         if m["direction"] == "out":
