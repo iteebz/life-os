@@ -38,7 +38,6 @@ dev = [
 life = "life.cli:main"
 steward = "life.steward.main:main"
 comms = "life.comms.main:main"
-life-hook = "life.hook:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["life"]

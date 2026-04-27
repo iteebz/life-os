@@ -8,8 +8,14 @@ from . import __all__ as _  # registers all steward submodules with fncli  # noq
 
 
 def main():
-    init()
     args = sys.argv[1:]
+    # fast path — hooks fire on every tool call, skip fncli overhead
+    if args and args[0] == "hook":
+        from life.hook import main as hook_main
+        sys.argv = ["steward-hook", *args[1:]]
+        hook_main()
+        return
+    init()
     if not args or args[0] in ("-h", "--help"):
         fncli.try_dispatch(["steward", "--help"])
         sys.exit(0)
