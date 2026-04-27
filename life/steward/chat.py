@@ -15,7 +15,16 @@ from life.lib import ansi
 from life.lib.format import format_elapsed
 from life.lib.providers.claude import build_env
 
-from . import add_session, add_spawn, close_spawn, get_sessions, set_spawn_pid, update_session_followups, update_session_summary, update_spawn_provider_session
+from . import (
+    add_session,
+    add_spawn,
+    close_spawn,
+    get_sessions,
+    set_spawn_pid,
+    update_session_followups,
+    update_session_summary,
+    update_spawn_provider_session,
+)
 
 LIFE_DIR = Path.home() / "life"
 TOOLS = "Bash,Read,Write,Edit,Grep,Glob,WebFetch,WebSearch"

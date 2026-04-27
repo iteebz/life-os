@@ -3,8 +3,8 @@ from pathlib import Path
 
 import fncli
 
-from .store import migrations as db
 from .core.errors import LifeError
+from .store import migrations as db
 
 _STEWARD_CHAT_FLAGS = {"--opus", "-m", "--model", "-n", "--name", "--raw"}
 
