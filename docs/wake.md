@@ -1,32 +1,14 @@
 # wake
 
-every steward session starts cold. `life steward wake` emits the total context snapshot.
-daemon captures this via `fetch_wake_context()` and injects it into the claude prompt.
+every steward session starts cold. wake is the total context snapshot — everything steward
+knows at boot. daemon captures it and injects it into the claude prompt.
 
 ## current shape (flat)
 
-wake dumps everything in one function, no ordering, no truncation control:
-
-```
-STEWARD — day N  |  date time
-
-STEWARD TASKS:        steward-assigned tasks
-FEEDBACK HEADLINE:    closure rate, streak, momentum
-LAST LIFE:            most recent session summary
-CONTRACTS:            behavioral contracts with ratification status
-OBSERVATIONS:         upcoming (by date) + recent (24h) + tag-matched (3d)
-DATES:                upcoming dates within 30d
-CONTACTS (overdue):   stale contacts past cadence
-IMPROVEMENTS:         open self-improvement items (top 5)
-MOOD:                 latest score + 24h count
-COMMIT STATS (7d):    per-repo commit counts, authors, last commit
-COMMS:                inbox count, starred emails, pending drafts
-TELEGRAM:             recent messages since last inbound
-INBOX:                queued daemon messages
-```
-
-~15 sections. no priority ordering. if context grows, model attention dilutes equally
-across everything. no way to control what survives truncation.
+one function dumps ~15 sections with no priority ordering: steward tasks, feedback,
+last session, contracts, observations, dates, contacts, improvements, mood, commits,
+comms, telegram, inbox. if context grows, model attention dilutes equally across
+everything. no control over what survives truncation.
 
 ## target shape (tiered)
 
@@ -34,7 +16,6 @@ steal spacebrr's tier model. truncation eats from the bottom — identity surviv
 
 ```
 IDENTITY (never truncated)
-  age, datetime
   steward tasks (self-assigned work)
   contracts (behavioral commitments)
 
@@ -44,47 +25,32 @@ LIFE (truncated last within this tier)
   mood
 
 STATE (truncated before LIFE)
-  open tasks (human tasks, not steward tasks)
-  habits status
-  observations (upcoming → recent → tag-matched)
-  dates (upcoming 30d)
-  contacts (overdue)
-  improvements
+  open tasks, habits, observations
+  dates, contacts, improvements
 
 CONTEXT (truncated first)
-  commit stats
-  comms (email inbox, starred, drafts)
-  telegram recent
-  inbox (queued daemon messages)
+  commit stats, comms, telegram, inbox
 ```
 
-**why this ordering:**
-- steward's contracts and self-assigned tasks define what it should DO — this is identity
-- life priorities (mood, momentum, last session) set the frame
-- state is the working set — important but recoverable via `life` commands
-- context is ambient — nice to have, steward can query it explicitly if needed
+**why this ordering:** steward's contracts define what it should DO — that's identity.
+life priorities set the frame. state is the working set — recoverable via CLI.
+context is ambient — queryable on demand.
 
-## truncation mechanism
+## design principles
 
-not implemented yet. current wake has no size awareness. two options:
+**all surfaces use the same wake.** chat, telegram, auto, morning — all go through the
+same function. tier ordering benefits all of them.
 
-1. **char budget per tier.** each tier gets a max char allocation. sections within a tier
-   truncate by dropping items (fewer tasks, fewer observations) before dropping whole sections.
-2. **total budget with tier priority.** set a total wake budget (e.g. 8000 chars). fill from
-   top tier down. stop when budget exhausted. simpler, matches spacebrr's approach.
+**char budget with tier priority.** set a total wake budget. fill from top tier down.
+stop when exhausted. sections within a tier drop items before dropping whole sections.
 
-option 2 is the right starting point. tier ordering is the real win — the budget enforcement
-can be rough.
+**wake is stdout.** daemon captures it via subprocess. this means wake must be pure
+print output — no side effects, no state mutation. the function is a lens, not an actor.
 
 ## spawn surfaces
 
-wake is consumed differently per surface:
-
-| surface | how wake is used |
-|---------|-----------------|
-| chat | `steward wake` runs as boot step 1 in CLAUDE.md. steward reads stdout directly |
-| tg | `fetch_wake_context()` captures stdout, injects into prompt string |
-| auto | same as tg — `run_autonomous()` builds prompt from wake context |
-| morning | `_build_opener()` calls `fetch_wake_context()` + adds memory + nudges |
-
-all surfaces go through the same `wake()` function. tier ordering benefits all of them.
+| surface | how wake is consumed |
+|---------|---------------------|
+| chat | steward reads stdout directly as boot step |
+| tg/auto | daemon captures stdout and injects into prompt string |
+| morning | same capture + adds memory and nudge context on top |

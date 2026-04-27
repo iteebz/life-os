@@ -4,7 +4,12 @@ steward's own tooling. python CLI + daemon + hooks.
 
 ## before acting
 
-read `docs/` first. `docs/arch.md` is the map — topology, package layout, structural mirror of spacebrr patterns. keep docs/ updated when architecture changes.
+read `docs/` first. `docs/arch.md` is the map.
+
+docs/ is architectural design rationale — why things are shaped this way. not implementation
+details. no function names, line numbers, specific values, or anything that rots when code
+changes. if you can read it from the code, it doesn't belong in docs/. keep docs/ updated
+when architecture changes.
 
 ## structure
 
