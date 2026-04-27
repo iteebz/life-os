@@ -4,18 +4,22 @@ from life.lib.env import Mode, build_base_env
 
 _DEFAULT_MODEL = "claude-sonnet-4-6"
 
-# Claude-specific env flags for autonomous spawns.
-_SPAWN_FLAGS: dict[str, str] = {
+# Claude Code overrides — parity with spacebrr SPAWN_ENV_FLAGS.
+# We own context, memory, and compaction. All modes get the full set.
+_CLAUDE_FLAGS: dict[str, str] = {
     "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1",
     "CLAUDE_CODE_DISABLE_1M_CONTEXT": "1",
+    "DISABLE_AUTO_COMPACT": "1",
+    "DISABLE_CLAUDE_CODE_SM_COMPACT": "1",
+    "DISABLE_ERROR_REPORTING": "1",
+    "FORCE_UV_OFF": "1",
 }
 
 
 def build_env(spawn_mode: Mode) -> dict[str, str]:
     """Build a complete process env for a Claude steward spawn."""
     env = build_base_env(spawn_mode)
-    if spawn_mode == "auto":
-        env.update(_SPAWN_FLAGS)
+    env.update(_CLAUDE_FLAGS)
     return env
 
 

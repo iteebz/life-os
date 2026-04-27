@@ -5,7 +5,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from life.lib.env import build_base_env
+from life.lib.providers.claude import build_env as build_claude_env
 
 MAX_RESPONSE_LEN = 4000
 
@@ -61,7 +61,7 @@ def spawn_claude(prompt: str, timeout: int = 300, image_path: str | None = None)
     if image_path:
         cmd += ["--image", image_path]
 
-    env = build_base_env("tg")
+    env = build_claude_env("tg")
 
     try:
         result = subprocess.run(
