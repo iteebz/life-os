@@ -33,7 +33,21 @@ typecheck:
 test:
     @uv run python -m pytest tests
 
-ci: lint typecheck test
+ci:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    log=$(mktemp -d); trap 'rm -rf "$log"' EXIT
+    uv run ruff check .                                                        > "$log/lint" 2>&1 & lint=$!
+    uv run pyright                                                             > "$log/tc"   2>&1 & tc=$!
+    uv run pytest tests/unit/ tests/integration/ -q --tb=no                   > "$log/test" 2>&1 & tst=$!
+    wait $lint; lint_rc=$?
+    wait $tc;   tc_rc=$?
+    wait $tst;  tst_rc=$?
+    rc=0
+    if [ "$lint_rc" -eq 0 ]; then echo "lint ✓"; else echo "lint ✗"; /bin/cat "$log/lint"; rc=1; fi
+    if [ "$tc_rc"   -eq 0 ]; then echo "typecheck ✓"; else echo "typecheck ✗"; /bin/cat "$log/tc"; rc=1; fi
+    if [ "$tst_rc"  -eq 0 ]; then echo "test ✓"; else echo "test ✗"; /bin/cat "$log/test"; rc=1; fi
+    exit $rc
 
 build:
     @uv build
