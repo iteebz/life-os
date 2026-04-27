@@ -1,5 +1,6 @@
 """steward — interactive sessions with tracking. Default command."""
 
+import json
 import os
 import subprocess
 import uuid
@@ -16,6 +17,7 @@ from . import add_session, add_spawn, close_spawn, get_sessions, update_session_
 LIFE_DIR = Path.home() / "life"
 TOOLS = "Bash,Read,Write,Edit,Grep,Glob,WebFetch,WebSearch"
 DEFAULT_MODEL = "sonnet"
+LOG_TURN_SCRIPT = Path(__file__).resolve().parent.parent.parent / "scripts" / "log-turn.py"
 
 # in-process state; rebuilt from DB on resume across process boundaries
 _session_start: datetime | None = None
@@ -48,6 +50,49 @@ def _session_meta_fragment(source: str) -> str:
     )
 
 
+def _ensure_hooks_config() -> None:
+    """Write hooks into ~/life/.claude/settings.local.json so chat turns get logged."""
+    settings_path = LIFE_DIR / ".claude" / "settings.local.json"
+    settings_path.parent.mkdir(parents=True, exist_ok=True)
+
+    import contextlib
+
+    existing: dict = {}
+    if settings_path.exists():
+        with contextlib.suppress(json.JSONDecodeError, ValueError):
+            existing = json.loads(settings_path.read_text())
+
+    script = str(LOG_TURN_SCRIPT)
+    desired_hooks = {
+        "UserPromptSubmit": [
+            {
+                "matcher": "",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": f"python3 {script} in",
+                    }
+                ],
+            }
+        ],
+        "Stop": [
+            {
+                "matcher": "",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": f"python3 {script} out",
+                    }
+                ],
+            }
+        ],
+    }
+
+    if existing.get("hooks") != desired_hooks:
+        existing["hooks"] = desired_hooks
+        settings_path.write_text(json.dumps(existing, indent=2) + "\n")
+
+
 def _launch(
     model: str,
     session_id: str,
@@ -71,6 +116,7 @@ def _launch(
                 update_session_followups(db_session_id, [ts.isoformat() for ts in _followups])
 
     spawn_id = add_spawn(mode="chat", source=source, session_id=db_session_id)
+    _ensure_hooks_config()
 
     cmd = [
         "claude",
