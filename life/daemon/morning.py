@@ -12,30 +12,17 @@ from life.comms.messages.telegram import get_history
 from life.daemon.session import get_tyson_chat_id, load_memory, run_session
 from life.daemon.shared import log
 from life.daemon.spawn import fetch_wake_context
-from life.lib.clock import now as clock_now
-from life.nudge import evaluate_rules
 
 MORNING_HOUR = 8
 NIGHTLY_HOUR = 20
 
 
-def _gather_nudge_context() -> str:
-    candidates = evaluate_rules(clock_now())
-    if not candidates:
-        return ""
-    lines = [f"- {n.message}" for n in candidates[:5]]
-    return "Pending nudges:\n" + "\n".join(lines)
-
-
 def _build_opener() -> str:
     wake = fetch_wake_context()
-    nudges = _gather_nudge_context()
     memory = load_memory()
     parts = [f"Current life state:\n{wake}"]
     if memory:
         parts.append(f"\nSteward memory:\n{memory}")
-    if nudges:
-        parts.append(f"\n{nudges}")
     parts.append(
         "\n<brief>"
         "\nObjective: consolidated morning brief via Telegram. It's 8am."

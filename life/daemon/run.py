@@ -19,7 +19,7 @@ from life.daemon.shared import (
     PEOPLE_DIR,
     log,
 )
-from life.nudge import is_quiet_now
+from life.lib.clock import is_quiet_now
 from life.steward.auto import run_autonomous
 
 

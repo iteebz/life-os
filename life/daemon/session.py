@@ -9,9 +9,9 @@ from life.comms.messages import telegram as tg
 from life.daemon.commands import handle_command
 from life.daemon.shared import TG_SESSION_TIMEOUT, log
 from life.daemon.spawn import spawn_claude
+from life.lib.clock import is_quiet_now
 from life.lib.resolve import resolve_people_field
 from life.lib.store import get_db
-from life.nudge import is_quiet_now
 
 
 def load_memory() -> str:

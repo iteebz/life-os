@@ -18,8 +18,8 @@ from life.comms.messages import telegram as tg
 from life.daemon.session import build_reply_prompt, build_tg_boot_prompt, load_history_from_db
 from life.daemon.shared import TG_SESSION_MAX_CHARS, TG_SESSION_TIMEOUT, log
 from life.daemon.spawn import fetch_wake_context, spawn_claude
+from life.lib.clock import is_quiet_now
 from life.lib.store import get_db
-from life.nudge import is_quiet_now
 
 INBOX_FILE = Path.home() / ".life" / "steward" / "inbox"
 
