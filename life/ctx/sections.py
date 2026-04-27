@@ -312,3 +312,15 @@ def render_inbox() -> str:
         return f"INBOX:\n{inbox}" if inbox else ""
     except Exception:
         return ""
+
+
+def render_xmit() -> str:
+    import subprocess
+    try:
+        result = subprocess.run(["xmit", "recv"], capture_output=True, text=True, timeout=5)
+        out = result.stdout.strip()
+        if not out or out == "no messages":
+            return ""
+        return f"XMIT (new messages):\n{out}"
+    except Exception:
+        return ""
