@@ -4,7 +4,7 @@ default:
 install: bin
     @uv sync
     @just hooks
-    @uv run life daemon start
+    @uv run life daemon restart
 
 hooks:
     @git config core.hooksPath .githooks
