@@ -163,7 +163,7 @@ def _format(msgs: list[dict[str, Any]], context: str = "") -> None:
 @cli(
     "life messages",
     default=True,
-    flags={"person": ["-p"], "limit": ["-n"], "search": ["-s"], "since": ["--since"], "human": ["--human"], "steward": ["--steward"]},
+    flags={"person": [], "limit": ["-n"], "search": ["-s"], "since": ["--since"], "human": ["--human"], "steward": ["--steward"]},
 )
 def messages_cmd(
     person: str = "",
