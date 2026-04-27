@@ -12,6 +12,7 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 from life.daemon.inbound import pending_inbox
 from life.store.migrations import init
@@ -233,7 +234,7 @@ def _surface_inbox() -> None:
     print(f"\n[new messages received while you were working]\n{content}")
 
 
-def _read_event() -> dict:
+def _read_event() -> dict[str, Any]:
     try:
         return json.load(sys.stdin)
     except (json.JSONDecodeError, ValueError):

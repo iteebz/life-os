@@ -11,6 +11,7 @@ import signal
 import subprocess
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from life.daemon.shared import IDLE_REAP_SECS, IDLE_WAKE_SECS, log
 from life.lib.store import get_db
@@ -19,7 +20,7 @@ WAKE_MARKER_DIR = Path.home() / ".life"
 LIFE_DIR = Path.home() / "life"
 
 
-def _active_chat_spawns() -> list[dict]:
+def _active_chat_spawns() -> list[dict[str, Any]]:
     try:
         with get_db() as conn:
             rows = conn.execute(
@@ -40,7 +41,7 @@ def _active_chat_spawns() -> list[dict]:
         return []
 
 
-def _idle_seconds(spawn: dict) -> float | None:
+def _idle_seconds(spawn: dict[str, Any]) -> float | None:
     ts_str = spawn.get("last_active_at") or spawn.get("started_at")
     if not ts_str:
         return None

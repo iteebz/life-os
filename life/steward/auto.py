@@ -189,7 +189,15 @@ def _select_required_real_world_task(tasks: list[Any]) -> Task | None:
 
 def _build_cmd_env(prompt: str) -> tuple[list[str], dict[str, str]]:
     env = claude.build_env("auto")
-    cmd = claude.build_command(prompt)
+    cmd = [
+        "claude",
+        "--print",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--dangerously-skip-permissions",
+        prompt,
+    ]
 
     env["GIT_AUTHOR_NAME"] = "steward-auto"
     env["GIT_AUTHOR_EMAIL"] = "steward-auto@life.local"
