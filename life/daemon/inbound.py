@@ -22,6 +22,8 @@ from life.lib.clock import is_quiet_now
 from life.lib.store import get_db
 
 INBOX_FILE = Path.home() / ".life" / "steward" / "inbox"
+WARM_AGE_SECONDS = 3300  # 55m
+WARM_MAX_CHARS = 100_000
 
 
 def _active_spawn() -> dict[str, str | int | None] | None:
@@ -86,6 +88,45 @@ def _clear_inbox() -> None:
     INBOX_FILE.unlink(missing_ok=True)
 
 
+def _warm_session() -> tuple[str, int] | None:
+    """Find the most recent chat session that's warm enough to resume.
+
+    Returns (claude_session_id, db_session_id) or None.
+    Warm = closed cleanly + last activity <55m + accumulated chars <100k.
+    """
+    try:
+        with get_db() as conn:
+            row = conn.execute(
+                "SELECT s.claude_session_id, s.id, s.logged_at "
+                "FROM sessions s "
+                "JOIN spawns sp ON sp.session_id = s.id "
+                "WHERE sp.mode = 'chat' AND sp.status = 'complete' "
+                "AND s.claude_session_id IS NOT NULL "
+                "ORDER BY sp.ended_at DESC LIMIT 1"
+            ).fetchone()
+        if not row:
+            return None
+        claude_id, db_id, _logged_at = row
+        chars = _session_chars(db_id)
+        if chars > WARM_MAX_CHARS:
+            return None
+        # Use most recent spawn end as activity proxy
+        with get_db() as conn:
+            end_row = conn.execute(
+                "SELECT MAX(ended_at) FROM spawns WHERE session_id = ?",
+                (db_id,),
+            ).fetchone()
+        if not end_row or not end_row[0]:
+            return None
+        last_active = datetime.fromisoformat(end_row[0])
+        age = (datetime.now() - last_active).total_seconds()
+        if age > WARM_AGE_SECONDS:
+            return None
+        return claude_id, db_id
+    except Exception:
+        return None
+
+
 def _should_rollover(spawn: dict[str, str | int | None]) -> bool:
     """Check if current session exceeds time or char limits."""
     age = _session_age_seconds(spawn)
@@ -118,8 +159,16 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> 
         log(f"[inbound] notified active session (spawn {spawn['id']})")
         return "notified"
 
-    # No active interactive session — respond via stateless spawn + queue for next session
+    # No active interactive session — try resuming a warm one, else stateless
     if channel == "telegram" and chat_id is not None:
+        warm = _warm_session()
+        if warm:
+            claude_id, db_id = warm
+            log(f"[inbound] resuming warm session {db_id} ({claude_id[:8]})")
+            response = spawn_claude(body, resume_session_id=claude_id)
+            tg.send(chat_id, response)
+            return "resumed"
+
         history = load_history_from_db(chat_id)
         if history:
             prompt = build_reply_prompt(history, body)

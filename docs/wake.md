@@ -51,6 +51,21 @@ print output — no side effects, no state mutation. the function is a lens, not
 
 | surface | how wake is consumed |
 |---------|---------------------|
-| chat | steward reads stdout directly as boot step |
+| chat (fresh) | injected into `--append-system-prompt` so the model boots hot |
+| chat (resume) | skipped — prior turns already carry state |
+| chat (`--raw`) | skipped — bare model session |
 | tg/auto | daemon captures stdout and injects into prompt string |
 | morning | same capture + adds memory and nudge context on top |
+
+## warm resume
+
+telegram messages arriving with no active chat session look for a *warm* prior session
+(closed cleanly, <55m old, <100k chars). if found, the message goes through
+`claude --print --resume` so continuity holds. cold sessions fall back to stateless
+spawn with full wake context.
+
+## session-meta nudges
+
+UserPromptSubmit hook emits `<session-meta>` on each human turn once the session
+crosses size/age thresholds. 100k chars → wrap soon. 150k chars → sleep now. keeps
+chat sessions from drifting into stale, oversized territory.

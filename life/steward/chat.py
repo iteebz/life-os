@@ -10,6 +10,7 @@ from pathlib import Path
 
 from fncli import cli
 
+from life.daemon.spawn import fetch_wake_context
 from life.lib import ansi
 from life.lib.format import format_elapsed
 from life.lib.providers.claude import build_env
@@ -19,6 +20,8 @@ from . import add_session, add_spawn, close_spawn, get_sessions, update_session_
 LIFE_DIR = Path.home() / "life"
 TOOLS = "Bash,Read,Write,Edit,Grep,Glob,WebFetch,WebSearch"
 DEFAULT_MODEL = "sonnet"
+SESSION_TIMEOUT = 3300  # 55m
+SESSION_MAX_CHARS = 100_000
 LOG_TURN_SCRIPT = Path(__file__).resolve().parent.parent.parent / "scripts" / "log-turn.py"
 
 # in-process state; rebuilt from DB on resume across process boundaries
@@ -93,6 +96,17 @@ def _ensure_hooks_config() -> None:
         settings_path.write_text(json.dumps(existing, indent=2) + "\n")
 
 
+def _build_system_prompt(source: str, raw: bool) -> str:
+    """Compose --append-system-prompt: wake context (unless raw) + session meta."""
+    parts = []
+    if not raw:
+        wake = fetch_wake_context()
+        if wake:
+            parts.append(f"<wake>\n{wake}\n</wake>")
+    parts.append(_session_meta_fragment(source))
+    return "\n\n".join(parts)
+
+
 def _launch(
     model: str,
     session_id: str,
@@ -100,6 +114,7 @@ def _launch(
     resume: bool = False,
     source: str = "cli",
     db_session_id: int | None = None,
+    raw: bool = False,
 ) -> int:
     global _session_start, _db_session_id
 
@@ -123,7 +138,7 @@ def _launch(
         "--model", model,
         "--dangerously-skip-permissions",
         "--tools", TOOLS,
-        "--append-system-prompt", _session_meta_fragment(source),
+        "--append-system-prompt", _build_system_prompt(source, raw or resume),
     ]
     if resume:
         cmd.extend(["--resume", session_id])
@@ -145,8 +160,8 @@ def _launch(
     return rc
 
 
-@cli("steward", default=True, flags={"model": ["-m", "--model"], "name": ["-n", "--name"], "opus": ["--opus"]})
-def chat(model: str | None = None, name: str | None = None, opus: bool = False):
+@cli("steward", default=True, flags={"model": ["-m", "--model"], "name": ["-n", "--name"], "opus": ["--opus"], "raw": ["--raw"]})
+def chat(model: str | None = None, name: str | None = None, opus: bool = False, raw: bool = False):
     """Start a tracked interactive steward session"""
     if opus:
         model = "opus"
@@ -162,8 +177,8 @@ def chat(model: str | None = None, name: str | None = None, opus: bool = False):
     )
 
     source = os.environ.get("STEWARD_SOURCE", "cli")
-    print(f"session {db_id} → {session_id[:8]}  model={model}  source={source}")
-    rc = _launch(model, session_id, name=label, source=source, db_session_id=db_id)
+    print(f"session {db_id} → {session_id[:8]}  model={model}  source={source}{'  raw' if raw else ''}")
+    rc = _launch(model, session_id, name=label, source=source, db_session_id=db_id, raw=raw)
     update_session_summary(db_id, f"(closed) {label}")
     return rc
 

@@ -23,6 +23,10 @@ from life.lib.store import get_db
 
 INBOX_FILE = Path.home() / ".life" / "steward" / "inbox"
 
+WRAP_THRESHOLD_CHARS = 100_000   # ~33k tokens — wrap soon
+SLEEP_THRESHOLD_CHARS = 150_000  # ~50k tokens — sleep now
+WRAP_THRESHOLD_SECONDS = 3300    # 55m
+
 
 def _log_message(direction: str, body: str, session_id: str) -> None:
 
@@ -41,6 +45,43 @@ def _log_message(direction: str, body: str, session_id: str) -> None:
                 "VALUES (?, 'chat', ?, ?, ?, ?, ?)",
                 (msg_id, direction, session_id, "tyson" if direction == "in" else "steward", body, ts),
             )
+    except Exception:
+        pass
+
+
+def _surface_session_meta(session_id: str) -> None:
+    """Inject session age + size + threshold nudges as context."""
+    try:
+        with get_db() as conn:
+            row = conn.execute(
+                "SELECT id, logged_at FROM sessions WHERE claude_session_id = ?",
+                (session_id,),
+            ).fetchone()
+            if not row:
+                return
+            db_id, logged_at = row
+            char_row = conn.execute(
+                "SELECT COALESCE(SUM(LENGTH(body)), 0) FROM messages "
+                "WHERE channel = 'chat' AND peer = ?",
+                (str(db_id),),
+            ).fetchone()
+            chars = char_row[0] if char_row else 0
+
+        from datetime import datetime
+        started = datetime.fromisoformat(logged_at)
+        age = int((datetime.now() - started).total_seconds())
+        age_str = f"{age // 60}m" if age >= 60 else f"{age}s"
+
+        nudge = ""
+        if chars >= SLEEP_THRESHOLD_CHARS:
+            nudge = "\nsleep now: close one loop, run `steward sleep \"...\"`, commit, end the session."
+        elif chars >= WRAP_THRESHOLD_CHARS:
+            nudge = "\nwrap soon: prefer closing the open loop over starting new threads."
+        elif age >= WRAP_THRESHOLD_SECONDS:
+            nudge = "\nsession is long: consider closing soon."
+
+        if nudge or chars > 50_000:
+            print(f"\n<session-meta>session: {age_str} elapsed, {chars} chars logged{nudge}\n</session-meta>")
     except Exception:
         pass
 
@@ -80,9 +121,10 @@ def main() -> None:
     body = body.strip()
     _log_message(direction, body, session_id)
 
-    # On human prompt, surface any pending inbox messages
+    # On human prompt, surface inbox + session meta
     if direction == "in":
         _surface_inbox()
+        _surface_session_meta(session_id)
 
 
 if __name__ == "__main__":

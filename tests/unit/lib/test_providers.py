@@ -10,17 +10,17 @@ def test_auto_env_disables_claude_features():
     assert env["CLAUDE_CODE_DISABLE_1M_CONTEXT"] == "1"
 
 
-def test_chat_env_skips_spawn_flags():
+def test_chat_env_has_claude_flags():
     env = build_env("chat")
     assert env["STEWARD_MODE"] == "chat"
-    assert "CLAUDE_CODE_DISABLE_AUTO_MEMORY" not in env
-    assert "CLAUDE_CODE_DISABLE_1M_CONTEXT" not in env
+    assert env["CLAUDE_CODE_DISABLE_AUTO_MEMORY"] == "1"
+    assert env["CLAUDE_CODE_DISABLE_1M_CONTEXT"] == "1"
 
 
-def test_tg_env_skips_spawn_flags():
+def test_tg_env_has_claude_flags():
     env = build_env("tg")
     assert env["STEWARD_MODE"] == "tg"
-    assert "CLAUDE_CODE_DISABLE_AUTO_MEMORY" not in env
+    assert env["CLAUDE_CODE_DISABLE_AUTO_MEMORY"] == "1"
 
 
 def test_all_modes_whitelist_only(monkeypatch):
