@@ -5,6 +5,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from life.lib.env import build_base_env
+
 MAX_RESPONSE_LEN = 4000
 
 _HOOK_SETTINGS = {
@@ -58,8 +60,6 @@ def spawn_claude(prompt: str, timeout: int = 300, image_path: str | None = None)
     ]
     if image_path:
         cmd += ["--image", image_path]
-
-    from life.lib.env import build_base_env
 
     env = build_base_env("tg")
 

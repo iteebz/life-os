@@ -3,9 +3,37 @@
 import threading
 import time
 from datetime import datetime
+from pathlib import Path
 
+from life.comms.messages import telegram as tg
+from life.daemon.commands import handle_command
 from life.daemon.shared import TG_SESSION_TIMEOUT, log
 from life.daemon.spawn import spawn_claude
+from life.lib.resolve import resolve_people_field
+from life.lib.store import get_db
+from life.nudge import is_quiet_now
+
+
+def load_memory() -> str:
+    memory_path = Path.home() / "life" / "steward" / "memory.md"
+    if memory_path.exists():
+        return memory_path.read_text().strip()
+    return ""
+
+
+def build_tg_boot_prompt(message: str, sender_name: str, context: str) -> str:
+    memory = load_memory()
+    memory_block = f"\n\nSteward memory:\n{memory}\n" if memory else ""
+    return f"""\
+You are Steward responding via Telegram. New session — run boot sequence first.
+
+Current life state:
+{context}{memory_block}
+
+Sender: {sender_name}
+Message: {message}
+
+Respond directly. Start with 🌱. Short and actionable. No markdown headers."""
 
 MAX_HISTORY_CHARS = 8000
 POLL_INTERVAL = 5
@@ -50,8 +78,6 @@ def build_reply_prompt(
 def load_history_from_db(chat_id: int, hours: int = HISTORY_LOOKBACK_HOURS) -> list[dict[str, str]]:
     """Load recent telegram messages from DB to survive daemon restarts."""
     try:
-        from life.lib.store import get_db
-
         cutoff = int(time.time()) - (hours * 3600)
         with get_db() as conn:
             rows = conn.execute(
@@ -70,8 +96,6 @@ def load_history_from_db(chat_id: int, hours: int = HISTORY_LOOKBACK_HOURS) -> l
 
 
 def get_tyson_chat_id() -> int | None:
-    from life.lib.resolve import resolve_people_field
-
     result = resolve_people_field("tyson", "telegram")
     return int(result) if result else None
 
@@ -96,8 +120,6 @@ def run_session(
         tone: Extra tone instruction injected into reply prompts.
         load_db_history: Whether to seed history from DB (survives restarts).
     """
-    from life.comms.messages import telegram as tg
-
     log(f"[{label}] starting session")
     claimed_chat.set()
 
@@ -115,8 +137,6 @@ def run_session(
     last_activity = time.time()
 
     while not stop.is_set():
-        from life.nudge import is_quiet_now
-
         if is_quiet_now():
             log(f"[{label}] quiet hours — ending session")
             break
@@ -135,8 +155,6 @@ def run_session(
 
             # slash commands inside sessions
             if body.startswith("/"):
-                from life.daemon.commands import handle_command
-
                 chars = sum(len(e["text"]) for e in history)
                 resp = handle_command(body, history, last_activity, chars)
                 if resp is not None:
@@ -163,8 +181,6 @@ def run_session(
 
 def log_session(label: str, history: list[dict[str, str]]) -> None:
     """Write session transcript to steward/sessions/ for traceability."""
-    from pathlib import Path
-
     sessions_dir = Path.home() / "life" / "steward" / "sessions"
     sessions_dir.mkdir(parents=True, exist_ok=True)
 

@@ -7,9 +7,9 @@ from .comms.messages import signal as _signal
 from .comms.messages import telegram as _telegram
 
 
-def poll_incoming(timeout: int = 5) -> list[dict]:
+def poll_incoming(timeout: int = 5) -> list[dict[str, str]]:
     """Poll all channels for new messages. Used by daemon."""
-    msgs: list[dict] = [
+    msgs: list[dict[str, str]] = [
         {"channel": "signal", "from": m.get("from_name") or m.get("from", "?"), "body": m["body"]}
         for m in _signal.receive(timeout=timeout)
     ]

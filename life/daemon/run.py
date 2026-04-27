@@ -1,23 +1,29 @@
 import os
+import re
 import signal
 import threading
 import time
-from pathlib import Path
+
+import yaml
 
 import life.daemon.shared as shared
+from life.comms import accounts as accts_module
+from life.comms.messages import signal as signal_adapter
+from life.comms.messages import telegram as tg
+from life.daemon.commands import handle_command
+from life.daemon.inbound import handle as handle_inbound
+from life.daemon.morning import morning_thread
 from life.daemon.shared import (
     DAEMON_DIR,
     MAX_TG_SPAWNS_PER_HOUR,
     PEOPLE_DIR,
     log,
 )
+from life.nudge import is_quiet_now
+from life.steward.auto import run_autonomous
 
 
 def _load_allowed_tg_chats() -> set[int]:
-    import re
-
-    import yaml
-
     chat_ids: set[int] = set()
     if not PEOPLE_DIR.exists():
         return chat_ids
@@ -35,35 +41,9 @@ def _load_allowed_tg_chats() -> set[int]:
     return chat_ids
 
 
-def _load_memory() -> str:
-    memory_path = Path.home() / "life" / "steward" / "memory.md"
-    if memory_path.exists():
-        return memory_path.read_text().strip()
-    return ""
-
-
-def _build_tg_boot_prompt(message: str, sender_name: str, context: str) -> str:
-    memory = _load_memory()
-    memory_block = f"\n\nSteward memory:\n{memory}\n" if memory else ""
-    return f"""\
-You are Steward responding via Telegram. New session — run boot sequence first.
-
-Current life state:
-{context}{memory_block}
-
-Sender: {sender_name}
-Message: {message}
-
-Respond directly. Start with 🌱. Short and actionable. No markdown headers."""
-
-
 def _telegram_thread(
     stop: threading.Event, interval: int, claimed_chat: threading.Event
 ) -> None:
-    from life.comms.messages import telegram as tg
-    from life.daemon.commands import handle_command
-    from life.daemon.inbound import handle as handle_inbound
-
     allowed = _load_allowed_tg_chats()
     if not allowed:
         log("[telegram] no people with telegram chat_id — thread disabled")
@@ -79,8 +59,6 @@ def _telegram_thread(
             continue
 
         try:
-            from life.nudge import is_quiet_now
-
             if is_quiet_now():
                 stop.wait(60)
                 continue
@@ -127,16 +105,11 @@ def _telegram_thread(
 
 
 def _get_signal_phones() -> list[str]:
-    from life.comms import accounts as accts_module
-
     accounts = accts_module.list_accounts("messaging")
     return [a["email"] for a in accounts if a["provider"] == "signal"]
 
 
 def _signal_thread(stop: threading.Event, interval: int) -> None:
-    from life.comms.messages import signal as signal_adapter
-    from life.daemon.inbound import handle as handle_inbound
-
     phones = _get_signal_phones()
     if not phones:
         log("[signal] no Signal accounts linked — thread disabled")
@@ -160,10 +133,7 @@ def _signal_thread(stop: threading.Event, interval: int) -> None:
         stop.wait(interval)
 
 
-
 def _auto_thread(stop: threading.Event, every: int) -> None:
-    from life.steward.auto import run_autonomous
-
     log(f"[auto] started, running every {every}s")
 
     while not stop.is_set():
@@ -182,8 +152,6 @@ def run(
     signal_interval: int = 5,
     auto_every: int = 0,
 ) -> None:
-    from life.daemon.morning import morning_thread
-
     DAEMON_DIR.mkdir(parents=True, exist_ok=True)
     shared.DAEMON_START_TIME = time.time()
 
@@ -199,11 +167,11 @@ def run(
 
     threads: list[threading.Thread] = []
 
-    tg = threading.Thread(
+    tg_thread = threading.Thread(
         target=_telegram_thread, args=(stop, tg_interval, claimed_chat), daemon=True, name="telegram"
     )
-    threads.append(tg)
-    tg.start()
+    threads.append(tg_thread)
+    tg_thread.start()
 
     morning = threading.Thread(
         target=morning_thread, args=(stop, claimed_chat), daemon=True, name="morning"

@@ -8,35 +8,29 @@ import threading
 import time
 from datetime import datetime
 
-from life.daemon.session import get_tyson_chat_id, run_session
+from life.comms.messages.telegram import get_history
+from life.daemon.session import get_tyson_chat_id, load_memory, run_session
 from life.daemon.shared import log
 from life.daemon.spawn import fetch_wake_context
+from life.lib.clock import now as clock_now
+from life.nudge import evaluate_rules
 
 MORNING_HOUR = 8
 NIGHTLY_HOUR = 20
 
 
 def _gather_nudge_context() -> str:
-    from life.lib.clock import now
-    from life.nudge import evaluate_rules
-
-    candidates = evaluate_rules(now())
+    candidates = evaluate_rules(clock_now())
     if not candidates:
         return ""
     lines = [f"- {n.message}" for n in candidates[:5]]
     return "Pending nudges:\n" + "\n".join(lines)
 
 
-def _load_memory() -> str:
-    from pathlib import Path
-    memory_path = Path.home() / "life" / "steward" / "memory.md"
-    return memory_path.read_text().strip() if memory_path.exists() else ""
-
-
 def _build_opener() -> str:
     wake = fetch_wake_context()
     nudges = _gather_nudge_context()
-    memory = _load_memory()
+    memory = load_memory()
     parts = [f"Current life state:\n{wake}"]
     if memory:
         parts.append(f"\nSteward memory:\n{memory}")
@@ -55,7 +49,7 @@ def _build_opener() -> str:
 
 def _build_nightly_opener() -> str:
     wake = fetch_wake_context()
-    memory = _load_memory()
+    memory = load_memory()
     parts = [f"Current life state:\n{wake}"]
     if memory:
         parts.append(f"\nSteward memory:\n{memory}")
@@ -72,8 +66,6 @@ def _build_nightly_opener() -> str:
 
 def _tyson_active_today(chat_id: int) -> bool:
     """Check if tyson sent any telegram messages today."""
-    from life.comms.messages.telegram import get_history
-
     now = time.time()
     midnight = now - (datetime.now().hour * 3600 + datetime.now().minute * 60 + datetime.now().second)
     hours_since_midnight = max(1, int((now - midnight) / 3600))

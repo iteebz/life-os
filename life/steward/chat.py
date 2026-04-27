@@ -1,5 +1,6 @@
 """steward — interactive sessions with tracking. Default command."""
 
+import contextlib
 import json
 import os
 import subprocess
@@ -55,9 +56,7 @@ def _ensure_hooks_config() -> None:
     settings_path = LIFE_DIR / ".claude" / "settings.local.json"
     settings_path.parent.mkdir(parents=True, exist_ok=True)
 
-    import contextlib
-
-    existing: dict = {}
+    existing: dict[str, object] = {}
     if settings_path.exists():
         with contextlib.suppress(json.JSONDecodeError, ValueError):
             existing = json.loads(settings_path.read_text())

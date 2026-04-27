@@ -11,15 +11,20 @@ Steward reads the inbox file via a UserPromptSubmit hook.
 """
 
 import time
+from datetime import datetime
 from pathlib import Path
 
+from life.comms.messages import telegram as tg
+from life.daemon.session import build_reply_prompt, build_tg_boot_prompt, load_history_from_db
 from life.daemon.shared import TG_SESSION_MAX_CHARS, TG_SESSION_TIMEOUT, log
+from life.daemon.spawn import fetch_wake_context, spawn_claude
 from life.lib.store import get_db
+from life.nudge import is_quiet_now
 
 INBOX_FILE = Path.home() / ".life" / "steward" / "inbox"
 
 
-def _active_spawn() -> dict | None:
+def _active_spawn() -> dict[str, str | int | None] | None:
     """Check if there's an active steward spawn (chat or tg)."""
     try:
         with get_db() as conn:
@@ -40,12 +45,13 @@ def _active_spawn() -> dict | None:
         return None
 
 
-def _session_age_seconds(spawn: dict) -> float:
+def _session_age_seconds(spawn: dict[str, str | int | None]) -> float:
     """How old is the current spawn in seconds."""
-    from datetime import datetime
-
     try:
-        started = datetime.fromisoformat(spawn["started_at"])
+        started_at = spawn["started_at"]
+        if not isinstance(started_at, str):
+            return 0
+        started = datetime.fromisoformat(started_at)
         return (datetime.now() - started).total_seconds()
     except Exception:
         return 0
@@ -80,10 +86,11 @@ def _clear_inbox() -> None:
     INBOX_FILE.unlink(missing_ok=True)
 
 
-def _should_rollover(spawn: dict) -> bool:
+def _should_rollover(spawn: dict[str, str | int | None]) -> bool:
     """Check if current session exceeds time or char limits."""
     age = _session_age_seconds(spawn)
-    chars = _session_chars(spawn.get("session_id"))
+    raw_id = spawn.get("session_id")
+    chars = _session_chars(int(raw_id) if isinstance(raw_id, int) else None)
     return age > TG_SESSION_TIMEOUT or chars > TG_SESSION_MAX_CHARS
 
 
@@ -92,8 +99,6 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> 
 
     Actions: 'notified', 'woke', 'spawned', 'queued', 'responded'
     """
-    from life.nudge import is_quiet_now
-
     if is_quiet_now():
         log(f"[inbound] quiet hours — queueing {channel} from {sender}")
         _write_inbox(channel, sender, body)
@@ -115,18 +120,12 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> 
 
     # No active interactive session — respond via stateless spawn + queue for next session
     if channel == "telegram" and chat_id is not None:
-        from life.comms.messages import telegram as tg
-        from life.daemon.session import build_reply_prompt, load_history_from_db
-        from life.daemon.spawn import fetch_wake_context, spawn_claude
-
         history = load_history_from_db(chat_id)
         if history:
             prompt = build_reply_prompt(history, body)
         else:
-            from life.daemon.run import _build_tg_boot_prompt
-
             context = fetch_wake_context()
-            prompt = _build_tg_boot_prompt(body, sender, context)
+            prompt = build_tg_boot_prompt(body, sender, context)
 
         response = spawn_claude(prompt)
         tg.send(chat_id, response)

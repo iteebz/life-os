@@ -1,5 +1,6 @@
 """Daemon-wide constants and logging."""
 
+import os
 import time
 from pathlib import Path
 
@@ -15,6 +16,23 @@ PEOPLE_DIR = Path.home() / "life" / "steward" / "people"
 
 
 DAEMON_START_TIME: float = 0.0
+
+
+_LOCK_FILE = Path.home() / ".life" / "daemon.lock"
+
+
+def pid() -> int | None:
+    if not _LOCK_FILE.exists():
+        return None
+    try:
+        raw = _LOCK_FILE.read_text().strip()
+        if not raw.isdigit():
+            return None
+        p = int(raw)
+        os.kill(p, 0)
+        return p
+    except (OSError, ValueError):
+        return None
 
 
 def log(msg: str) -> None:

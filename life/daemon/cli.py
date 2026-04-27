@@ -3,13 +3,16 @@ import os
 import shutil
 import signal as _signal
 import subprocess
+import threading
 import time
 from pathlib import Path
 
 from fncli import cli
 
-from life.daemon.shared import _pid
 from life.daemon.__main__ import supervise
+from life.daemon.session import get_tyson_chat_id, run_session
+from life.daemon.shared import pid as _pid
+from life.daemon.spawn import fetch_wake_context
 
 _LABEL = "com.life.daemon"
 _PLIST_SRC = Path(__file__).parent.parent.parent / "scripts" / f"{_LABEL}.plist"
@@ -108,11 +111,6 @@ def daemon_restart() -> None:
 @cli("life daemon", name="nightly")
 def daemon_nightly() -> None:
     """trigger a nightly steward session now (for testing)"""
-    import threading
-
-    from life.daemon.session import get_tyson_chat_id, run_session
-    from life.daemon.spawn import fetch_wake_context
-
     if _pid():
         print("daemon is running — stop it first or let the nightly thread handle it")
         return
