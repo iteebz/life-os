@@ -1,15 +1,16 @@
-"""Steward inbox — check for messages received while idle."""
+"""Steward inbox — peek messages received while idle."""
 
 from fncli import cli
 
-from life.lib.inbox import pending_inbox
+from life.comms.events import peek_inbox
 
 
 @cli("life")
 def inbox():
     """Check for messages received while steward was idle"""
-    content = pending_inbox()
-    if content:
-        print(content)
-    else:
+    rows = peek_inbox()
+    if not rows:
         print("no pending messages")
+        return
+    for _id, ch, name, body, _ts in rows:
+        print(f"[{ch}] {name or '?'}: {(body or '')[:200]}")

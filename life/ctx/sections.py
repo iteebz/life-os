@@ -21,7 +21,7 @@ from life.lib.clock import today
 from life.lib.dates import list_dates
 from life.lib.format import format_elapsed
 from life.lib.ids import short
-from life.lib.inbox import pending_inbox
+from life.comms.events import peek_inbox
 from life.mood import get_recent_moods
 from life.steward import get_observations, get_sessions
 from life.task import get_all_tasks, get_tasks
@@ -305,8 +305,11 @@ def render_telegram() -> str:
 
 def render_inbox() -> str:
     try:
-        inbox = pending_inbox()
-        return f"INBOX:\n{inbox}" if inbox else ""
+        rows = peek_inbox()
+        if not rows:
+            return ""
+        lines = [f"  [{ch}] {name or '?'}: {(body or '')[:200]}" for _id, ch, name, body, _ts in rows]
+        return "INBOX:\n" + "\n".join(lines)
     except Exception:
         return ""
 

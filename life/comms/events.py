@@ -4,12 +4,63 @@ Every inbound, outbound, ack, resume, spawn, drop, error gets a row.
 Channel-specific shape lives in payload (json).
 """
 
+import contextlib
 import json
 import time
 from collections.abc import Mapping
 
 from life.comms.peers import resolve_or_create
 from life.lib.store import get_db
+
+
+_INBOX_LIMIT = 10
+
+
+def _select_unsurfaced(conn, limit: int = _INBOX_LIMIT):
+    return conn.execute(
+        "SELECT e.id, e.channel, p.display_name, json_extract(e.payload, '$.body'), e.ts "
+        "FROM events e LEFT JOIN peers p ON p.id = e.peer_id "
+        "WHERE e.kind = 'inbound' "
+        "AND json_extract(e.payload, '$.surfaced_at') IS NULL "
+        "ORDER BY e.ts ASC LIMIT ?",
+        (limit,),
+    ).fetchall()
+
+
+def peek_inbox() -> list[tuple[int, str, str, str, int]]:
+    """Unsurfaced inbound events (id, channel, peer_name, body, ts). No mutation."""
+    with get_db() as conn:
+        return _select_unsurfaced(conn)
+
+
+def drain_inbox() -> list[tuple[int, str, str, str, int]]:
+    """Like peek_inbox, but marks each event surfaced. Exactly-once."""
+    with get_db() as conn:
+        rows = _select_unsurfaced(conn)
+        if not rows:
+            return []
+        ids = [r[0] for r in rows]
+        placeholders = ",".join("?" for _ in ids)
+        conn.execute(
+            f"UPDATE events SET payload = json_set(payload, '$.surfaced_at', strftime('%s','now')) "  # noqa: S608
+            f"WHERE id IN ({placeholders})",
+            ids,
+        )
+    return rows
+
+
+def mark_read_for_session(chat_id: int) -> None:
+    with contextlib.suppress(Exception), get_db() as conn:
+        conn.execute(
+            "UPDATE events SET payload = json_set(payload, '$.read_at', datetime('now')) "
+            "WHERE kind = 'inbound' AND channel = 'telegram' "
+            "AND json_extract(payload, '$.read_at') IS NULL "
+            "AND peer_id IN ("
+            "  SELECT pa.peer_id FROM peer_addresses pa "
+            "  WHERE pa.channel = 'telegram' AND pa.address = ?"
+            ")",
+            (str(chat_id),),
+        )
 
 _DIRECTION_TO_KIND = {"in": "inbound", "out": "outbound"}
 

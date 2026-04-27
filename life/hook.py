@@ -62,30 +62,8 @@ def _touch(state: dict[str, str], key: str) -> None:
     state[key] = str(time.time())
 
 
-def _drain_inbox(state: dict[str, str]) -> list[tuple[str, str, str]]:
-    """Return (channel, peer_name, body) tuples for unsurfaced inbound messages.
-
-    Watermark advances atomically — each message is surfaced exactly once
-    across prompt/tool hooks.
-    """
-    last_ts = state.get("inbox_last_ts")
-    if last_ts is None:
-        state["inbox_last_ts"] = str(time.time())
-        return []
-
-    with get_db() as conn:
-        rows = conn.execute(
-            "SELECT channel, peer_name, body, timestamp FROM messages "
-            "WHERE direction = 'in' AND timestamp > ? "
-            "ORDER BY timestamp ASC LIMIT 10",
-            (float(last_ts),),
-        ).fetchall()
-
-    if not rows:
-        return []
-
-    state["inbox_last_ts"] = str(max(r[3] for r in rows))
-    return [(r[0], r[1] or "?", (r[2] or "")[:200]) for r in rows]
+def _render_inbox(rows) -> list[str]:
+    return [f"  [{ch}] {name or '?'}: {(body or '')[:200]}" for _id, ch, name, body, _ts in rows]
 
 
 def _habit_status(state: dict[str, str], parts: list[str]) -> None:
@@ -224,12 +202,9 @@ def cmd_hook_prompt() -> None:
         return
     session_id = os.environ.get("STEWARD_SESSION_ID", "unknown")
     _log_turn("in", body, session_id)
-    state = _load_state()
-    msgs = _drain_inbox(state)
-    _save_state(state)
-    if msgs:
-        lines = [f"  [{ch}] {name}: {body}" for ch, name, body in msgs]
-        print("\n[new messages received while you were working]\n" + "\n".join(lines))
+    rows = events.drain_inbox()
+    if rows:
+        print("\n[new messages received while you were working]\n" + "\n".join(_render_inbox(rows)))
     _surface_session_meta(session_id)
 
 
@@ -253,10 +228,9 @@ def cmd_hook_tool() -> None:
     state = _load_state()
     parts: list[str] = []
 
-    msgs = _drain_inbox(state)
-    if msgs:
-        lines = [f"  [{ch}] {name}: {body}" for ch, name, body in msgs]
-        parts.append("inbox:\n" + "\n".join(lines))
+    rows = events.drain_inbox()
+    if rows:
+        parts.append("inbox:\n" + "\n".join(_render_inbox(rows)))
     _habit_status(state, parts)
     _mood(state, parts)
     _active_tasks(state, parts)

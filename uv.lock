@@ -20,11 +20,6 @@ wheels = [
 ]
 
 [[package]]
-name = "atrace"
-version = "0.1.0"
-source = { git = "https://github.com/iteebz/trace.git#2593a1381230489589cae6bf5f7963f7be1d9611" }
-
-[[package]]
 name = "certifi"
 version = "2026.2.25"
 source = { registry = "https://pypi.org/simple" }
@@ -211,8 +206,8 @@ wheels = [
 
 [[package]]
 name = "fncli"
-version = "0.0.1"
-source = { git = "https://github.com/iteebz/fncli.git#4cd7273cf2c03343f433da93cf03f3028caf7832" }
+version = "0.1.1"
+source = { git = "ssh://git@github.com/iteebz/fncli.git#b4e4279ad809a219086f9f00cf7249619c4a86f8" }
 
 [[package]]
 name = "google-api-core"
@@ -429,7 +424,6 @@ name = "life-cli"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "atrace" },
     { name = "fncli" },
     { name = "google-api-python-client" },
     { name = "google-auth" },
@@ -454,8 +448,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "atrace", git = "https://github.com/iteebz/trace.git" },
-    { name = "fncli", git = "https://github.com/iteebz/fncli.git" },
+    { name = "fncli", git = "ssh://git@github.com/iteebz/fncli.git" },
     { name = "google-api-python-client", specifier = ">=2.0.0" },
     { name = "google-auth", specifier = ">=2.0.0" },
     { name = "google-auth-httplib2", specifier = ">=0.2.0" },

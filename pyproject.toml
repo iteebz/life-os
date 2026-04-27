@@ -24,7 +24,6 @@ dependencies = [
     "qrcode>=8.2",
     "telethon>=1.36.0",
     "python-dateutil>=2.9.0.post0",
-    "atrace",
 ]
 
 [dependency-groups]
@@ -100,5 +99,4 @@ testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 
 [tool.uv.sources]
-fncli = { git = "https://github.com/iteebz/fncli.git" }
-atrace = { git = "https://github.com/iteebz/trace.git" }
+fncli = { git = "ssh://git@github.com/iteebz/fncli.git" }

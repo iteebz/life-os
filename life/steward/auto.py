@@ -7,8 +7,7 @@ from pathlib import Path
 from queue import Empty, Queue
 from typing import Any
 
-from atrace import StreamParser, format_entry
-from atrace.ansi import strip as ansi_strip
+from life.steward._stream import StreamParser, ansi_strip, format_entry
 from fncli import cli
 
 from life.core.errors import LifeError

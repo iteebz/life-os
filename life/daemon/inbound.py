@@ -1,7 +1,7 @@
 """Inbound message handler — route to current steward session.
 
 Routing:
-1. Hookable session (cli with live pid)? → write inbox, hook surfaces it.
+1. Hookable session (cli with live pid)? → message already in db, hook drains.
 2. Resumable session (active/idle within warm window)? → resume turn.
 3. Neither? → spawn fresh session.
 """
@@ -16,7 +16,6 @@ from life.daemon.session import build_reply_prompt, build_tg_boot_prompt, load_h
 from life.daemon.shared import log
 from life.daemon.spawn import fetch_wake_context, spawn_claude
 from life.lib.clock import is_quiet_now
-from life.lib.inbox import write_inbox
 from life.lib.store import get_db
 from life.steward import create_session, current_session, hookable_session, set_session_idle, touch_session
 
@@ -50,14 +49,12 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> 
 
     if is_quiet_now():
         log(f"[inbound] quiet hours — queueing {channel} from {sender}")
-        write_inbox(channel, sender, body)
         _emit("queued", error="quiet_hours")
         return "queued"
 
     # 1. Hookable session (cli window open)?
     hooked = hookable_session()
     if hooked:
-        write_inbox(channel, sender, body)
         log(f"[inbound] notified hookable session {hooked.id}")
         _emit("notified", session_id=hooked.id)
         return "notified"
@@ -94,7 +91,6 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> 
         _emit("responded", session_id=db_sid)
         return "responded"
 
-    write_inbox(channel, sender, body)
     log(f"[inbound] queued {channel} message from {sender}")
     _emit("queued", error="no_chat_id")
     return "queued"

@@ -10,7 +10,7 @@ from life.daemon.commands import handle_command
 from life.daemon.shared import TG_SESSION_TIMEOUT, log
 from life.daemon.spawn import spawn_claude
 from life.lib.clock import is_quiet_now
-from life.lib.inbox import mark_read_for_session
+from life.comms.events import mark_read_for_session
 from life.lib.resolve import resolve_people_field
 from life.lib.store import get_db
 
