@@ -18,6 +18,7 @@ _CLAUDE_FLAGS: dict[str, str] = {
     # privacy / telemetry
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
     "DISABLE_ERROR_REPORTING": "1",
+    "DISABLE_TELEMETRY": "1",
     # tooling
     "DISABLE_AUTOUPDATER": "1",
     "DISABLE_INSTALLATION_CHECKS": "1",
