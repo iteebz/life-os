@@ -22,7 +22,9 @@ from life.lib.clock import is_quiet_now
 from life.lib.store import get_db
 
 INBOX_FILE = Path.home() / ".life" / "steward" / "inbox"
-WARM_AGE_SECONDS = 3300  # 55m
+# Cache TTL is 60m. Resume within this window = cached context = fast + cheap.
+# 55m gives 5m buffer before cache dies.
+WARM_AGE_SECONDS = 3300
 WARM_MAX_CHARS = 100_000
 
 
