@@ -66,7 +66,7 @@ tool call) and no per-signal error isolation. see `docs/hooks.md`.
 | cli.py | fncli entry point, dashboard fallback |
 | config.py | ~/.life/ paths, yaml config singleton |
 | core/ | errors, models, types |
-| daemon/ | launchd daemon: run, spawn, session, morning/nightly, inbound. see `docs/daemon.md` |
+| daemon/ | launchd daemon: run, spawn, session, morning/nightly, inbound. see `docs/daemon.md`, `docs/sessions.md` |
 | steward/ | agent logic: auto, chat, wake, improve, inbox, log, close |
 | store/ | sqlite persistence: connection, query |
 | hook.py | PreToolUse context injection. see `docs/hooks.md` |
