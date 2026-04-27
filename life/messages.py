@@ -18,7 +18,7 @@ from typing import Any
 
 from fncli import cli
 
-from life.comms.messages import signal as _signal
+from life.comms.messages import signal
 from life.comms.messages import telegram as _tg
 from life.comms.messages.telegram_sync import save_credentials, sync
 from life.core.errors import LifeError, ValidationError
@@ -54,7 +54,7 @@ def _resolve_peer(name: str) -> tuple[str | None, str | None]:
         return str(tg_id), "telegram"
 
     # people profile: signal
-    sig = _signal.resolve_contact(name)
+    sig = signal.resolve_contact(name)
     if sig != name:  # resolve_contact returns input unchanged on miss
         return sig, "signal"
 
@@ -251,7 +251,7 @@ def send_cmd(person: str, text: str, channel: str = ""):
     if use_channel == "telegram":
         success, result = _tg.send(int(peer_id), text)
     elif use_channel == "signal":
-        success, result = _signal.send(peer_id, text)
+        success, result = signal.send(peer_id, text)
     else:
         raise ValidationError(f"unknown channel '{use_channel}' for {person}")
 

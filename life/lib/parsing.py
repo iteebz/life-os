@@ -1,6 +1,6 @@
 import re
 
-from . import clock as _clock
+from . import clock
 from .dates import parse_due_date
 
 
@@ -44,8 +44,8 @@ def parse_due_and_item(args: list[str], remove: bool = False) -> tuple[str | Non
         return None, None, " ".join(item_args)
 
     if item_args and item_args[0].lower() == "now":
-        _now = _clock.now()
-        date_str = _clock.today().isoformat()
+        _now = clock.now()
+        date_str = clock.today().isoformat()
         time_str = _now.strftime("%H:%M")
         item_args = item_args[1:]
     else:
@@ -61,19 +61,19 @@ def parse_due_and_item(args: list[str], remove: bool = False) -> tuple[str | Non
                 time_str = parsed_time
                 item_args = item_args[1:]
                 if not date_str:
-                    date_str = _clock.today().isoformat()
+                    date_str = clock.today().isoformat()
             elif not date_str:
                 parsed_time2 = _try_parse_time(item_args[0])
                 if parsed_time2:
                     time_str = parsed_time2
-                    date_str = _clock.today().isoformat()
+                    date_str = clock.today().isoformat()
                     item_args = item_args[1:]
 
         if not date_str and not time_str and len(item_args) > 1:
             last = item_args[-1]
             if last.lower() == "now":
-                _now = _clock.now()
-                date_str = _clock.today().isoformat()
+                _now = clock.now()
+                date_str = clock.today().isoformat()
                 time_str = _now.strftime("%H:%M")
                 item_args = item_args[:-1]
             else:
@@ -85,7 +85,7 @@ def parse_due_and_item(args: list[str], remove: bool = False) -> tuple[str | Non
                     parsed_time = _try_parse_time(last)
                     if parsed_time:
                         time_str = parsed_time
-                        date_str = _clock.today().isoformat()
+                        date_str = clock.today().isoformat()
                         item_args = item_args[:-1]
 
     if not item_args:
@@ -122,6 +122,6 @@ def parse_due_datetime(due_str: str) -> tuple[str | None, str | None]:
         elif not date_str:
             time_str = _try_parse_time(parts[0])
             if time_str:
-                date_str = _clock.today().isoformat()
+                date_str = clock.today().isoformat()
 
     return date_str, time_str

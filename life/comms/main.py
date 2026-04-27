@@ -2,11 +2,9 @@ import sys
 
 import fncli
 
-import life.accounts as _accounts
-import life.comms.messages.signal as _signal
-import life.email as _email
-
-_ = (_accounts, _email, _signal)
+import life.accounts  # pyright: ignore[reportUnusedImport]
+import life.comms.messages.signal  # pyright: ignore[reportUnusedImport]
+import life.email  # noqa: F401  # pyright: ignore[reportUnusedImport]
 
 
 def main():

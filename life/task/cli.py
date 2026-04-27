@@ -1,5 +1,5 @@
-import json as _json
-from datetime import date as _date
+import json
+from datetime import date
 from typing import Any
 
 from fncli import UsageError, cli
@@ -8,7 +8,7 @@ from life.core.errors import ConflictError, ValidationError
 from life.core.types import UNSET
 from life.habit import update_habit
 from life.lib import ansi, clock
-from life.lib.clock import today as _today
+from life.lib.clock import today
 from life.lib.format import format_status, format_task
 from life.lib.parsing import parse_due_and_item
 from life.lib.resolve import resolve_item, resolve_task
@@ -31,7 +31,7 @@ from .domain import (
 
 
 def _fmt_date_label(date_str: str) -> str:
-    d = _date.fromisoformat(date_str)
+    d = date.fromisoformat(date_str)
     delta = (d - clock.today()).days
     if delta == 0:
         return "today"
@@ -184,16 +184,16 @@ def set_cmd(
     print(f"{prefix}{format_status('\u25a1', updated.content, updated.id)}")
 
 
-@cli("life", flags={"json": ["-j"]})
-def show(ref: list[str], json: bool = False) -> None:
+@cli("life", flags={"as_json": ["-j", "--json"]})
+def show(ref: list[str], as_json: bool = False) -> None:
     """Show full task detail"""
     item_ref = " ".join(ref) if ref else ""
     if not item_ref:
         raise UsageError("Usage: life show <task>")
     t = resolve_task(item_ref)
-    if json:
+    if as_json:
         print(
-            _json.dumps(
+            json.dumps(
                 {
                     "id": t.id,
                     "content": t.content,
@@ -279,7 +279,7 @@ def schedule(ref: list[str], remove: bool = False) -> None:
 def unschedule(ref: list[str] | None = None, overdue: bool = False) -> None:
     """Clear schedule from tasks, returning them to backlog"""
     if overdue:
-        today_date = _today()
+        today_date = today()
         tasks = [t for t in get_all_tasks() if t.scheduled_date and t.scheduled_date < today_date]
         if not tasks:
             print("No overdue tasks.")

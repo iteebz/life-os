@@ -1,4 +1,4 @@
-import json as _json
+import json
 from datetime import date, datetime, timedelta
 
 from fncli import UsageError, cli
@@ -108,8 +108,8 @@ def dashboard() -> None:
     print(render_dashboard(items, today_breakdown, today_items=today_items))
 
 
-@cli("life", flags={"json": ["-j"]})
-def status(json: bool = False) -> None:
+@cli("life", flags={"as_json": ["-j", "--json"]})
+def status(as_json: bool = False) -> None:
     """System health check"""
     tasks = get_tasks()
     all_tasks = get_all_tasks()
@@ -128,12 +128,12 @@ def status(json: bool = False) -> None:
     lc = last_completion()
     last_check_str = format_elapsed(lc, now()) if lc else "never"
 
-    if json:
+    if as_json:
         overdue_ids = {t.id for t in overdue}
         hot_overdue = overdue[:3]
         hot_janice = [t for t in janice if t.id not in overdue_ids][:3]
         print(
-            _json.dumps(
+            json.dumps(
                 {
                     "tasks": len(tasks),
                     "habits": len(habits),
@@ -248,8 +248,8 @@ def momentum() -> None:
     print(render_momentum(weekly_momentum()))
 
 
-@cli("life", flags={"json": ["-j"]})
-def ls(tag: str | None = None, overdue: bool = False, json: bool = False) -> None:
+@cli("life", flags={"as_json": ["-j", "--json"]})
+def ls(tag: str | None = None, overdue: bool = False, as_json: bool = False) -> None:
     """List tasks with optional filters (--tag <tag>, --overdue, --json)"""
     tasks = get_tasks()
     if tag:
@@ -257,9 +257,9 @@ def ls(tag: str | None = None, overdue: bool = False, json: bool = False) -> Non
     if overdue:
         today_date = today()
         tasks = [t for t in tasks if t.scheduled_date and t.scheduled_date < today_date]
-    if json:
+    if as_json:
         print(
-            _json.dumps(
+            json.dumps(
                 [
                     {
                         "id": t.id,

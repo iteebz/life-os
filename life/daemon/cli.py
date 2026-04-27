@@ -11,7 +11,7 @@ from fncli import cli
 
 from life.daemon.__main__ import supervise
 from life.daemon.session import get_tyson_chat_id, run_session
-from life.daemon.shared import pid as _pid
+from life.daemon.shared import pid
 from life.daemon.spawn import fetch_wake_context
 
 _LABEL = "com.life.daemon"
@@ -40,7 +40,7 @@ def _kill_supervisor(p: int) -> None:
         os.killpg(p, _signal.SIGTERM)
     for _ in range(50):
         time.sleep(0.1)
-        if _pid() is None:
+        if pid() is None:
             return
     with contextlib.suppress(ProcessLookupError):
         os.killpg(p, _signal.SIGKILL)
@@ -55,14 +55,14 @@ def daemon_run() -> None:
 @cli("life daemon", name="start")
 def daemon_start() -> None:
     """start daemon"""
-    existing = _pid()
+    existing = pid()
     if existing:
         print(f"already running (pid {existing})")
         return
     _launchd_start()
     for _ in range(30):
         time.sleep(0.1)
-        if p := _pid():
+        if p := pid():
             print(f"started (pid {p})")
             return
     print("started (pid unknown)")
@@ -71,7 +71,7 @@ def daemon_start() -> None:
 @cli("life daemon", name="stop")
 def daemon_stop() -> None:
     """stop daemon"""
-    p = _pid()
+    p = pid()
     if p is None and not _launchd_loaded():
         print("not running")
         return
@@ -84,7 +84,7 @@ def daemon_stop() -> None:
 @cli("life daemon", name="status")
 def daemon_status() -> None:
     """show daemon status"""
-    p = _pid()
+    p = pid()
     loaded = _launchd_loaded()
     launchd_str = "loaded" if loaded else "not loaded"
     if p:
@@ -96,13 +96,13 @@ def daemon_status() -> None:
 @cli("life daemon", name="restart")
 def daemon_restart() -> None:
     """restart daemon"""
-    if p := _pid():
+    if p := pid():
         _kill_supervisor(p)
     _launchd_stop()
     _launchd_start()
     for _ in range(30):
         time.sleep(0.1)
-        if new_p := _pid():
+        if new_p := pid():
             print(f"restarted (pid {new_p})")
             return
     print("restarted (pid unknown)")
@@ -111,7 +111,7 @@ def daemon_restart() -> None:
 @cli("life daemon", name="nightly")
 def daemon_nightly() -> None:
     """trigger a nightly steward session now (for testing)"""
-    if _pid():
+    if pid():
         print("daemon is running — stop it first or let the nightly thread handle it")
         return
 

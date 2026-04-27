@@ -1,3 +1,1 @@
-from life.daemon import cli as _cli
-
-_ = _cli
+from life.daemon import cli  # noqa: F401  # pyright: ignore[reportUnusedImport]

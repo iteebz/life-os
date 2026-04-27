@@ -1,4 +1,4 @@
-import uuid as _uuid
+import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from difflib import get_close_matches
@@ -21,7 +21,7 @@ class Achievement:
 
 
 def add_achievement(name: str, tags: str | None = None) -> str:
-    a_uuid = _uuid.uuid4().hex[:8]
+    a_uuid = uuid.uuid4().hex[:8]
     with get_db() as conn:
         conn.execute(
             "INSERT INTO achievements (id, name, tags) VALUES (?, ?, ?)",

@@ -6,12 +6,10 @@ from pathlib import Path
 import fncli
 import pytest
 
-import life.cli
 import life.config
 import life.lib.clock as clock
 from life import db
 from life.core.errors import LifeError
-from life.dash import dashboard
 from life.lib.store import configure as configure_store
 from life.store.connection import reset_for_testing
 
@@ -27,8 +25,11 @@ def invoke(argv: list[str]) -> fncli.Result:
     global _discovered
 
     if not _discovered:
+        import life.cli  # noqa: PLC0415, F401 — side-effect: registers CLI commands; deferred to avoid circular
         fncli.autodiscover(Path(__file__).parent.parent / "life", "life")
         _discovered = True
+
+    from life.dash import dashboard  # noqa: PLC0415 — same circular as above
 
     _dashboard = getattr(dashboard, "__wrapped__", dashboard)
 

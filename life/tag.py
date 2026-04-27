@@ -6,7 +6,6 @@ from fncli import cli
 from .core.models import Habit, Task
 from .lib import ansi
 from .lib.converters import hydrate_tags_onto, row_to_habit, row_to_task
-from .lib.resolve import resolve_item_exact
 from .lib.store import get_db
 
 T = TypeVar("T", Task, Habit)
@@ -146,6 +145,7 @@ def load_tags_for_habits(
 @cli("life", name="tag", flags={"remove": ["-r"]})
 def tag_cmd(ref: str, tag_name: str, remove: bool = False) -> None:
     """Add or remove a tag from an item (-r to remove)"""
+    from .lib.resolve import resolve_item_exact  # noqa: PLC0415 — circular: tag→resolve→task→tag
     task, habit = resolve_item_exact(ref)
     if task:
         if remove:

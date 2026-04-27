@@ -1,5 +1,5 @@
-import json as _json
-import uuid as _uuid
+import json
+import uuid
 from dataclasses import dataclass
 from datetime import date, datetime
 
@@ -124,12 +124,12 @@ def update_session_followups(session_id: int, follow_ups: list[str]) -> None:
     with get_db() as conn:
         conn.execute(
             "UPDATE sessions SET follow_ups = ? WHERE id = ?",
-            (_json.dumps(follow_ups), session_id),
+            (json.dumps(follow_ups), session_id),
         )
 
 
 def add_observation(body: str, tag: str | None = None, about_date: date | None = None) -> str:
-    obs_id = str(_uuid.uuid4())
+    obs_id = str(uuid.uuid4())
     with get_db() as conn:
         conn.execute(
             "INSERT INTO observations (id, body, tag, about_date) VALUES (?, ?, ?, ?)",
@@ -201,7 +201,7 @@ def get_sessions(limit: int = 10) -> list[StewardSession]:
                 name=row[4],
                 model=row[5],
                 source=row[6],
-                follow_ups=_json.loads(row[7]) if row[7] else None,
+                follow_ups=json.loads(row[7]) if row[7] else None,
             )
             for row in rows
         ]

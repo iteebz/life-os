@@ -1,4 +1,4 @@
-import uuid as _uuid
+import uuid
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -15,7 +15,7 @@ class Improvement:
 
 
 def add_improvement(body: str) -> str:
-    imp_id = str(_uuid.uuid4())
+    imp_id = str(uuid.uuid4())
     with get_db() as conn:
         conn.execute("INSERT INTO improvements (id, body) VALUES (?, ?)", (imp_id, body))
     return imp_id
