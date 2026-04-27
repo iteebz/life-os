@@ -15,13 +15,6 @@ from life.daemon.shared import log
 from life.daemon.spawn import fetch_wake_context, spawn_claude
 from life.lib.clock import is_quiet_now
 from life.lib.store import get_db
-from life.steward import (
-    create_session,
-    current_session,
-    hookable_session,
-    set_session_idle,
-    touch_session,
-)
 
 INBOX_FILE = Path.home() / ".life" / "steward" / "inbox"
 
@@ -74,8 +67,16 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> 
         _emit("queued", error="quiet_hours")
         return "queued"
 
+    from life.steward import (
+        create_session as _create_session,
+        current_session as _current_session,
+        hookable_session as _hookable_session,
+        set_session_idle as _set_session_idle,
+        touch_session as _touch_session,
+    )
+
     # 1. Hookable session (cli window open)?
-    hooked = hookable_session()
+    hooked = _hookable_session()
     if hooked:
         _write_inbox(channel, sender, body)
         log(f"[inbound] notified hookable session {hooked.id}")
@@ -83,13 +84,13 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> 
         return "notified"
 
     # 2. Resumable session?
-    current = current_session()
+    current = _current_session()
     if current and current.claude_session_id and channel == "telegram" and chat_id is not None:
         log(f"[inbound] resuming session {current.id} ({current.claude_session_id[:8]})")
-        touch_session(current.id)
+        _touch_session(current.id)
         response = spawn_claude(body, resume_session_id=current.claude_session_id)
         tg.send(chat_id, response)
-        set_session_idle(current.id)
+        _set_session_idle(current.id)
         _emit("resumed", session_id=current.id)
         return "resumed"
 
@@ -102,14 +103,14 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> 
             context = fetch_wake_context()
             prompt = build_tg_boot_prompt(body, sender, context)
 
-        session_id = create_session(
+        session_id = _create_session(
             summary=f"(tg) {sender}",
             source="tg",
             name=f"tg {sender}",
         )
         response = spawn_claude(prompt)
         tg.send(chat_id, response)
-        set_session_idle(session_id)
+        _set_session_idle(session_id)
         log(f"[inbound] new session {session_id}, responded ({len(response)} chars)")
         _emit("responded", session_id=session_id)
         return "responded"
@@ -177,15 +178,17 @@ def catch_up(chat_id: int) -> str:
         f"Start with 🌱. Short and actionable."
     )
 
-    session_id = create_session(
+    from life.steward import create_session as _cs, set_session_idle as _ssi
+
+    sid = _cs(
         summary=f"(catch-up) {len(rows)} msgs",
         source="daemon",
         name="catch-up",
     )
-    log(f"[catch-up] {len(rows)} unread message(s), session {session_id}")
+    log(f"[catch-up] {len(rows)} unread message(s), session {sid}")
     response = spawn_claude(prompt)
     tg.send(chat_id, response)
-    set_session_idle(session_id)
+    _ssi(sid)
 
     _mark_read(msg_ids)
     log(f"[catch-up] responded ({len(response)} chars), marked {len(msg_ids)} read")
