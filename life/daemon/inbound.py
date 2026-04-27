@@ -199,9 +199,13 @@ def mark_read_for_session(chat_id: int) -> None:
     try:
         with get_db() as conn:
             conn.execute(
-                "UPDATE messages SET read_at = datetime('now') "
-                "WHERE channel = 'telegram' AND direction = 'in' "
-                "AND read_at IS NULL AND peer = ?",
+                "UPDATE events SET payload = json_set(payload, '$.read_at', datetime('now')) "
+                "WHERE kind = 'inbound' AND channel = 'telegram' "
+                "AND json_extract(payload, '$.read_at') IS NULL "
+                "AND peer_id IN ("
+                "  SELECT pa.peer_id FROM peer_addresses pa "
+                "  WHERE pa.channel = 'telegram' AND pa.address = ?"
+                ")",
                 (str(chat_id),),
             )
     except Exception:
@@ -215,8 +219,9 @@ def _mark_read(msg_ids: list[str]) -> None:
         with get_db() as conn:
             placeholders = ",".join("?" for _ in msg_ids)
             conn.execute(
-                f"UPDATE messages SET read_at = datetime('now') "  # noqa: S608
-                f"WHERE id IN ({placeholders})",
+                f"UPDATE events SET payload = json_set(payload, '$.read_at', datetime('now')) "  # noqa: S608
+                f"WHERE kind = 'inbound' "
+                f"AND json_extract(payload, '$.raw_id') IN ({placeholders})",
                 msg_ids,
             )
     except Exception:
