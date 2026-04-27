@@ -8,24 +8,12 @@ from pathlib import Path
 
 from fncli import cli
 
+from life.daemon.shared import _pid
+from life.daemon.__main__ import supervise
+
 _LABEL = "com.life.daemon"
 _PLIST_SRC = Path(__file__).parent.parent.parent / "scripts" / f"{_LABEL}.plist"
 _PLIST_DST = Path.home() / "Library" / "LaunchAgents" / f"{_LABEL}.plist"
-_LOCK_FILE = Path.home() / ".life" / "daemon.lock"
-
-
-def _pid() -> int | None:
-    if not _LOCK_FILE.exists():
-        return None
-    try:
-        raw = _LOCK_FILE.read_text().strip()
-        if not raw.isdigit():
-            return None
-        p = int(raw)
-        os.kill(p, 0)
-        return p
-    except (OSError, ValueError):
-        return None
 
 
 def _launchd_loaded() -> bool:
@@ -58,8 +46,6 @@ def _kill_supervisor(p: int) -> None:
 @cli("life daemon", name="run")
 def daemon_run() -> None:
     """supervisor entry point — called by launchd, do not invoke directly"""
-    from life.daemon.__main__ import supervise
-
     supervise()
 
 
@@ -121,7 +107,38 @@ def daemon_restart() -> None:
 
 @cli("life daemon", name="nightly")
 def daemon_nightly() -> None:
-    """trigger a steward session now (for testing)"""
-    from life.daemon.nightly import trigger_now
+    """trigger a nightly steward session now (for testing)"""
+    import threading
 
-    trigger_now()
+    from life.daemon.session import get_tyson_chat_id, run_session
+    from life.daemon.spawn import fetch_wake_context
+
+    if _pid():
+        print("daemon is running — stop it first or let the nightly thread handle it")
+        return
+
+    chat_id = get_tyson_chat_id()
+    if not chat_id:
+        print("no telegram chat_id for tyson")
+        return
+
+    stop = threading.Event()
+    claimed = threading.Event()
+    print(f"triggering nightly session (chat_id={chat_id})")
+
+    wake = fetch_wake_context()
+    opener = (
+        f"Current life state:\n{wake}\n\n"
+        "<brief>\n"
+        "Objective: evening brief via Telegram. It's 8pm.\n"
+        "Good evening brief: what moved today, what's still open, one thing to close if he has energy. "
+        "Honest, not cheerful. Start with 🌱. Plain text only. 2-3 sentences.\n"
+        "</brief>"
+    )
+
+    try:
+        run_session(chat_id, opener, stop, claimed, label="nightly")
+    except KeyboardInterrupt:
+        stop.set()
+        claimed.clear()
+        print("\nsession interrupted")
