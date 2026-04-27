@@ -64,7 +64,7 @@ _LEGACY_MIGRATIONS = {
 
 
 def _schema_sql() -> str:
-    return (Path(__file__).parent / "schema.sql").read_text()
+    return (Path(__file__).parent.parent / "schema.sql").read_text()
 
 
 def _create_backup(db_path: Path) -> Path:

@@ -6,12 +6,12 @@ from pathlib import Path
 import fncli
 import pytest
 
-import life.config
+import life.core.config as life_config
 import life.lib.clock as clock
-from life import db
 from life.core.errors import LifeError
 from life.lib.store import configure as configure_store
 from life.store.connection import reset_for_testing
+from life.store.migrations import init as db_init
 
 _discovered = False
 
@@ -69,17 +69,16 @@ def tmp_life_dir(monkeypatch, tmp_path):
 
     monkeypatch.setenv("LIFE_DIR", str(tmp_path))
 
-    monkeypatch.setattr("life.config.LIFE_DIR", tmp_path)
-    monkeypatch.setattr("life.config.DB_PATH", db_path)
-    monkeypatch.setattr("life.config.CONFIG_PATH", cfg_path)
-    monkeypatch.setattr("life.config.BACKUP_DIR", tmp_path / "backups")
+    monkeypatch.setattr("life.core.config.LIFE_DIR", tmp_path)
+    monkeypatch.setattr("life.core.config.DB_PATH", db_path)
+    monkeypatch.setattr("life.core.config.CONFIG_PATH", cfg_path)
+    monkeypatch.setattr("life.core.config.BACKUP_DIR", tmp_path / "backups")
 
-    life.config.Config._instance = None
-    life.config.Config._data = None
-    monkeypatch.setattr("life.config._config", life.config.Config())
+    life_config.Config._instance = None
+    monkeypatch.setattr("life.core.config._config", life_config.Config())
 
     configure_store(db_path)
-    db.init(db_path=db_path)
+    db_init(db_path=db_path)
     yield tmp_path
     reset_for_testing()
 

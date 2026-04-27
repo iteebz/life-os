@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from life import db
+from life.store.migrations import init as db_init
 from life.core.errors import StoreIntegrityError
 from life.core.models import Habit, Task, TaskMutation
 from life.lib.store import get_db
@@ -26,7 +26,7 @@ def test_init_creates_schema(tmp_life_dir):
 
 def test_init_creates_indexes(tmp_life_dir):
     """Verify that db.init() creates the expected indexes."""
-    db.init()
+    db_init()
     with get_db() as conn:
         cursor = conn.cursor()
         indexes = cursor.execute("SELECT name FROM sqlite_master WHERE type='index'").fetchall()
@@ -70,7 +70,7 @@ def test_get_db_auto_rollback(tmp_life_dir):
 
 
 def test_db_init(tmp_life_dir):
-    db.init()
+    db_init()
     assert (tmp_life_dir / "store.db").exists()
 
 
