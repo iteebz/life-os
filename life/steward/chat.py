@@ -11,8 +11,6 @@ from pathlib import Path
 from fncli import cli
 
 from life.ctx.assemble import build_chat_prompt
-from life.lib import ansi
-from life.lib.format import format_elapsed
 from life.lib.providers.claude import build_env
 
 from . import (
@@ -184,7 +182,6 @@ def chat(model: str | None = None, name: str | None = None, opus: bool = False, 
         source=source,
     )
 
-
     print(f"session {db_id} → {session_id[:8]}  model={model}  source={source}{'  raw' if raw else ''}")
     rc = _launch(model, session_id, name=label, source=source, db_session_id=db_id, raw=raw)
     update_session_summary(db_id, f"(closed) {label}")
@@ -192,26 +189,11 @@ def chat(model: str | None = None, name: str | None = None, opus: bool = False, 
 
 
 @cli("steward", flags={"ref": [], "model": ["-m", "--model"]})
-def resume(ref: str | None = None, model: str | None = None):
-    """Resume a previous session, or list resumable sessions"""
+def resume(ref: str, model: str | None = None):
+    """Resume a session by DB id or session UUID prefix"""
     sessions = get_sessions(limit=20)
     resumable = [s for s in sessions if s.claude_session_id]
 
-    if not resumable:
-        print("no resumable sessions")
-        return 1
-
-    if ref is None:
-        now = datetime.now()
-        for s in resumable[:10]:
-            rel = format_elapsed(s.logged_at, now)
-            model_str = f"  {s.model}" if s.model else ""
-            name_str = s.name or ""
-            sid = s.claude_session_id[:8] if s.claude_session_id else ""
-            print(f"  {ansi.muted(str(s.id)):>4}  {sid}  {rel:<10}  {name_str}{model_str}")
-        return 0
-
-    # resolve by DB id or session UUID prefix
     target = None
     for s in resumable:
         if str(s.id) == ref:
@@ -231,20 +213,3 @@ def resume(ref: str | None = None, model: str | None = None):
     return _launch(m, target.claude_session_id, name=target.name, resume=True, source=source, db_session_id=target.id)
 
 
-@cli("steward", name="continue", aliases=["c"])
-def continue_session():
-    """Continue the most recent steward session"""
-    sessions = get_sessions(limit=5)
-    resumable = [s for s in sessions if s.claude_session_id]
-
-    if not resumable:
-        print("no sessions to continue")
-        return 1
-
-    target = resumable[0]
-    m = target.model or DEFAULT_MODEL
-    source = os.environ.get("STEWARD_SOURCE", "cli")
-    if not target.claude_session_id:
-        raise ValueError(f"session {target.id} has no claude_session_id")
-    print(f"continuing {target.id} → {target.claude_session_id[:8]}  model={m}  source={source}")
-    return _launch(m, target.claude_session_id, name=target.name, resume=True, source=source, db_session_id=target.id)
