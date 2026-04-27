@@ -264,10 +264,24 @@ def wake():
     try:
         from life.comms.messages.telegram import get_history
 
-        recent_tg = get_history(limit=10, hours=24)
-        if recent_tg:
-            print("\nTELEGRAM (24h):")
-            for m in reversed(recent_tg):
+        # show messages since last operator (inbound) message, not fixed window
+        all_recent = get_history(limit=30, hours=48)
+        last_operator_idx = None
+        for i, m in enumerate(all_recent):
+            if m["direction"] == "in":
+                last_operator_idx = i
+                break
+        # show everything since last operator message (inclusive), capped at 15
+        if last_operator_idx is not None:
+            show = list(reversed(all_recent[: last_operator_idx + 1]))[-15:]
+        elif all_recent:
+            show = list(reversed(all_recent[:5]))
+        else:
+            show = []
+
+        if show:
+            print("\nTELEGRAM:")
+            for m in show:
                 direction = "→" if m["direction"] == "out" else "←"
                 name = m["peer_name"] or m["peer"]
                 ts_val = m["timestamp"]

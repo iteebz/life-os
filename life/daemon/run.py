@@ -2,6 +2,7 @@ import os
 import signal
 import threading
 import time
+from pathlib import Path
 
 from life.daemon.shared import (
     DAEMON_DIR,
@@ -36,12 +37,21 @@ def _load_allowed_tg_chats() -> set[int]:
     return chat_ids
 
 
+def _load_memory() -> str:
+    memory_path = Path.home() / "life" / "steward" / "memory.md"
+    if memory_path.exists():
+        return memory_path.read_text().strip()
+    return ""
+
+
 def _build_tg_boot_prompt(message: str, sender_name: str, context: str) -> str:
+    memory = _load_memory()
+    memory_block = f"\n\nSteward memory:\n{memory}\n" if memory else ""
     return f"""\
 You are Steward responding via Telegram. New session — run boot sequence first.
 
 Current life state:
-{context}
+{context}{memory_block}
 
 Sender: {sender_name}
 Message: {message}

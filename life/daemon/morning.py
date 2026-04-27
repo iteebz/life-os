@@ -26,10 +26,19 @@ def _gather_nudge_context() -> str:
     return "Pending nudges:\n" + "\n".join(lines)
 
 
+def _load_memory() -> str:
+    from pathlib import Path
+    memory_path = Path.home() / "life" / "steward" / "memory.md"
+    return memory_path.read_text().strip() if memory_path.exists() else ""
+
+
 def _build_opener() -> str:
     wake = fetch_wake_context()
     nudges = _gather_nudge_context()
+    memory = _load_memory()
     parts = [f"Current life state:\n{wake}"]
+    if memory:
+        parts.append(f"\nSteward memory:\n{memory}")
     if nudges:
         parts.append(f"\n{nudges}")
     parts.append(
