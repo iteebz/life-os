@@ -1,5 +1,6 @@
 """steward — interactive sessions with tracking. Default command."""
 
+import json
 import os
 import subprocess
 import uuid
@@ -11,14 +12,27 @@ from fncli import cli
 from life.lib import ansi
 from life.lib.format import format_elapsed
 
-from . import add_session, get_sessions, update_session_summary
+from . import add_session, add_spawn, close_spawn, get_sessions, update_session_followups, update_session_summary
 
 LIFE_DIR = Path.home() / "life"
 TOOLS = "Bash,Read,Write,Edit,Grep,Glob,WebFetch,WebSearch"
 DEFAULT_MODEL = "sonnet"
 
+# in-process state; rebuilt from DB on resume across process boundaries
 _session_start: datetime | None = None
 _followups: list[datetime] = []
+_db_session_id: int | None = None
+
+
+def _load_session_state(db_id: int) -> None:
+    """Reconstruct timeline from DB for resume across process boundaries."""
+    global _session_start, _followups, _db_session_id
+    sessions = get_sessions(limit=50)
+    match = next((s for s in sessions if s.id == db_id), None)
+    if match:
+        _session_start = match.logged_at
+        _followups = [datetime.fromisoformat(ts) for ts in (match.follow_ups or [])]
+    _db_session_id = db_id
 
 
 def _session_meta_fragment(source: str) -> str:
@@ -41,12 +55,23 @@ def _launch(
     name: str | None = None,
     resume: bool = False,
     source: str = "cli",
+    db_session_id: int | None = None,
 ) -> int:
-    global _session_start
-    if _session_start is None:
-        _session_start = datetime.now()
-    else:
+    global _session_start, _db_session_id
+
+    if resume and db_session_id is not None:
+        _load_session_state(db_session_id)
         _followups.append(datetime.now())
+        update_session_followups(db_session_id, [ts.isoformat() for ts in _followups])
+    else:
+        if _session_start is None:
+            _session_start = datetime.now()
+        else:
+            _followups.append(datetime.now())
+            if db_session_id is not None:
+                update_session_followups(db_session_id, [ts.isoformat() for ts in _followups])
+
+    spawn_id = add_spawn(mode="chat", source=source, session_id=db_session_id)
 
     cmd = [
         "claude",
@@ -66,12 +91,15 @@ def _launch(
 
     env = build_env("chat")
     env["STEWARD_SESSION_ID"] = session_id
+    env["STEWARD_SPAWN_ID"] = str(spawn_id)
     env["GIT_AUTHOR_NAME"] = "steward"
     env["GIT_AUTHOR_EMAIL"] = "steward@life.local"
     env["GIT_COMMITTER_NAME"] = "steward"
     env["GIT_COMMITTER_EMAIL"] = "steward@life.local"
 
-    return subprocess.call(cmd, cwd=LIFE_DIR, env=env)
+    rc = subprocess.call(cmd, cwd=LIFE_DIR, env=env)
+    close_spawn(spawn_id, status="complete" if rc == 0 else "error")
+    return rc
 
 
 @cli("steward", default=True, flags={"model": ["-m", "--model"], "name": ["-n", "--name"], "opus": ["--opus"]})
@@ -92,7 +120,7 @@ def chat(model: str | None = None, name: str | None = None, opus: bool = False):
 
     source = os.environ.get("STEWARD_SOURCE", "cli")
     print(f"session {db_id} → {session_id[:8]}  model={model}  source={source}")
-    rc = _launch(model, session_id, name=label, source=source)
+    rc = _launch(model, session_id, name=label, source=source, db_session_id=db_id)
     update_session_summary(db_id, f"(closed) {label}")
     return rc
 
@@ -134,7 +162,7 @@ def resume(ref: str | None = None, model: str | None = None):
     m = model or target.model or DEFAULT_MODEL
     source = os.environ.get("STEWARD_SOURCE", "cli")
     print(f"resuming {target.id} → {target.claude_session_id[:8]}  model={m}  source={source}")
-    return _launch(m, target.claude_session_id, name=target.name, resume=True, source=source)
+    return _launch(m, target.claude_session_id, name=target.name, resume=True, source=source, db_session_id=target.id)
 
 
 @cli("steward", name="continue", aliases=["c"])
@@ -152,4 +180,4 @@ def continue_session():
     source = os.environ.get("STEWARD_SOURCE", "cli")
     assert target.claude_session_id
     print(f"continuing {target.id} → {target.claude_session_id[:8]}  model={m}  source={source}")
-    return _launch(m, target.claude_session_id, name=target.name, resume=True, source=source)
+    return _launch(m, target.claude_session_id, name=target.name, resume=True, source=source, db_session_id=target.id)
