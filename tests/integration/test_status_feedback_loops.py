@@ -1,6 +1,6 @@
 from datetime import date, datetime, timedelta
 
-import life.config
+import life.core.config
 from life.lib.store import get_db
 from tests.conftest import invoke
 

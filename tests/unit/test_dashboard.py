@@ -4,7 +4,7 @@ from life.dash import (
     get_today_breakdown,
     get_today_completed,
 )
-from life.habit import add_habit, get_habits, toggle_check
+from life.domain.habit import add_habit, get_habits, toggle_check
 from life.lib.store import get_db
 from life.task import add_task, check_task, get_tasks
 

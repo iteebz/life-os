@@ -1,4 +1,4 @@
-from life.loop import LoopState, require_real_world_closure, update_loop_state
+from life.domain.loop import LoopState, require_real_world_closure, update_loop_state
 
 
 def test_gate_triggers_after_two_code_only_sessions():

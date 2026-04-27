@@ -15,7 +15,7 @@ LIFE_ROOT = Path(__file__).parent.parent.parent / "life"
 SQLITE3_ALLOWED = {
     "life/store/connection.py",
     "life/store/sqlite.py",
-    "life/db.py",
+    "life/store/migrations.py",
     "life/backup.py",
     "life/health.py",  # uses :memory: for analysis
 }

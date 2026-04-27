@@ -1,6 +1,6 @@
 import sqlite3
 
-from life import config
+from life.core import config
 from life.backup import _is_snapshot_dir, _validate_backup, run_backup, run_prune
 from life.task import add_task
 
@@ -59,7 +59,7 @@ def test_backup_second_has_delta(tmp_life_dir):
 
 
 def test_backup_missing_source_returns_error(tmp_life_dir, monkeypatch):
-    monkeypatch.setattr("life.config.DB_PATH", tmp_life_dir / "nonexistent.db")
+    monkeypatch.setattr("life.core.config.DB_PATH", tmp_life_dir / "nonexistent.db")
     result = run_backup()
     assert result["path"] is None
     assert "source db missing" in result["error"]

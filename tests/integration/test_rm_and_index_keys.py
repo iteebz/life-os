@@ -1,4 +1,4 @@
-from life.habit import add_habit
+from life.domain.habit import add_habit
 from life.task import add_task
 from tests.conftest import invoke
 
