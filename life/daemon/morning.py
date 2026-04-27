@@ -1,11 +1,11 @@
 """Morning + nightly steward sessions via Telegram.
 
 Morning: fires once at 8am unconditionally.
-Nightly: fires once at 9pm ONLY if tyson was active today (sent a telegram message).
+Nightly: fires once at 8pm ONLY if tyson was active today (sent a telegram message).
 """
 
-import time
 import threading
+import time
 from datetime import datetime
 
 from life.daemon.session import get_tyson_chat_id, run_session
