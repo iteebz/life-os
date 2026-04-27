@@ -15,7 +15,7 @@ from life.lib import ansi
 from life.lib.format import format_elapsed
 from life.lib.providers.claude import build_env
 
-from . import add_session, add_spawn, close_spawn, get_sessions, update_session_followups, update_session_summary
+from . import add_session, add_spawn, close_spawn, get_sessions, set_spawn_pid, update_session_followups, update_session_summary, update_spawn_provider_session
 
 LIFE_DIR = Path.home() / "life"
 TOOLS = "Bash,Read,Write,Edit,Grep,Glob,WebFetch,WebSearch"
@@ -107,6 +107,18 @@ def _build_system_prompt(source: str, raw: bool) -> str:
     return "\n\n".join(parts)
 
 
+def _unlock_keychain() -> None:
+    if os.environ.get("SSH_CONNECTION") and not os.environ.get("KEYCHAIN_UNLOCKED"):
+        home = Path.home()
+        keychain = home / "Library" / "Keychains" / "login.keychain-db"
+        if keychain.exists():
+            subprocess.run(
+                ["security", "unlock-keychain", str(keychain)],
+                stdin=subprocess.DEVNULL,
+            )
+            os.environ["KEYCHAIN_UNLOCKED"] = "true"
+
+
 def _launch(
     model: str,
     session_id: str,
@@ -146,6 +158,7 @@ def _launch(
     else:
         cmd.extend(["--session-id", session_id])
 
+    _unlock_keychain()
     env = build_env("chat")
     env["STEWARD_SESSION_ID"] = session_id
     env["STEWARD_SPAWN_ID"] = str(spawn_id)
@@ -154,12 +167,15 @@ def _launch(
     env["GIT_COMMITTER_NAME"] = "steward"
     env["GIT_COMMITTER_EMAIL"] = "steward@life.local"
 
-    rc = subprocess.call(cmd, cwd=LIFE_DIR, env=env)
+    proc = subprocess.Popen(cmd, cwd=LIFE_DIR, env=env)
+    set_spawn_pid(spawn_id, proc.pid)
+    update_spawn_provider_session(spawn_id, session_id)
+    rc = proc.wait()
     close_spawn(spawn_id, status="complete" if rc == 0 else "error")
     return rc
 
 
-@cli("steward", default=True, flags={"model": ["-m", "--model"], "name": ["-n", "--name"], "opus": ["--opus"], "raw": ["--raw"]})
+@cli("steward", flags={"model": ["-m", "--model"], "name": ["-n", "--name"], "opus": ["--opus"], "raw": ["--raw"]})
 def chat(model: str | None = None, name: str | None = None, opus: bool = False, raw: bool = False):
     """Start a tracked interactive steward session"""
     if opus:
