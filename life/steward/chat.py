@@ -66,6 +66,8 @@ def _ensure_hooks_config() -> None:
             existing = json.loads(settings_path.read_text())
 
     script = str(LOG_TURN_SCRIPT)
+    project = str(LIFE_DIR / "life-os")
+    runner = f"uv run --project {project} python {script}"
     desired_hooks = {
         "UserPromptSubmit": [
             {
@@ -73,7 +75,7 @@ def _ensure_hooks_config() -> None:
                 "hooks": [
                     {
                         "type": "command",
-                        "command": f"python3 {script} in",
+                        "command": f"{runner} in",
                     }
                 ],
             }
@@ -84,7 +86,7 @@ def _ensure_hooks_config() -> None:
                 "hooks": [
                     {
                         "type": "command",
-                        "command": f"python3 {script} out",
+                        "command": f"{runner} out",
                     }
                 ],
             }
@@ -184,14 +186,16 @@ def chat(model: str | None = None, name: str | None = None, opus: bool = False, 
     session_id = str(uuid.uuid4())
     label = name or datetime.now().strftime("%b %d %H:%M").lower()
 
+    source = os.environ.get("STEWARD_SOURCE", "cli")
     db_id = add_session(
         summary=f"(active) {label}",
         claude_session_id=session_id,
         name=label,
         model=model,
+        source=source,
     )
 
-    source = os.environ.get("STEWARD_SOURCE", "cli")
+
     print(f"session {db_id} → {session_id[:8]}  model={model}  source={source}{'  raw' if raw else ''}")
     rc = _launch(model, session_id, name=label, source=source, db_session_id=db_id, raw=raw)
     update_session_summary(db_id, f"(closed) {label}")

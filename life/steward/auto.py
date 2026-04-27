@@ -201,7 +201,7 @@ def _build_cmd_env(prompt: str) -> tuple[list[str], dict[str, str]]:
 
 def run_autonomous() -> None:
     ts_label = datetime.now().strftime("%b %d %H:%M").lstrip("0").lower()
-    db_session_id = add_session("(active)", name=f"auto {ts_label}", model="claude")
+    db_session_id = add_session("(active)", name=f"auto {ts_label}", model="claude", source="auto")
 
     tasks_before = get_tasks()
     all_before = get_all_tasks()

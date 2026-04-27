@@ -18,6 +18,9 @@ _CLAUDE_FLAGS: dict[str, str] = {
     "DISABLE_ERROR_REPORTING": "1",
     "DISABLE_TELEMETRY": "1",
     "CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY": "1",
+    # bash — long-running steward ops (refactors, db ops) outlast 2min default
+    "BASH_DEFAULT_TIMEOUT_MS": "600000",
+    "BASH_MAX_TIMEOUT_MS": "1800000",
     # install — no self-mutation
     "DISABLE_AUTOUPDATER": "1",
     "DISABLE_INSTALLATION_CHECKS": "1",

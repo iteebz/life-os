@@ -299,8 +299,8 @@ def render_telegram() -> str:
             rel = f"{ago // 3600}h ago"
         else:
             rel = f"{ago // 86400}d ago"
-        body = m["body"][:80]
-        photo = " 📷" if m.get("image_path") else ""
+        body = m["body"] if m["direction"] == "in" else m["body"][:80]
+        photo = f" 📷 {m['image_path']}" if m.get("image_path") else ""
         out.append(f"  {rel:<10} {direction} {name}: {body}{photo}")
     return "\n".join(out)
 
