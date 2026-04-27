@@ -5,16 +5,22 @@ import time
 from datetime import UTC, datetime
 from pathlib import Path
 from queue import Empty, Queue
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from life.core.models import Task
+from typing import Any
 
 from atrace import StreamParser, format_entry
 from atrace.ansi import strip as ansi_strip
 from fncli import cli
 
 from life.core.errors import LifeError
+from life.core.models import Task
+from life.feedback import build_feedback_snapshot, render_feedback_snapshot
+from life.habit import get_habits
+from life.lib.clock import today
+from life.lib.providers import claude
+from life.loop import load_loop_state, require_real_world_closure, save_loop_state, update_loop_state
+from life.task import get_all_tasks, get_tasks
+
+from . import add_session
 
 _STEWARD_DIR = Path.home() / ".life" / "steward"
 _OFF_SENTINEL = _STEWARD_DIR / "off"
@@ -169,10 +175,7 @@ def _run_tail_stream(
     return rc
 
 
-def _select_required_real_world_task(tasks: list[Any]) -> "Task | None":
-    from life.core.models import Task
-    from life.lib.clock import today
-
+def _select_required_real_world_task(tasks: list[Any]) -> Task | None:
     discomfort = {"finance", "legal", "janice"}
     candidates: list[Task] = [
         t for t in tasks if isinstance(t, Task) and set(t.tags or []).intersection(discomfort)
@@ -185,8 +188,6 @@ def _select_required_real_world_task(tasks: list[Any]) -> "Task | None":
 
 
 def _build_cmd_env(prompt: str) -> tuple[list[str], dict[str, str]]:
-    from life.lib.providers import claude
-
     env = claude.build_env("auto")
     cmd = claude.build_command(prompt)
 
@@ -199,19 +200,6 @@ def _build_cmd_env(prompt: str) -> tuple[list[str], dict[str, str]]:
 
 
 def run_autonomous() -> None:
-    from life.feedback import build_feedback_snapshot, render_feedback_snapshot
-    from life.habit import get_habits
-    from life.lib.clock import today
-    from life.loop import (
-        load_loop_state,
-        require_real_world_closure,
-        save_loop_state,
-        update_loop_state,
-    )
-    from life.task import get_all_tasks, get_tasks
-
-    from . import add_session
-
     ts_label = datetime.now().strftime("%b %d %H:%M").lstrip("0").lower()
     db_session_id = add_session("(active)", name=f"auto {ts_label}", model="claude")
 

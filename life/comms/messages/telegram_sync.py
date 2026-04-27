@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Any
 
 import keyring
+from telethon import TelegramClient
+from telethon.tl.types import MessageMediaPhoto, User
 
 from life.lib.store import get_db
 
@@ -76,8 +78,6 @@ async def _download_media(client: Any, message: Any, msg_id: int) -> str | None:
     if not message.media:
         return None
     try:
-        from telethon.tl.types import MessageMediaPhoto
-
         if not isinstance(message.media, MessageMediaPhoto):
             return None
         IMAGE_DIR.mkdir(parents=True, exist_ok=True)
@@ -97,8 +97,6 @@ async def _sync_chat(
     incremental: bool = True,
 ) -> int:
     """Sync messages from a single chat. Returns count synced."""
-    from telethon.tl.types import User
-
     entity = await client.get_entity(chat)
     me = await client.get_me()
 
@@ -144,8 +142,6 @@ async def _run_sync(
     limit: int | None = None,
     full: bool = False,
 ) -> int:
-    from telethon import TelegramClient
-
     creds = _get_credentials()
     if not creds:
         raise ValueError(

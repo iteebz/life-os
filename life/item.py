@@ -1,16 +1,31 @@
+from datetime import date as date_type
+
 from fncli import UsageError, cli
 
 from .core.errors import NotFoundError, ValidationError
 from .core.models import Task
-from .habit import add_habit, check_habit_cmd, rename_habit
+from .habit import (
+    add_habit,
+    check_habit,
+    check_habit_cmd,
+    delete_habit,
+    get_checks,
+    rename_habit,
+    resolve_habit,
+    toggle_check,
+    uncheck_habit,
+)
 from .lib import ansi
+from .lib.clock import today
+from .lib.dates import parse_due_date
 from .lib.format import render_done_row, render_row, render_uncheck_row
-from .lib.parsing import validate_content
-from .lib.resolve import resolve_item, resolve_item_any
+from .lib.parsing import parse_due_datetime, validate_content
+from .lib.resolve import resolve_item, resolve_item_any, resolve_task
 from .task import (
     add_task,
     check_task_cmd,
     delete_task,
+    get_task,
     rename_task,
     uncheck_task,
 )
@@ -19,17 +34,11 @@ from .task import (
 @cli("life", name="done", flags={"date": ["-d", "--date"], "time": ["-t", "--time"]})
 def check(ref: list[str], date: str | None = None, time: str | None = None) -> None:
     """Toggle done"""
-    from .habit import check_habit, get_checks, toggle_check
-    from .lib.clock import today
-    from .lib.dates import parse_due_date
-
     item_ref = " ".join(ref) if ref else ""
     if not item_ref:
         raise UsageError("Usage: life check <item>")
 
     if date is not None:
-        from datetime import date as date_type
-
         parsed = parse_due_date(date)
         if not parsed:
             raise UsageError(f"Unrecognized date '{date}' — use yesterday, YYYY-MM-DD, etc.")
@@ -42,8 +51,6 @@ def check(ref: list[str], date: str | None = None, time: str | None = None) -> N
             return
         if not habit:
             raise UsageError("item not found")
-        from .habit import uncheck_habit
-
         checks = get_checks(habit.id)
         already_checked = any(c.date() == check_on for c in checks)
         if already_checked:
@@ -86,8 +93,6 @@ def check(ref: list[str], date: str | None = None, time: str | None = None) -> N
 @cli("life", name="rm")
 def rm(ref: list[str], hard: bool = False) -> None:
     """Delete item"""
-    from .habit import delete_habit
-
     item_ref = " ".join(ref) if ref else ""
     if not item_ref:
         raise UsageError("Usage: life rm <item>")
@@ -120,8 +125,6 @@ def add(
         raise ValidationError(str(e)) from e
 
     if habit:
-        from .lib.resolve import resolve_habit
-
         parent_id = None
         if under:
             parent = resolve_habit(under)
@@ -133,13 +136,9 @@ def add(
         render_row(content_str.lower(), tags, habit_id, symbol=ansi.purple("○"))
         return
 
-    from .lib.resolve import resolve_task
-
     resolved_due = None
     resolved_time = None
     if due:
-        from .lib.parsing import parse_due_datetime
-
         resolved_due, resolved_time = parse_due_datetime(due)
     parent_id = None
     if under:
@@ -162,8 +161,6 @@ def add(
         source=source,
     )
     if done:
-        from .task import get_task
-
         task = get_task(task_id)
         if task:
             check_task_cmd(task)

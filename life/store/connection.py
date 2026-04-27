@@ -11,6 +11,7 @@ import weakref
 from collections.abc import Callable, Generator
 from contextlib import contextmanager, suppress
 from dataclasses import fields
+from datetime import date, datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any, ClassVar, Literal, Protocol, get_args, get_origin
@@ -90,8 +91,6 @@ def _json_load(value: Any) -> Any:
 
 
 def _build_coercions(cls: type) -> dict[str, Callable[[Any], Any]]:
-    from datetime import date, datetime
-
     coercions: dict[str, Callable[[Any], Any]] = {}
     for f in fields(cls):
         ft = f.type
@@ -188,7 +187,7 @@ def ensure() -> _ConnContext:
 
     migrations_loaded = _get_migrations_loaded()
     if cache_key not in migrations_loaded:
-        from life.db import _apply_migrations
+        from life.db import _apply_migrations  # noqa: PLC0415 — circular: db imports store/connection
 
         conn_raw = connect(db_path)
         try:

@@ -2,6 +2,7 @@ import uuid as _uuid
 from dataclasses import dataclass
 from datetime import datetime
 
+from .lib.ids import resolve_prefix
 from .lib.store import get_db
 
 
@@ -45,8 +46,6 @@ def get_improvements(done: bool = False) -> list[Improvement]:
 
 
 def delete_improvement(prefix: str, hard: bool = False) -> bool:
-    from .steward import resolve_prefix
-
     imp = resolve_prefix(prefix, get_improvements())
     if not imp:
         return False
@@ -64,8 +63,6 @@ def delete_improvement(prefix: str, hard: bool = False) -> bool:
 
 
 def mark_improvement_done(query: str) -> Improvement | None:
-    from .steward import resolve_prefix
-
     improvements = get_improvements()
     # try UUID prefix first, fall back to substring
     imp = resolve_prefix(query, improvements)

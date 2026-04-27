@@ -1,13 +1,30 @@
+import os
+import re
 import subprocess
+import sys
 import time
 from datetime import date, datetime
 from pathlib import Path
 
+import fncli
 from fncli import cli
 
+from life.comms.accounts import list_accounts
+from life.comms.drafts import list_pending_drafts
+from life.comms.messages.telegram import get_history
+from life.comms.services import get_email_adapter
+from life.contacts import get_stale_contacts
+from life.daemon.inbound import pending_inbox
 from life.db import init
+from life.feedback import build_feedback_snapshot, render_feedback_headline
+from life.habit import get_habits
+from life.improvements import get_improvements
+from life.lib.clock import today
+from life.lib.dates import list_dates
 from life.lib.format import format_elapsed
 from life.lib.ids import short
+from life.mood import get_recent_moods
+from life.task import get_all_tasks, get_tasks
 
 from . import get_observations, get_sessions
 
@@ -17,13 +34,6 @@ STEWARD_BIRTHDAY = datetime(2026, 2, 18)
 @cli("steward")
 def wake():
     """Load life state and emit sitrep for interactive session start"""
-    from life.feedback import build_feedback_snapshot, render_feedback_headline
-    from life.habit import get_habits
-    from life.improvements import get_improvements
-    from life.lib.clock import today
-    from life.mood import get_recent_moods
-    from life.task import get_all_tasks, get_tasks
-
     age_days = (datetime.now() - STEWARD_BIRTHDAY).days
     now_local = datetime.now()
     print(f"STEWARD — day {age_days}  |  {now_local.strftime('%a %d %b %Y  %I:%M%p').lower()}\n")
@@ -53,7 +63,6 @@ def wake():
     contracts_path = Path.home() / "life" / "steward" / "contracts.md"
     if contracts_path.exists():
         text = contracts_path.read_text()
-        import re
         blocks = re.split(r"^## ", text, flags=re.MULTILINE)
         contracts = []
         for block in blocks[1:]:  # skip preamble
@@ -112,8 +121,6 @@ def wake():
             tag_str = f" #{o.tag}" if o.tag else ""
             print(f"  {rel:<10}  {o.body}{tag_str}")
 
-    from life.lib.dates import list_dates
-
     upcoming_dates = [d for d in list_dates() if 0 <= d["days_until"] <= 30]
     if upcoming_dates:
         print("\nDATES:")
@@ -122,8 +129,6 @@ def wake():
             when = "today" if days == 0 else f"in {days}d"
             type_str = f"  [{d['type']}]" if d["type"] != "other" else ""
             print(f"  {when:<10}  {d['name']}{type_str}")
-
-    from life.contacts import get_stale_contacts
 
     stale = get_stale_contacts()
     if stale:
@@ -224,13 +229,8 @@ def wake():
             print(f"    {label:<12}  (error)")
 
     try:
-        from life.comms.accounts import list_accounts
-        from life.comms.drafts import list_pending_drafts
-
         email_accounts = list_accounts("email")
         if email_accounts:
-            from life.comms.services import get_email_adapter
-
             total_inbox = 0
             flagged_lines: list[str] = []
             for acct in email_accounts:
@@ -256,14 +256,10 @@ def wake():
             for line in flagged_lines:
                 print(line)
     except Exception as e:
-        import os
-
         if os.environ.get("LIFE_DEBUG"):
             print(f"\nCOMMS: boot error — {e}")
 
     try:
-        from life.comms.messages.telegram import get_history
-
         # show messages since last operator (inbound) message, not fixed window
         all_recent = get_history(limit=30, hours=48)
         last_operator_idx = None
@@ -300,8 +296,6 @@ def wake():
 
     # Surface any pending inbox messages
     try:
-        from life.daemon.inbound import pending_inbox
-
         inbox = pending_inbox()
         if inbox:
             print(f"\nINBOX:\n{inbox}")
@@ -310,9 +304,5 @@ def wake():
 
 
 def main():
-    import sys
-
-    from fncli import dispatch
-
     init()
-    sys.exit(dispatch(["life", "steward", "wake", *sys.argv[1:]]))
+    sys.exit(fncli.dispatch(["life", "steward", "wake", *sys.argv[1:]]))

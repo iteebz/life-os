@@ -18,12 +18,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from life.db import init
+from life.lib.store import get_db
+
 INBOX_FILE = Path.home() / ".life" / "steward" / "inbox"
 
 
 def _log_message(direction: str, body: str, session_id: str) -> None:
-    from life.db import init
-    from life.lib.store import get_db
 
     if len(body) > 10000:
         body = body[:10000] + f"\n... [{len(body) - 10000} chars truncated]"

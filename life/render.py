@@ -9,6 +9,7 @@ from life.task import task_sort_key
 
 from .lib import clock
 from .lib.ansi import POOL, bold, dim, gold, gray, green, purple, red, theme, white
+from .lib.dates import upcoming_dates
 
 __all__ = [
     "render_dashboard",
@@ -402,8 +403,6 @@ def render_dashboard(
 
     habits = [i for i in items if isinstance(i, Habit)]
     total_habits = len({h.id for h in habits})
-
-    from .lib.dates import upcoming_dates
 
     upcoming_by_date: dict[date, list[dict[str, object]]] = {}
     for ev in upcoming_dates(within_days=14):

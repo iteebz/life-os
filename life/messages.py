@@ -20,6 +20,7 @@ from fncli import cli
 
 from life.comms.messages import signal as _signal
 from life.comms.messages import telegram as _tg
+from life.comms.messages.telegram_sync import save_credentials, sync
 from life.core.errors import LifeError, ValidationError
 from life.lib.store import get_db
 
@@ -224,8 +225,6 @@ def messages_cmd(
 @cli("life messages", name="sync", flags={"full": ["--full"]})
 def sync_cmd(person: str, full: bool = False):
     """Sync message history from telegram"""
-    from life.comms.messages.telegram_sync import sync
-
     chat_id = _tg.resolve_chat_id(person)
     chat_ref: str | int = chat_id if chat_id is not None else person
 
@@ -236,8 +235,6 @@ def sync_cmd(person: str, full: bool = False):
 @cli("life messages", name="auth")
 def auth_cmd(api_id: int, api_hash: str):
     """Store Telegram user API credentials (from my.telegram.org)"""
-    from life.comms.messages.telegram_sync import save_credentials
-
     save_credentials(api_id, api_hash)
     print(f"saved — api_id={api_id}. run: life messages sync <person> to pull history")
 

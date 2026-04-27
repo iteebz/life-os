@@ -9,7 +9,6 @@ from life.habit import find_habit, find_habit_exact
 from life.task import find_task, find_task_any, find_task_exact
 
 __all__ = [
-    "resolve_habit",
     "resolve_item",
     "resolve_item_any",
     "resolve_item_exact",
@@ -56,13 +55,6 @@ def resolve_task(ref: str) -> Task:
     if not task:
         raise NotFoundError(f"no task found: '{ref}'")
     return task
-
-
-def resolve_habit(ref: str) -> Habit:
-    habit = find_habit(ref)
-    if not habit:
-        raise NotFoundError(f"no habit found: '{ref}'")
-    return habit
 
 
 def _find_item(ref: str, find_task_fn) -> tuple[Task | None, Habit | None]:

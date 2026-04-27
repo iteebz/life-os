@@ -1,17 +1,10 @@
 import json as _json
 import uuid as _uuid
-from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Protocol
 
-from life.lib.ids import parse_ref
+from life.lib.ids import resolve_prefix
 from life.lib.store import get_db
-
-
-class _HasId(Protocol):
-    @property
-    def id(self) -> str: ...
 
 
 @dataclass(frozen=True)
@@ -33,14 +26,6 @@ class Observation:
     tag: str | None
     logged_at: datetime
     about_date: date | None = None
-
-
-def resolve_prefix[T: _HasId](prefix: str, pool: Sequence[T]) -> T | None:
-    """Resolve any item by ID prefix. Works on any sequence with .id attribute."""
-    _, fragment = parse_ref(prefix)
-    p = fragment.lower()
-    matches = [item for item in pool if item.id.startswith(p)]
-    return matches[0] if matches else None
 
 
 def add_session(

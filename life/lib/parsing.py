@@ -1,5 +1,6 @@
 import re
 
+from . import clock as _clock
 from .dates import parse_due_date
 
 
@@ -41,8 +42,6 @@ def parse_due_and_item(args: list[str], remove: bool = False) -> tuple[str | Non
 
     if remove:
         return None, None, " ".join(item_args)
-
-    from . import clock as _clock
 
     if item_args and item_args[0].lower() == "now":
         _now = _clock.now()
@@ -112,8 +111,6 @@ def parse_due_datetime(due_str: str) -> tuple[str | None, str | None]:
     Returns (date_str, time_str). Either may be None.
     Time-only input (HH:MM) defaults date to today.
     """
-    from . import clock as _clock
-
     parts = due_str.strip().split()
     date_str: str | None = None
     time_str: str | None = None

@@ -3,6 +3,7 @@ from datetime import datetime
 from fncli import cli
 
 from life.core.errors import NotFoundError
+from life.improvements import add_improvement, get_improvements, mark_improvement_done
 from life.lib import ansi
 from life.lib.format import format_elapsed
 from life.lib.ids import short
@@ -15,8 +16,6 @@ def improve(
     done: str | None = None,
 ):
     """Log a system improvement or mark one done"""
-    from life.improvements import add_improvement, get_improvements, mark_improvement_done
-
     if done is not None:
         target = mark_improvement_done(done)
         if target:

@@ -1,5 +1,6 @@
 import contextlib
 import threading
+import time
 from pathlib import Path
 from typing import Any
 
@@ -162,7 +163,6 @@ def get_history(
         conditions.append("peer = ?")
         params.append(str(chat_id))
     if hours is not None:
-        import time
         cutoff = int(time.time()) - (hours * 3600)
         conditions.append("timestamp > ?")
         params.append(cutoff)

@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 from fncli import cli
 
 from .core.errors import NotFoundError, ValidationError
+from .lib.format import format_elapsed
 from .lib.store import get_db
 
 
@@ -82,8 +83,6 @@ def log(score: int, label: str | None = None):
 @cli("life mood", name="show")
 def show():
     """View rolling 24h mood window"""
-    from .lib.format import format_elapsed
-
     entries = get_recent_moods(hours=24)
     if not entries:
         print("no mood logged in the last 24h")

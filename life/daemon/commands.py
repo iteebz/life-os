@@ -2,7 +2,9 @@
 
 import time
 
-from life.daemon.shared import MAX_TG_SPAWNS_PER_HOUR, TG_SESSION_MAX_CHARS, TG_SESSION_TIMEOUT
+from life.daemon.shared import DAEMON_START_TIME, MAX_TG_SPAWNS_PER_HOUR, TG_SESSION_MAX_CHARS, TG_SESSION_TIMEOUT
+from life.mood import get_recent_moods
+from life.task import get_tasks
 
 
 def handle_command(
@@ -39,8 +41,6 @@ def _cmd_ctx(session_chars: int) -> str:
 def _cmd_stats() -> str:
     lines = ["🌱 stats"]
     try:
-        from life.task import get_tasks
-
         tasks = get_tasks()
         open_count = len(tasks)
         tags: dict[str, int] = {}
@@ -55,8 +55,6 @@ def _cmd_stats() -> str:
         lines.append("tasks: unavailable")
 
     try:
-        from life.mood import get_recent_moods
-
         moods = get_recent_moods(hours=72)
         if moods:
             avg = sum(m.score for m in moods) / len(moods)
@@ -97,8 +95,6 @@ def _cmd_status(
     chars: int,
     spawn_count: int,
 ) -> str:
-    from life.daemon.shared import DAEMON_START_TIME
-
     lines = ["🌱 status"]
 
     # uptime

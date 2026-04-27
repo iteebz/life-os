@@ -1,12 +1,14 @@
 import os
-from datetime import datetime
+from datetime import date, datetime
 
 from fncli import cli
 
 from life.core.errors import NotFoundError
+from life.improvements import delete_improvement, get_improvements
 from life.lib import ansi
+from life.lib.dates import parse_due_date
 from life.lib.format import format_elapsed
-from life.lib.ids import short
+from life.lib.ids import resolve_prefix, short
 
 from . import add_observation, add_session, delete_observation, get_observations, update_session_summary
 
@@ -41,10 +43,6 @@ def observe(
             print(f"  {ansi.muted('[' + short('o', o.id) + ']')}  {rel:<10}  {o.body}{tag_str}")
         return
 
-    from datetime import date
-
-    from life.lib.dates import parse_due_date
-
     about_date: date | None = None
     if about:
         parsed_str = parse_due_date(about)
@@ -59,10 +57,6 @@ def observe(
 @cli("steward")
 def rm(prefix: str, hard: bool = False):
     """Remove any steward item by UUID prefix — observations or improvements"""
-    from life.improvements import delete_improvement, get_improvements
-
-    from . import resolve_prefix
-
     obs = resolve_prefix(prefix, get_observations(limit=200))
     if obs:
         delete_observation(obs.id, hard=hard)

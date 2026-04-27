@@ -4,14 +4,15 @@ from __future__ import annotations
 
 from fncli import cli
 
+from .comms import accounts as accts_module
+from .comms.email import gmail, outlook
+from .comms.messages import signal as signal_module
 from .core.errors import AmbiguousError, LifeError, NotFoundError, ValidationError
 
 
 @cli("life comms accounts", name="ls")
 def accounts_list():
     """List all linked accounts"""
-    from .comms import accounts as accts_module
-
     accts = accts_module.list_accounts()
     if not accts:
         print("no accounts linked")
@@ -26,11 +27,7 @@ def accounts_list():
 @cli("life comms accounts", name="link")
 def link(provider: str, client_id: str | None = None, client_secret: str | None = None):
     """Link an account: gmail, outlook, signal"""
-    from .comms import accounts as accts_module
-
     if provider == "gmail":
-        from .comms.email import gmail
-
         try:
             email_addr = gmail.init_oauth()
             print(f"oauth completed: {email_addr}")
@@ -43,8 +40,6 @@ def link(provider: str, client_id: str | None = None, client_secret: str | None 
         print(f"linked gmail: {email_addr}")
 
     elif provider == "outlook":
-        from .comms.email import outlook
-
         if not client_id or not client_secret:
             raise ValidationError("outlook requires --client-id and --client-secret")
         account_id = accts_module.add_email_account(provider, "")
@@ -55,8 +50,6 @@ def link(provider: str, client_id: str | None = None, client_secret: str | None 
         print("linked outlook")
 
     elif provider == "signal":
-        from .comms.messages import signal as signal_module
-
         print("linking Signal as secondary device...")
         print("open Signal → Settings → Linked Devices → Link New Device, then scan the QR code")
         ok, err = signal_module.link_device("life-cli")
@@ -76,8 +69,6 @@ def link(provider: str, client_id: str | None = None, client_secret: str | None 
 @cli("life comms accounts", name="unlink")
 def unlink(account_id: str):
     """Unlink an account by ID or email"""
-    from .comms import accounts as accts_module
-
     accts = accts_module.list_accounts()
     matching = [a for a in accts if a["id"].startswith(account_id) or a["email"] == account_id]
     if not matching:

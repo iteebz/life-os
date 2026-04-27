@@ -12,6 +12,14 @@ import sys
 import time
 from pathlib import Path
 
+from life.daemon.inbound import pending_inbox
+from life.db import init
+from life.habit import get_habits
+from life.lib.clock import today
+from life.lib.store import get_db
+from life.mood import get_recent_moods
+from life.task import get_tasks
+
 # Hook state file — throttle map persisted per session.
 # Keyed by CLAUDE_SESSION_ID or PID fallback.
 _STATE: dict[str, str] = {}
@@ -57,8 +65,6 @@ def _new_messages(state: dict[str, str], parts: list[str]) -> None:
         return
     _touch(state, "messages_at")
 
-    from life.lib.store import get_db
-
     last_ts = state.get("messages_last_ts")
     if last_ts is None:
         state["messages_last_ts"] = str(time.time())
@@ -94,9 +100,6 @@ def _habit_status(state: dict[str, str], parts: list[str]) -> None:
         return
     _touch(state, "habits_at")
 
-    from life.habit import get_habits
-    from life.lib.clock import today
-
     habits = get_habits()
     if not habits:
         return
@@ -130,8 +133,6 @@ def _mood(state: dict[str, str], parts: list[str]) -> None:
         return
     _touch(state, "mood_at")
 
-    from life.mood import get_recent_moods
-
     moods = get_recent_moods(hours=12)
     if not moods:
         return
@@ -144,8 +145,6 @@ def _mood(state: dict[str, str], parts: list[str]) -> None:
 
 def _check_inbox(parts: list[str]) -> None:
     """Drain the inbox file — messages queued while steward was busy."""
-    from life.daemon.inbound import pending_inbox
-
     content = pending_inbox()
     if content:
         parts.append(f"inbox (queued messages):\n{content}")
@@ -156,8 +155,6 @@ def _active_tasks(state: dict[str, str], parts: list[str]) -> None:
     if _throttled(state, "tasks_at", 60):
         return
     _touch(state, "tasks_at")
-
-    from life.task import get_tasks
 
     tasks = get_tasks()
     if not tasks:
@@ -172,8 +169,6 @@ def _active_tasks(state: dict[str, str], parts: list[str]) -> None:
 
 def cmd_hook_tool() -> None:
     """PreToolUse hook — reads tool-call JSON from stdin, emits context."""
-    from life.db import init
-
     init()
 
     sys.stdin.read()  # consume stdin (tool-call JSON) — ambient context only for now

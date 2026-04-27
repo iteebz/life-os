@@ -1,3 +1,4 @@
+import json as _json
 from datetime import date as _date
 from typing import Any
 
@@ -5,13 +6,19 @@ from fncli import UsageError, cli
 
 from life.core.errors import ConflictError, ValidationError
 from life.core.types import UNSET
+from life.habit import update_habit
 from life.lib import ansi, clock
-from life.lib.format import format_status
+from life.lib.clock import today as _today
+from life.lib.format import format_status, format_task
 from life.lib.parsing import parse_due_and_item
+from life.lib.resolve import resolve_item, resolve_task
+from life.render import render_task_detail
 
 from .domain import (
     cancel_task,
     defer_task,
+    find_task,
+    find_task_exact,
     get_all_tasks,
     get_mutations,
     get_subtasks,
@@ -34,9 +41,6 @@ def _fmt_date_label(date_str: str) -> str:
 
 
 def _schedule(args: list[str], remove: bool = False) -> None:
-    from life.habit import update_habit
-    from life.lib.resolve import resolve_item
-
     if remove:
         if not args:
             raise UsageError("Usage: life schedule --remove <item>")
@@ -87,8 +91,6 @@ def _schedule(args: list[str], remove: bool = False) -> None:
 @cli("life")
 def focus(ref: list[str]) -> None:
     """Pin task"""
-    from life.lib.resolve import resolve_task
-
     item_ref = " ".join(ref) if ref else ""
     if not item_ref:
         raise UsageError("Usage: life focus <item>")
@@ -101,8 +103,6 @@ def focus(ref: list[str]) -> None:
 @cli("life", flags={"remove": ["-r", "--remove"]})
 def due(ref: list[str], when: str, remove: bool = False) -> None:
     """Mark task deadline"""
-    from life.lib.resolve import resolve_task
-
     args = ref if remove else [when, *ref]
     try:
         date_str, time_str, item_name = parse_due_and_item(args, remove=remove)
@@ -147,8 +147,6 @@ def set_cmd(
     notes: str | None = None,
 ) -> None:
     """Set parent, content, or notes on task"""
-    from life.lib.resolve import resolve_task
-
     item_ref = " ".join(ref) if ref else ""
     if not item_ref:
         raise UsageError("Usage: life set <task> [-p parent] [-c content]")
@@ -189,11 +187,6 @@ def set_cmd(
 @cli("life", flags={"json": ["-j"]})
 def show(ref: list[str], json: bool = False) -> None:
     """Show full task detail"""
-    import json as _json
-
-    from life.lib.resolve import resolve_task
-    from life.render import render_task_detail
-
     item_ref = " ".join(ref) if ref else ""
     if not item_ref:
         raise UsageError("Usage: life show <task>")
@@ -229,8 +222,6 @@ def show(ref: list[str], json: bool = False) -> None:
 @cli("life", flags={"by": ["-b", "--by"]})
 def block(ref: list[str], by: str) -> None:
     """Mark task as blocked"""
-    from life.lib.resolve import resolve_task
-
     t = resolve_task(" ".join(ref))
     blocker = resolve_task(by)
     if blocker.id == t.id:
@@ -242,8 +233,6 @@ def block(ref: list[str], by: str) -> None:
 @cli("life")
 def unblock(ref: list[str]) -> None:
     """Clear task block"""
-    from life.lib.resolve import resolve_task
-
     t = resolve_task(" ".join(ref))
     if not t.blocked_by:
         raise ConflictError(f"'{t.content}' is not blocked")
@@ -254,8 +243,6 @@ def unblock(ref: list[str]) -> None:
 @cli("life", flags={"reason": ["-r", "--reason"]})
 def cancel(ref: list[str], reason: str) -> None:
     """Cancel task with reason"""
-    from life.lib.resolve import resolve_task
-
     t = resolve_task(" ".join(ref))
     cancel_task(t.id, reason)
     print(f"\u2717 {t.content.lower()} \u2014 {reason}")
@@ -264,8 +251,6 @@ def cancel(ref: list[str], reason: str) -> None:
 @cli("life", flags={"reason": ["-r", "--reason"]})
 def defer(ref: list[str], reason: str) -> None:
     """Defer task with reason"""
-    from life.lib.resolve import resolve_task
-
     t = resolve_task(" ".join(ref))
     defer_task(t.id, reason)
     print(f"\u2192 {t.content.lower()} deferred: {reason}")
@@ -293,9 +278,6 @@ def schedule(ref: list[str], remove: bool = False) -> None:
 @cli("life", flags={"ref": []})
 def unschedule(ref: list[str] | None = None, overdue: bool = False) -> None:
     """Clear schedule from tasks, returning them to backlog"""
-    from life.lib.clock import today as _today
-    from life.lib.resolve import resolve_task
-
     if overdue:
         today_date = _today()
         tasks = [t for t in get_all_tasks() if t.scheduled_date and t.scheduled_date < today_date]
@@ -327,8 +309,6 @@ def task(
 ) -> None:
     """List tasks, or create one: `life task "name" -t tag`"""
     if not ref:
-        from life.lib.format import format_task
-
         tasks = get_tasks()
         if not tasks:
             print("no tasks")
@@ -338,16 +318,12 @@ def task(
         return
 
     # Try to resolve as existing task — if found, update it instead of creating
-    from life.task.domain import find_task, find_task_exact
-
     item_ref = " ".join(ref)
     existing = find_task_exact(item_ref) or find_task(item_ref)
     if existing:
         updates: dict[str, Any] = {}
         when = due or schedule
         if when:
-            from life.lib.parsing import parse_due_and_item
-
             date_str, time_str, _ = parse_due_and_item([*when.split(), "x"])
             if date_str:
                 updates["scheduled_date"] = date_str
@@ -360,6 +336,6 @@ def task(
 
     if not tag:
         raise UsageError('Tag required: life task "name" -t <tag>')
-    from life.item import add as _add
+    from life.item import add as _add  # noqa: PLC0415 — circular: item imports task
 
     _add(ref, tag=tag, due=due or schedule, focus=focus, done=done)

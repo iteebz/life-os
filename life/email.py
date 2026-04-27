@@ -2,8 +2,17 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from fncli import cli
 
+from .comms import claude, services
+from .comms import drafts as drafts_module
+from .comms import senders as senders_module
+from .comms.config import RULES_PATH
+from .comms.contacts import CONTACTS_PATH, get_all_contacts
+from .comms.drafts import get_draft, list_pending_drafts
+from .comms.services import compose_email_draft, get_unified_inbox, reply_to_thread
 from .core.errors import LifeError, NotFoundError, ValidationError
 
 
@@ -17,10 +26,6 @@ def _run_service(fn, *args, **kwargs):
 @cli("life comms email", name="inbox")
 def inbox(limit: int = 20):
     """Unified inbox"""
-    from datetime import datetime
-
-    from .comms.services import get_unified_inbox
-
     items = get_unified_inbox(limit=limit)
     if not items:
         print("inbox empty")
@@ -34,8 +39,6 @@ def inbox(limit: int = 20):
 @cli("life comms email", name="threads")
 def threads(label: str = "inbox"):
     """List threads"""
-    from .comms import services
-
     for entry in services.list_threads(label):
         acct = entry["account"]
         thread_list = entry["threads"]
@@ -51,8 +54,6 @@ def threads(label: str = "inbox"):
 @cli("life comms email", name="thread")
 def thread(thread_id: str, email: str | None = None):
     """Fetch and display full thread"""
-    from .comms import services
-
     full_id = _run_service(services.resolve_thread_id, thread_id, email) or thread_id
     messages = _run_service(services.fetch_thread, full_id, email)
     print(f"\nThread: {messages[0]['subject']}")
@@ -67,8 +68,6 @@ def thread(thread_id: str, email: str | None = None):
 @cli("life comms email", name="summarize")
 def summarize(thread_id: str, email: str | None = None):
     """Summarize thread using Claude"""
-    from .comms import claude, services
-
     full_id = _run_service(services.resolve_thread_id, thread_id, email) or thread_id
     messages = _run_service(services.fetch_thread, full_id, email)
     print(f"summarizing {len(messages)} messages...")
@@ -86,8 +85,6 @@ def compose(
     """Compose new email draft"""
     if not body:
         raise ValidationError("--body required")
-    from .comms.services import compose_email_draft
-
     draft_id, from_addr = _run_service(
         compose_email_draft, to_addr=to, subject=subject, body=body, cc_addr=cc, email=email
     )
@@ -100,8 +97,6 @@ def reply(thread_id: str, body: str | None = None, email: str | None = None, all
     """Reply to thread"""
     if not body:
         raise ValidationError("--body required")
-    from .comms.services import reply_to_thread
-
     draft_id, to_addr, _subject, _cc = _run_service(
         reply_to_thread, thread_id=thread_id, body=body, email=email, reply_all=all
     )
@@ -114,8 +109,6 @@ def draft_reply(
     thread_id: str, instructions: str | None = None, email: str | None = None, all: bool = False
 ):
     """Generate AI reply draft"""
-    from .comms import claude, services
-
     full_id = _run_service(services.resolve_thread_id, thread_id, email) or thread_id
     messages = _run_service(services.fetch_thread, full_id, email)
 
@@ -139,8 +132,6 @@ def draft_reply(
 @cli("life comms email", name="drafts")
 def drafts_list():
     """List pending drafts"""
-    from .comms.drafts import list_pending_drafts
-
     pending = list_pending_drafts()
     if not pending:
         print("no pending drafts")
@@ -153,8 +144,6 @@ def drafts_list():
 @cli("life comms email", name="draft")
 def draft_show(draft_id: str):
     """Show draft details"""
-    from .comms.drafts import get_draft
-
     d = get_draft(draft_id)
     if not d:
         raise NotFoundError(f"draft {draft_id} not found")
@@ -170,8 +159,6 @@ def draft_show(draft_id: str):
 @cli("life comms email", name="approve")
 def approve_draft(draft_id: str):
     """Approve draft for sending"""
-    from .comms import drafts as drafts_module
-
     full_id = drafts_module.resolve_draft_id(draft_id) or draft_id
     d = drafts_module.get_draft(full_id)
     if not d:
@@ -186,9 +173,6 @@ def approve_draft(draft_id: str):
 @cli("life comms email", name="send")
 def send_draft(draft_id: str):
     """Send approved draft"""
-    from .comms import drafts as drafts_module
-    from .comms import services
-
     full_id = drafts_module.resolve_draft_id(draft_id) or draft_id
     d = drafts_module.get_draft(full_id)
     if not d:
@@ -200,8 +184,6 @@ def send_draft(draft_id: str):
 @cli("life comms email", name="archive")
 def archive(thread_id: str, email: str | None = None):
     """Archive thread"""
-    from .comms import services
-
     _run_service(services.thread_action, "archive", thread_id, email)
     print(f"archived {thread_id}")
 
@@ -209,8 +191,6 @@ def archive(thread_id: str, email: str | None = None):
 @cli("life comms email", name="delete")
 def delete(thread_id: str, email: str | None = None):
     """Delete thread"""
-    from .comms import services
-
     _run_service(services.thread_action, "delete", thread_id, email)
     print(f"deleted {thread_id}")
 
@@ -218,8 +198,6 @@ def delete(thread_id: str, email: str | None = None):
 @cli("life comms email", name="flag")
 def flag(thread_id: str, email: str | None = None):
     """Flag thread"""
-    from .comms import services
-
     _run_service(services.thread_action, "flag", thread_id, email)
     print(f"flagged {thread_id}")
 
@@ -227,8 +205,6 @@ def flag(thread_id: str, email: str | None = None):
 @cli("life comms email", name="senders")
 def senders(limit: int = 20):
     """Show sender statistics"""
-    from .comms import senders as senders_module
-
     top = senders_module.get_top_senders(limit=limit)
     if not top:
         print("no sender data yet")
@@ -244,8 +220,6 @@ def senders(limit: int = 20):
 @cli("life comms email", name="rules")
 def rules():
     """Show triage rules"""
-    from .comms.config import RULES_PATH
-
     if not RULES_PATH.exists():
         print(f"no rules file — create at: {RULES_PATH}")
         return
@@ -255,8 +229,6 @@ def rules():
 @cli("life comms email", name="contacts")
 def contacts():
     """Show contact notes"""
-    from .comms.contacts import CONTACTS_PATH, get_all_contacts
-
     if not CONTACTS_PATH.exists():
         print(f"no contacts file — create at: {CONTACTS_PATH}")
         return

@@ -1,3 +1,4 @@
+import io
 import json
 import logging
 import re
@@ -5,6 +6,7 @@ import subprocess
 from datetime import datetime
 from typing import Any
 
+import qrcode
 from fncli import cli
 
 from life.core.errors import LifeError, NotFoundError
@@ -278,10 +280,6 @@ def test_connection(phone: str) -> tuple[bool, str]:
 
 
 def link_device(device_name: str = "life-cli") -> tuple[bool, str]:
-    import io
-
-    import qrcode
-
     process = subprocess.Popen(
         [SIGNAL_CLI, "link", "-n", device_name],
         stdout=subprocess.PIPE,

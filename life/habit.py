@@ -5,11 +5,11 @@ from datetime import date, datetime, timedelta
 
 from fncli import UsageError, cli
 
-from .core.errors import StoreIntegrityError, ValidationError
+from .core.errors import NotFoundError, StoreIntegrityError, ValidationError
 from .core.models import Habit
 from .lib import ansi, clock
 from .lib.converters import row_to_habit
-from .lib.format import render_done_row
+from .lib.format import render_done_row, render_row
 from .lib.fuzzy import find_in_pool, find_in_pool_exact
 from .lib.store import get_db
 from .tag import get_tags_for_habit, load_tags_for_habits
@@ -28,6 +28,7 @@ __all__ = [
     "get_streak",
     "get_subhabits",
     "rename_habit",
+    "resolve_habit",
     "toggle_check",
     "uncheck_habit",
     "update_habit",
@@ -274,6 +275,13 @@ def find_habit_exact(ref: str) -> Habit | None:
     return find_in_pool_exact(ref, get_habits())
 
 
+def resolve_habit(ref: str) -> Habit:
+    habit = find_habit(ref)
+    if not habit:
+        raise NotFoundError(f"no habit found: '{ref}'")
+    return habit
+
+
 def check_habit(
     habit_id: str, check_on: date | None = None, check_time: str | None = None
 ) -> Habit | None:
@@ -331,8 +339,6 @@ def rename_habit(habit: Habit, to_content: str) -> None:
 
 
 def check_habit_cmd(habit: Habit, check_time: str | None = None) -> None:
-    from .lib.clock import today
-
     if check_time:
         check_habit(habit.id, check_time=check_time)
         render_done_row(habit.content.lower(), check_time, habit.tags, habit.id, is_habit=True)
@@ -340,7 +346,7 @@ def check_habit_cmd(habit: Habit, check_time: str | None = None) -> None:
 
     updated = toggle_check(habit.id)
     if updated:
-        today_date = today()
+        today_date = clock.today()
         checked_today = any(c.date() == today_date for c in updated.checks)
         if checked_today:
             today_checks = [c for c in updated.checks if c.date() == today_date]
@@ -354,8 +360,6 @@ def check_habit_cmd(habit: Habit, check_time: str | None = None) -> None:
 @cli("life")
 def archive(ref: str | None = None, list_archived: bool = False) -> None:
     """Archive habit"""
-    from .lib.resolve import resolve_habit
-
     if list_archived:
         archived_habits = get_archived_habits()
         if not archived_habits:
@@ -440,8 +444,6 @@ def habit(ref: list[str] | None = None, tag: list[str] | None = None, weekly: bo
         print('Tag required: life habit "name" -t <tag>')
         print("Run `life habit --help` for usage.")
         return
-    from .lib.format import render_row
-
     name = " ".join(ref)
     cadence = "weekly" if weekly else "daily"
     habit_id = add_habit(name, tags=tag, cadence=cadence)

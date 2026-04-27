@@ -1,6 +1,8 @@
 import sqlite3
 
+from life import config
 from life.backup import _is_snapshot_dir, _validate_backup, run_backup, run_prune
+from life.task import add_task
 
 
 def test_backup_creates_dir(tmp_life_dir):
@@ -64,8 +66,6 @@ def test_backup_missing_source_returns_error(tmp_life_dir, monkeypatch):
 
 
 def test_backup_validates_row_counts(tmp_life_dir):
-    from life.task import add_task
-
     add_task("safety test 1")
     add_task("safety test 2")
     result = run_backup()
@@ -75,9 +75,6 @@ def test_backup_validates_row_counts(tmp_life_dir):
 
 
 def test_validate_backup_catches_empty(tmp_life_dir):
-    from life import config
-    from life.task import add_task
-
     add_task("data")
     empty = tmp_life_dir / "empty.db"
     conn = sqlite3.connect(empty)
@@ -88,9 +85,6 @@ def test_validate_backup_catches_empty(tmp_life_dir):
 
 
 def test_validate_backup_catches_massive_loss(tmp_life_dir):
-    from life import config
-    from life.task import add_task
-
     for i in range(10):
         add_task(f"task {i}")
 

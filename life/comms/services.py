@@ -6,6 +6,7 @@ from typing import Any
 from . import accounts as accts_module
 from . import drafts, senders
 from .email import gmail, outlook
+from .messages.signal import get_messages as signal_get_messages
 
 
 def _resolve_email_account(email: str | None) -> dict[str, Any]:
@@ -168,8 +169,6 @@ class InboxItem:
 
 
 def get_unified_inbox(limit: int = 20) -> list[InboxItem]:
-    from life.comms.messages.signal import get_messages as signal_get_messages
-
     items: list[InboxItem] = []
 
     email_accounts = accts_module.list_accounts("email")

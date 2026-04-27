@@ -91,7 +91,6 @@ ignore = [
     "S607",     # partial path — same
     "S108",     # /tmp usage — acceptable
     "B008",     # mutable default arg — fncli pattern
-    "PLC0415",  # import not at top — lazy imports for fncli commands
 ]
 
 [tool.ruff.lint.per-file-ignores]

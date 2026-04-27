@@ -12,6 +12,7 @@ from fncli import cli
 
 from life.lib import ansi
 from life.lib.format import format_elapsed
+from life.lib.providers.claude import build_env
 
 from . import add_session, add_spawn, close_spawn, get_sessions, update_session_followups, update_session_summary
 
@@ -130,8 +131,6 @@ def _launch(
         cmd.extend(["--session-id", session_id])
     if name:
         cmd.extend(["--name", name])
-
-    from life.lib.providers.claude import build_env
 
     env = build_env("chat")
     env["STEWARD_SESSION_ID"] = session_id

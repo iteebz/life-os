@@ -5,6 +5,7 @@ import fncli
 
 from . import db
 from .core.errors import LifeError
+from .dash import dashboard
 
 
 def main():
@@ -13,8 +14,6 @@ def main():
 
     user_args = sys.argv[1:]
     if not user_args or user_args == ["-v"] or user_args == ["--verbose"]:
-        from .dash import dashboard
-
         dashboard()
         return
     argv = ["life", *user_args]

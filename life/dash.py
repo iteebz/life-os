@@ -9,7 +9,7 @@ from .habit import get_habits
 from .lib import ansi, clock
 from .lib.ansi import POOL
 from .lib.clock import now, today
-from .lib.format import format_elapsed
+from .lib.format import format_elapsed, format_task
 from .lib.store import get_db
 from .momentum import weekly_momentum
 from .render import render_dashboard, render_day_summary, render_momentum
@@ -199,20 +199,18 @@ def stats() -> None:
 @cli("life")
 def view(date_str: str) -> None:
     """Show completed tasks for a date (yesterday, dd-mm, dd-mm-yyyy, yyyy-mm-dd)"""
-    from .lib.clock import today as _today
-
     if date_str.lower() == "yesterday":
-        _show_day(_today() - timedelta(days=1))
+        _show_day(today() - timedelta(days=1))
         return
     if date_str.lower() == "today":
-        _show_day(_today())
+        _show_day(today())
         return
     target = None
     for fmt in ("%d-%m-%Y", "%d-%m", "%Y-%m-%d"):
         try:
             parsed = datetime.strptime(date_str, fmt)
             if fmt == "%d-%m":
-                parsed = parsed.replace(year=_today().year)
+                parsed = parsed.replace(year=today().year)
             target = parsed.date()
             break
         except ValueError:
@@ -225,8 +223,6 @@ def view(date_str: str) -> None:
 
 
 def _show_day(target: date) -> None:
-    from .habit import get_habits
-
     date_str = target.isoformat()
     completed = get_day_completed(date_str)
     breakdown = get_day_breakdown(date_str)
@@ -255,14 +251,11 @@ def momentum() -> None:
 @cli("life", flags={"json": ["-j"]})
 def ls(tag: str | None = None, overdue: bool = False, json: bool = False) -> None:
     """List tasks with optional filters (--tag <tag>, --overdue, --json)"""
-    from .lib.clock import today as _today
-    from .lib.format import format_task
-
     tasks = get_tasks()
     if tag:
         tasks = [t for t in tasks if tag in (t.tags or [])]
     if overdue:
-        today_date = _today()
+        today_date = today()
         tasks = [t for t in tasks if t.scheduled_date and t.scheduled_date < today_date]
     if json:
         print(

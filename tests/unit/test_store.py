@@ -1,8 +1,12 @@
 """Tests for the store layer: ensure(), transaction(), from_row(), query()."""
 
+from dataclasses import dataclass
+from datetime import datetime
+
 import pytest
 
 from life.core.errors import NotFoundError, StoreIntegrityError
+from life.core.models import Task
 from life.store.connection import ensure, from_row, transaction
 from life.store.query import query
 
@@ -66,9 +70,6 @@ def test_store_integrity_error(tmp_life_dir):
 
 
 def test_from_row(tmp_life_dir):
-    from dataclasses import dataclass
-    from datetime import datetime
-
     @dataclass
     class Mood:
         id: int
@@ -87,8 +88,6 @@ def test_from_row(tmp_life_dir):
 
 
 def test_query_builder(tmp_life_dir):
-    from life.core.models import Task
-
     with transaction() as conn:
         conn.execute(
             "INSERT INTO tasks (id, content, created) VALUES (?, ?, datetime('now'))",
@@ -113,7 +112,5 @@ def test_query_count(tmp_life_dir):
 
 
 def test_query_get_not_found(tmp_life_dir):
-    from life.core.models import Task
-
     with pytest.raises(NotFoundError):
         query("tasks", Task).not_deleted().get(ensure(), "nonexistent")

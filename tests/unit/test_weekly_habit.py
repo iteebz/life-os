@@ -1,8 +1,11 @@
 from datetime import date, datetime, time, timedelta
 
 import life.lib.clock as clock
+from life.feedback import build_feedback_snapshot
 from life.habit import add_habit, check_habit, get_habits, get_streak
 from life.lib.store import get_db
+from life.momentum import weekly_momentum
+from life.task import get_all_tasks, get_tasks
 
 
 def test_add_weekly_habit(tmp_life_dir):
@@ -96,9 +99,6 @@ def test_weekly_streak_year_boundary(tmp_life_dir, monkeypatch):
 
 def test_weekly_metrics_count_one_per_week(tmp_life_dir, fixed_today):
     """Weekly habits should count as 1 possible per week, not 7."""
-    from life.feedback import build_feedback_snapshot
-    from life.task import get_all_tasks, get_tasks
-
     add_habit("daily-thing")
     add_habit("weekly-thing", cadence="weekly")
 
@@ -118,8 +118,6 @@ def test_weekly_metrics_count_one_per_week(tmp_life_dir, fixed_today):
 
 def test_weekly_momentum_total(tmp_life_dir, fixed_today):
     """Weekly habit in momentum should be 1 per week, not 7."""
-    from life.momentum import weekly_momentum
-
     with get_db() as conn:
         conn.execute(
             "INSERT INTO habits (id, content, created, cadence) VALUES (?, ?, ?, ?)",
