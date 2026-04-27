@@ -22,7 +22,6 @@ TOOLS = "Bash,Read,Write,Edit,Grep,Glob,WebFetch,WebSearch"
 DEFAULT_MODEL = "sonnet"
 SESSION_TIMEOUT = 3300  # 55m
 SESSION_MAX_CHARS = 100_000
-LOG_TURN_SCRIPT = Path(__file__).resolve().parent.parent.parent / "scripts" / "log-turn.py"
 
 # in-process state; rebuilt from DB on resume across process boundaries
 _session_start: datetime | None = None
@@ -65,31 +64,14 @@ def _ensure_hooks_config() -> None:
         with contextlib.suppress(json.JSONDecodeError, ValueError):
             existing = json.loads(settings_path.read_text())
 
-    script = str(LOG_TURN_SCRIPT)
     project = str(LIFE_DIR / "life-os")
-    runner = f"uv run --project {project} python {script}"
+    runner = f"uv run --project {project} life-hook"
     desired_hooks = {
         "UserPromptSubmit": [
-            {
-                "matcher": "",
-                "hooks": [
-                    {
-                        "type": "command",
-                        "command": f"{runner} in",
-                    }
-                ],
-            }
+            {"matcher": "", "hooks": [{"type": "command", "command": f"{runner} prompt"}]}
         ],
         "Stop": [
-            {
-                "matcher": "",
-                "hooks": [
-                    {
-                        "type": "command",
-                        "command": f"{runner} out",
-                    }
-                ],
-            }
+            {"matcher": "", "hooks": [{"type": "command", "command": f"{runner} stop"}]}
         ],
     }
 
@@ -110,15 +92,13 @@ def _build_system_prompt(source: str, raw: bool) -> str:
 
 
 def _unlock_keychain() -> None:
-    if os.environ.get("SSH_CONNECTION") and not os.environ.get("KEYCHAIN_UNLOCKED"):
-        home = Path.home()
-        keychain = home / "Library" / "Keychains" / "login.keychain-db"
-        if keychain.exists():
-            subprocess.run(
-                ["security", "unlock-keychain", str(keychain)],
-                stdin=subprocess.DEVNULL,
-            )
-            os.environ["KEYCHAIN_UNLOCKED"] = "true"
+    if os.environ.get("KEYCHAIN_UNLOCKED"):
+        return
+    home = Path.home()
+    keychain = home / "Library" / "Keychains" / "login.keychain-db"
+    if keychain.exists():
+        subprocess.run(["security", "unlock-keychain", str(keychain)])
+        os.environ["KEYCHAIN_UNLOCKED"] = "true"
 
 
 def _launch(

@@ -10,14 +10,15 @@ import json
 import os
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 from life.daemon.inbound import pending_inbox
 from life.store.migrations import init
-from life.domain.habit import get_habits
+from life.habit import get_habits
 from life.lib.clock import today
 from life.lib.store import get_db
-from life.domain.mood import get_recent_moods
+from life.mood import get_recent_moods
 from life.task import get_tasks
 
 # Hook state file — throttle map persisted per session.
@@ -167,6 +168,102 @@ def _active_tasks(state: dict[str, str], parts: list[str]) -> None:
     parts.append(header + "\n" + "\n".join(lines))
 
 
+INBOX_FILE = Path.home() / ".life" / "steward" / "inbox"
+WRAP_THRESHOLD_CHARS = 100_000   # ~33k tokens
+SLEEP_THRESHOLD_CHARS = 150_000  # ~50k tokens
+WRAP_THRESHOLD_SECONDS = 3300    # 55m
+
+
+def _log_turn(direction: str, body: str, session_id: str) -> None:
+    if len(body) > 10000:
+        body = body[:10000] + f"\n... [{len(body) - 10000} chars truncated]"
+    ts = int(time.time())
+    msg_id = f"chat-{session_id[:8]}-{ts}-{direction}"
+    try:
+        with get_db() as conn:
+            conn.execute(
+                "INSERT OR IGNORE INTO messages "
+                "(id, channel, direction, peer, peer_name, body, timestamp) "
+                "VALUES (?, 'chat', ?, ?, ?, ?, ?)",
+                (msg_id, direction, session_id, "tyson" if direction == "in" else "steward", body, ts),
+            )
+    except Exception:
+        pass
+
+
+def _surface_session_meta(session_id: str) -> None:
+    try:
+        with get_db() as conn:
+            row = conn.execute(
+                "SELECT id, logged_at FROM sessions WHERE claude_session_id = ?",
+                (session_id,),
+            ).fetchone()
+            if not row:
+                return
+            db_id, logged_at = row
+            char_row = conn.execute(
+                "SELECT COALESCE(SUM(LENGTH(body)), 0) FROM messages "
+                "WHERE channel = 'chat' AND peer = ?",
+                (str(db_id),),
+            ).fetchone()
+            chars = char_row[0] if char_row else 0
+        started = datetime.fromisoformat(logged_at).replace(tzinfo=timezone.utc)
+        age = int((datetime.now(timezone.utc) - started).total_seconds())
+        age_str = f"{age // 60}m" if age >= 60 else f"{age}s"
+        nudge = ""
+        if chars >= SLEEP_THRESHOLD_CHARS:
+            nudge = "\nsleep now: close one loop, run `steward sleep \"...\"`, commit, end the session."
+        elif chars >= WRAP_THRESHOLD_CHARS:
+            nudge = "\nwrap soon: prefer closing the open loop over starting new threads."
+        elif age >= WRAP_THRESHOLD_SECONDS:
+            nudge = "\nsession is long: consider closing soon."
+        if nudge or chars > 50_000:
+            print(f"\n<session-meta>session: {age_str} elapsed, {chars} chars logged{nudge}\n</session-meta>")
+    except Exception:
+        pass
+
+
+def _surface_inbox() -> None:
+    if not INBOX_FILE.exists():
+        return
+    content = INBOX_FILE.read_text().strip()
+    if not content:
+        return
+    INBOX_FILE.unlink(missing_ok=True)
+    print(f"\n[new messages received while you were working]\n{content}")
+
+
+def _read_event() -> dict:
+    try:
+        return json.load(sys.stdin)
+    except (json.JSONDecodeError, ValueError):
+        return {}
+
+
+def cmd_hook_prompt() -> None:
+    """UserPromptSubmit — log human turn, surface inbox + session meta."""
+    init()
+    data = _read_event()
+    body = (data.get("prompt") or "").strip()
+    if not body:
+        return
+    session_id = os.environ.get("STEWARD_SESSION_ID", "unknown")
+    _log_turn("in", body, session_id)
+    _surface_inbox()
+    _surface_session_meta(session_id)
+
+
+def cmd_hook_stop() -> None:
+    """Stop — log steward response."""
+    init()
+    data = _read_event()
+    body = (data.get("response") or data.get("stopReason") or "").strip()
+    if not body:
+        return
+    session_id = os.environ.get("STEWARD_SESSION_ID", "unknown")
+    _log_turn("out", body, session_id)
+
+
 def cmd_hook_tool() -> None:
     """PreToolUse hook — reads tool-call JSON from stdin, emits context."""
     init()
@@ -201,8 +298,13 @@ def main() -> None:
         print("usage: life hook <tool>", file=sys.stderr)
         sys.exit(1)
 
-    if args[0] == "tool":
-        cmd_hook_tool()
-    else:
+    dispatch = {
+        "tool": cmd_hook_tool,
+        "prompt": cmd_hook_prompt,
+        "stop": cmd_hook_stop,
+    }
+    fn = dispatch.get(args[0])
+    if fn is None:
         print(f"unknown hook event: {args[0]}", file=sys.stderr)
         sys.exit(1)
+    fn()
