@@ -24,7 +24,7 @@ life-os replicates spacebrr's proven patterns at smaller scale.
 |---------|----------|---------|-------|
 | CLI framework | fncli autodiscovery | fncli autodiscovery | identical |
 | human/agent surfaces | brr / space | life / steward | same binary, namespace split |
-| hook injection | space hook tool (PreToolUse) | life-hook tool (PreToolUse) | same _HOOK_SETTINGS shape |
+| hook injection | space hook tool (PreToolUse) | steward-hook tool (PreToolUse) | same _HOOK_SETTINGS shape |
 | daemon | launchd KeepAlive, spawns claude | launchd KeepAlive, spawns claude | identical plist pattern |
 | wake context | fetch_wake_context → prompt | fetch_wake_context → prompt | same subprocess injection |
 | human model | brr/memory/human.md | steward/human.md | same semantics |

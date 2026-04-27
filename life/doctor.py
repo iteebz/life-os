@@ -15,7 +15,7 @@ LIFE_DIR = Path.home() / "life"
 SETTINGS = LIFE_DIR / ".claude" / "settings.local.json"
 PLIST = Path.home() / "Library" / "LaunchAgents" / "com.life.daemon.plist"
 DB = Path.home() / ".life" / "life.db"
-EXPECTED_BINS = ("life", "life-hook", "steward", "comms")
+EXPECTED_BINS = ("life", "steward-hook", "steward", "comms")
 
 
 def _ok(msg: str) -> None:
@@ -40,21 +40,21 @@ def doctor() -> int:
             _fail(f"{b} missing on PATH")
             failures += 1
 
-    print("\nlife-hook dispatch:")
+    print("\nsteward-hook dispatch:")
     for event in ("tool", "prompt", "stop"):
         try:
             rc = subprocess.run(
-                ["life-hook", event],
+                ["steward-hook", event],
                 input="{}",
                 capture_output=True,
                 text=True,
                 timeout=10,
             ).returncode
-            (_ok if rc == 0 else _fail)(f"life-hook {event} (rc={rc})")
+            (_ok if rc == 0 else _fail)(f"steward-hook {event} (rc={rc})")
             if rc != 0:
                 failures += 1
         except Exception as e:
-            _fail(f"life-hook {event}: {e}")
+            _fail(f"steward-hook {event}: {e}")
             failures += 1
 
     print("\nchat hook config:")

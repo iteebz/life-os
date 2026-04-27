@@ -196,11 +196,15 @@ def run(
     signal.signal(signal.SIGTERM, handle_signal)
     signal.signal(signal.SIGINT, handle_signal)
 
-    # Catch up on unread messages before starting poll threads
+    threads: list[threading.Thread] = []
+
+    # Catch up on unread messages in a background thread — never block startup.
     from life.daemon.session import get_tyson_chat_id
 
-    tyson_chat = get_tyson_chat_id()
-    if tyson_chat and not is_quiet_now():
+    def _catchup_thread() -> None:
+        tyson_chat = get_tyson_chat_id()
+        if not tyson_chat or is_quiet_now():
+            return
         try:
             action = catch_up(tyson_chat)
             if action == "caught_up":
@@ -208,7 +212,9 @@ def run(
         except Exception as e:
             log(f"[startup] catch-up failed: {e}")
 
-    threads: list[threading.Thread] = []
+    catchup = threading.Thread(target=_catchup_thread, daemon=True, name="catchup")
+    threads.append(catchup)
+    catchup.start()
 
     tg_thread = threading.Thread(
         target=_telegram_thread, args=(stop, tg_interval, claimed_chat), daemon=True, name="telegram"
