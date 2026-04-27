@@ -59,8 +59,8 @@ def wake():
         for block in blocks[1:]:  # skip preamble
             lines = block.splitlines()
             name = lines[0].strip()
-            ratified = next((l.split("**ratified:**")[1].strip() for l in lines if "**ratified:**" in l), "")
-            status = next((l.split("**status:**")[1].strip() for l in lines if "**status:**" in l), "")
+            ratified = next((ln.split("**ratified:**")[1].strip() for ln in lines if "**ratified:**" in ln), "")
+            status = next((ln.split("**status:**")[1].strip() for ln in lines if "**status:**" in ln), "")
             contracts.append((name, ratified, status))
         if contracts:
             print("\nCONTRACTS:")
@@ -295,7 +295,7 @@ def wake():
                 body = m["body"][:80]
                 photo = " 📷" if m.get("photo_path") else ""
                 print(f"  {rel:<10} {direction} {name}: {body}{photo}")
-    except Exception:
+    except Exception:  # noqa: S110
         pass
 
 

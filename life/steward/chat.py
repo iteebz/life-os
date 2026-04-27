@@ -1,6 +1,5 @@
 """steward — interactive sessions with tracking. Default command."""
 
-import json
 import os
 import subprocess
 import uuid
@@ -178,6 +177,7 @@ def continue_session():
     target = resumable[0]
     m = target.model or DEFAULT_MODEL
     source = os.environ.get("STEWARD_SOURCE", "cli")
-    assert target.claude_session_id
+    if not target.claude_session_id:
+        raise ValueError(f"session {target.id} has no claude_session_id")
     print(f"continuing {target.id} → {target.claude_session_id[:8]}  model={m}  source={source}")
     return _launch(m, target.claude_session_id, name=target.name, resume=True, source=source, db_session_id=target.id)

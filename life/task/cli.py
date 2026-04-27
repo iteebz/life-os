@@ -49,7 +49,8 @@ def _schedule(args: list[str], remove: bool = False) -> None:
             update_habit(habit.id, clear_time=True)
             print(format_status("\u25a1", habit.content, habit.id))
         else:
-            assert task
+            if not task:
+                raise UsageError(f"item not found: {item_name}")
             update_task(task.id, scheduled_date=None, scheduled_time=None, is_deadline=False)
             print(format_status("\u25a1", task.content, task.id))
         return
@@ -68,7 +69,8 @@ def _schedule(args: list[str], remove: bool = False) -> None:
         update_habit(habit.id, scheduled_time=time_str)
         print(format_status(ansi.muted(time_str), habit.content, habit.id))
         return
-    assert task
+    if not task:
+        raise UsageError(f"item not found: {item_name}")
     updates: dict[str, Any] = {"is_deadline": False}
     if date_str:
         updates["scheduled_date"] = date_str
@@ -336,7 +338,7 @@ def task(
         return
 
     # Try to resolve as existing task — if found, update it instead of creating
-    from life.task.domain import find_task_exact, find_task
+    from life.task.domain import find_task, find_task_exact
 
     item_ref = " ".join(ref)
     existing = find_task_exact(item_ref) or find_task(item_ref)

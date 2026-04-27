@@ -10,7 +10,7 @@ import life.lib.clock as clock
 from life import db
 from life.core.errors import LifeError
 from life.lib.store import configure as configure_store
-from life.store.connection import close_all, reset_for_testing
+from life.store.connection import reset_for_testing
 
 _discovered = False
 

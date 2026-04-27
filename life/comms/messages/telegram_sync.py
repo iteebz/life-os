@@ -67,7 +67,7 @@ def _store_message(
                 "VALUES (?, 'telegram', ?, ?, ?, ?, ?, ?)",
                 (f"tg-{msg_id}", direction, peer, peer_name, body, timestamp, photo_path),
             )
-    except Exception:
+    except Exception:  # noqa: S110
         pass
 
 
@@ -99,7 +99,7 @@ async def _sync_chat(
     """Sync messages from a single chat. Returns count synced."""
     from telethon.tl.types import User
 
-    entity = await client.get_entity(chat if isinstance(chat, int) else chat)
+    entity = await client.get_entity(chat)
     me = await client.get_me()
 
     peer_id = str(entity.id)

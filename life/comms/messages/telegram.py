@@ -170,7 +170,7 @@ def get_history(
     params.append(limit)
     with get_db() as conn:
         rows = conn.execute(
-            f"SELECT id, direction, peer, peer_name, body, timestamp, photo_path "
+            f"SELECT id, direction, peer, peer_name, body, timestamp, photo_path "  # noqa: S608
             f"FROM messages WHERE {where} ORDER BY timestamp DESC LIMIT ?",
             params,
         ).fetchall()

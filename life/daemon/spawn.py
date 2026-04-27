@@ -33,7 +33,7 @@ def fetch_wake_context() -> str:
         return f"(wake context unavailable: {e})"
 
 
-def spawn_claude(prompt: str, timeout: int = 120, photo_path: str | None = None) -> str:
+def spawn_claude(prompt: str, timeout: int = 300, photo_path: str | None = None) -> str:
     try:
         claude = _claude_bin()
     except FileNotFoundError as e:

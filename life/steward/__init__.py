@@ -233,7 +233,6 @@ __all__ = [
     "add_spawn",
     "auto",
     "chat",
-    "wake",
     "close",
     "close_spawn",
     "dash",
@@ -246,4 +245,5 @@ __all__ = [
     "resolve_prefix",
     "update_session_followups",
     "update_session_summary",
+    "wake",
 ]

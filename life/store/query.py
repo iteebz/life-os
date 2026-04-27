@@ -50,7 +50,7 @@ class Query[T: DataclassInstance]:
         return self.where("deleted_at IS NULL")
 
     def build(self) -> tuple[str, list[Any]]:
-        parts = [f"SELECT {self._select} FROM {self._table}"]
+        parts = [f"SELECT {self._select} FROM {self._table}"]  # noqa: S608
         params = list(self._params or [])
         if self._joins:
             parts.extend(self._joins)
