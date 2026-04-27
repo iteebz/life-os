@@ -48,8 +48,8 @@ def create_session(
         cursor = conn.execute(
             "INSERT INTO sessions (summary, claude_session_id, name, model, source, "
             "state, started_at, last_active_at, pid) "
-            "VALUES (?, ?, ?, ?, ?, 'active', STRFTIME('%Y-%m-%dT%H:%M:%S', 'now'), "
-            "STRFTIME('%Y-%m-%dT%H:%M:%S', 'now'), ?)",
+            "VALUES (?, ?, ?, ?, ?, 'active', STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime'), "
+            "STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime'), ?)",
             (summary, claude_session_id, name, model, source, pid),
         )
         return cursor.lastrowid or 0
@@ -58,7 +58,7 @@ def create_session(
 def touch_session(session_id: int) -> None:
     with get_db() as conn:
         conn.execute(
-            "UPDATE sessions SET last_active_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now') WHERE id = ?",
+            "UPDATE sessions SET last_active_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime') WHERE id = ?",
             (session_id,),
         )
 
@@ -72,7 +72,7 @@ def set_session_active(session_id: int) -> None:
     with get_db() as conn:
         conn.execute(
             "UPDATE sessions SET state = 'active', "
-            "last_active_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now') WHERE id = ?",
+            "last_active_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime') WHERE id = ?",
             (session_id,),
         )
 
@@ -81,7 +81,7 @@ def set_session_idle(session_id: int) -> None:
     with get_db() as conn:
         conn.execute(
             "UPDATE sessions SET state = 'idle', "
-            "last_active_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now') WHERE id = ?",
+            "last_active_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime') WHERE id = ?",
             (session_id,),
         )
 
@@ -91,8 +91,8 @@ def close_session(session_id: int, summary: str | None = None) -> None:
         if summary:
             conn.execute(
                 "UPDATE sessions SET state = 'closed', "
-                "ended_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now'), "
-                "last_active_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now'), "
+                "ended_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime'), "
+                "last_active_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime'), "
                 "runtime_seconds = CAST((JULIANDAY('now') - JULIANDAY(started_at)) * 86400 AS INTEGER), "
                 "summary = ?, pid = NULL WHERE id = ?",
                 (summary, session_id),
@@ -100,8 +100,8 @@ def close_session(session_id: int, summary: str | None = None) -> None:
         else:
             conn.execute(
                 "UPDATE sessions SET state = 'closed', "
-                "ended_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now'), "
-                "last_active_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now'), "
+                "ended_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime'), "
+                "last_active_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime'), "
                 "runtime_seconds = CAST((JULIANDAY('now') - JULIANDAY(started_at)) * 86400 AS INTEGER), "
                 "pid = NULL WHERE id = ?",
                 (session_id,),
@@ -250,7 +250,7 @@ def delete_observation(prefix: str, hard: bool = False) -> bool:
         else:
             cursor = conn.execute(
                 "UPDATE observations "
-                "SET deleted_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now') "
+                "SET deleted_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime') "
                 "WHERE id = ? AND deleted_at IS NULL",
                 (obs.id,),
             )
