@@ -1,4 +1,4 @@
-"""Claude provider — env + command builders for steward spawns."""
+"""Claude provider — env flags and settings for steward spawns."""
 
 from life.lib.env import Mode, build_base_env
 
@@ -23,6 +23,18 @@ _CLAUDE_FLAGS: dict[str, str] = {
     "DISABLE_INSTALLATION_CHECKS": "1",
     "DISABLE_UPGRADE_COMMAND": "1",
     "DISABLE_INSTALL_GITHUB_APP_COMMAND": "1",
+}
+
+
+SPAWN_SETTINGS: dict[str, object] = {
+    "includeCoAuthoredBy": False,
+    "includeGitInstructions": False,
+    "promptSuggestionEnabled": False,
+    "feedbackSurveyRate": 0,
+    "spinnerTipsEnabled": False,
+    "hooks": {
+        "PreToolUse": [{"matcher": "", "hooks": [{"type": "command", "command": "life-hook tool"}]}],
+    },
 }
 
 

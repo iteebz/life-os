@@ -5,20 +5,9 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from life.lib.providers.claude import build_env as build_claude_env
+from life.lib.providers.claude import SPAWN_SETTINGS, build_env as build_claude_env
 
 MAX_RESPONSE_LEN = 4000
-
-_HOOK_SETTINGS = {
-    "includeCoAuthoredBy": False,
-    "includeGitInstructions": False,
-    "promptSuggestionEnabled": False,
-    "feedbackSurveyRate": 0,
-    "spinnerTipsEnabled": False,
-    "hooks": {
-        "PreToolUse": [{"matcher": "", "hooks": [{"type": "command", "command": "life-hook tool"}]}],
-    },
-}
 
 
 def _claude_bin() -> str:
@@ -59,7 +48,7 @@ def spawn_claude(
         "--model",
         "claude-sonnet-4-6",
         "--settings",
-        json.dumps(_HOOK_SETTINGS),
+        json.dumps(SPAWN_SETTINGS),
     ]
     if resume_session_id:
         cmd += ["--resume", resume_session_id]
