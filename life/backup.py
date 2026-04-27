@@ -7,7 +7,7 @@ from typing import Any
 
 from fncli import cli
 
-from . import config
+from .core import config
 from .core.errors import LifeError
 
 _SKIP_TABLES = {"_migrations"}

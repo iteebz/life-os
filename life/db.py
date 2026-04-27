@@ -4,7 +4,7 @@ from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
-from . import config
+from .core import config
 
 MIGRATIONS_TABLE = "_migrations"
 

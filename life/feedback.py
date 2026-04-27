@@ -2,7 +2,7 @@ import dataclasses
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
-from .config import get_partner_tag
+from .core.config import get_partner_tag
 from .core.models import Habit, Task
 from .lib.store import get_db
 
