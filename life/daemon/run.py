@@ -13,6 +13,7 @@ from life.comms.messages import telegram as tg
 from life.daemon.commands import handle_command
 from life.daemon.inbound import handle as handle_inbound
 from life.daemon.morning import morning_thread
+from life.daemon.reap import sweep as reap_sweep
 from life.daemon.shared import (
     DAEMON_DIR,
     MAX_TG_SPAWNS_PER_HOUR,
@@ -131,6 +132,16 @@ def _signal_thread(stop: threading.Event, interval: int) -> None:
                 log(f"[signal] [{phone}] error: {e}")
 
         stop.wait(interval)
+
+
+def _reap_thread(stop: threading.Event) -> None:
+    log("[reap] started, sweeping every 10s")
+    while not stop.is_set():
+        try:
+            reap_sweep()
+        except Exception as e:
+            log(f"[reap] error: {e}")
+        stop.wait(10)
 
 
 def _auto_thread(stop: threading.Event, every: int) -> None:

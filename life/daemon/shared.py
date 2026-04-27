@@ -12,6 +12,9 @@ LOG_FILE = DAEMON_DIR / "daemon.log"
 TG_SESSION_TIMEOUT = 3300  # 55 min — restart with boot after this
 TG_SESSION_MAX_CHARS = 100_000  # ~33k tokens
 MAX_TG_SPAWNS_PER_HOUR = 12
+# Cache TTL lifecycle: wake at 50m, hard reap at 55m, cache dies at 60m
+IDLE_WAKE_SECS = 3000
+IDLE_REAP_SECS = 3300
 PEOPLE_DIR = Path.home() / "life" / "steward" / "people"
 
 

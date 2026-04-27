@@ -62,19 +62,42 @@ def add_spawn(
     source: str | None = None,
     session_id: int | None = None,
     prompt_chars: int | None = None,
+    pid: int | None = None,
 ) -> int:
     with get_db() as conn:
         cursor = conn.execute(
-            "INSERT INTO spawns (mode, source, session_id, prompt_chars) VALUES (?, ?, ?, ?)",
-            (mode, source, session_id, prompt_chars),
+            "INSERT INTO spawns (mode, source, session_id, prompt_chars, pid) VALUES (?, ?, ?, ?, ?)",
+            (mode, source, session_id, prompt_chars, pid),
         )
         return cursor.lastrowid or 0
+
+
+def set_spawn_pid(spawn_id: int, pid: int) -> None:
+    with get_db() as conn:
+        conn.execute("UPDATE spawns SET pid = ? WHERE id = ?", (pid, spawn_id))
+
+
+def touch_spawn(spawn_id: int) -> None:
+    with get_db() as conn:
+        conn.execute(
+            "UPDATE spawns SET last_active_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now') WHERE id = ?",
+            (spawn_id,),
+        )
+
+
+def update_spawn_provider_session(spawn_id: int, provider_session_id: str) -> None:
+    with get_db() as conn:
+        conn.execute(
+            "UPDATE spawns SET provider_session_id = ? WHERE id = ?",
+            (provider_session_id, spawn_id),
+        )
 
 
 def close_spawn(spawn_id: int, status: str = "complete", response_chars: int | None = None) -> None:
     with get_db() as conn:
         conn.execute(
             "UPDATE spawns SET ended_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now'), "
+            "last_active_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now'), "
             "runtime_seconds = CAST((JULIANDAY('now') - JULIANDAY(started_at)) * 86400 AS INTEGER), "
             "status = ?, response_chars = ? "
             "WHERE id = ?",
@@ -229,7 +252,10 @@ __all__ = [
     "inbox",
     "log",
     "resolve_prefix",
+    "set_spawn_pid",
+    "touch_spawn",
     "update_session_followups",
     "update_session_summary",
+    "update_spawn_provider_session",
     "wake",
 ]

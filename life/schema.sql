@@ -90,7 +90,11 @@ CREATE TABLE spawns (
     runtime_seconds INTEGER,
     prompt_chars INTEGER,
     response_chars INTEGER,
-    status TEXT NOT NULL DEFAULT 'active'
+    status TEXT NOT NULL DEFAULT 'active',
+    pid INTEGER,
+    last_active_at TIMESTAMP,
+    provider_session_id TEXT,
+    slept_at TIMESTAMP
 );
 
 CREATE TABLE observations (
