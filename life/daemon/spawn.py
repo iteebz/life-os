@@ -3,7 +3,6 @@
 import json
 import shutil
 import subprocess
-from dataclasses import dataclass
 from pathlib import Path
 
 from life.lib.providers.claude import SPAWN_SETTINGS, build_env as build_claude_env
@@ -31,27 +30,20 @@ def fetch_wake_context() -> str:
         return f"(wake context unavailable: {e})"
 
 
-@dataclass
-class SessionResult:
-    text: str
-    session_id: str | None = None
-
-
 def spawn_claude(
     prompt: str,
     timeout: int = 300,
     image_path: str | None = None,
     resume_session_id: str | None = None,
-) -> SessionResult:
+) -> str:
     try:
         claude = _claude_bin()
     except FileNotFoundError as e:
-        return SessionResult(f"[steward error: {e}]")
+        return f"[steward error: {e}]"
 
     cmd = [
         claude,
         "--print",
-        "--output-format", "json",
         "--dangerously-skip-permissions",
         "--model",
         "claude-sonnet-4-6",
@@ -77,22 +69,11 @@ def spawn_claude(
         )
         output = result.stdout.strip()
         if not output and result.stderr:
-            return SessionResult(f"[steward error: {result.stderr[:200]}]")
-        if not output:
-            return SessionResult("[steward: no response]")
-
-        try:
-            data = json.loads(output)
-            text = data.get("result", output)
-            sid = data.get("session_id")
-        except json.JSONDecodeError:
-            text = output
-            sid = None
-
-        if len(text) > MAX_RESPONSE_LEN:
-            text = text[:MAX_RESPONSE_LEN] + "\n\n[truncated]"
-        return SessionResult(text, session_id=sid)
+            return f"[steward error: {result.stderr[:200]}]"
+        if len(output) > MAX_RESPONSE_LEN:
+            output = output[:MAX_RESPONSE_LEN] + "\n\n[truncated]"
+        return output or "[steward: no response]"
     except subprocess.TimeoutExpired:
-        return SessionResult(f"[steward: timed out ({timeout}s)]")
+        return f"[steward: timed out ({timeout}s)]"
     except Exception as e:
-        return SessionResult(f"[steward error: {e}]")
+        return f"[steward error: {e}]"

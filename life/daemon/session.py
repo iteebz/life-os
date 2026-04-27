@@ -129,11 +129,11 @@ def run_session(
         if history:
             log(f"[{label}] loaded {len(history)} messages from DB")
 
-    result = spawn_claude(opener)
-    tg.send(chat_id, result.text)
-    log(f"[{label}] opener sent ({len(result.text)} chars)")
+    response = spawn_claude(opener)
+    tg.send(chat_id, response)
+    log(f"[{label}] opener sent ({len(response)} chars)")
 
-    history.append({"role": "assistant", "text": result.text})
+    history.append({"role": "assistant", "text": response})
     last_activity = time.time()
 
     while not stop.is_set():
@@ -168,11 +168,11 @@ def run_session(
             history.append({"role": "user", "text": body})
             prompt = build_reply_prompt(history, body, tone=tone)
             image = msg.get("image_path")
-            result = spawn_claude(prompt, image_path=image)
-            history.append({"role": "assistant", "text": result.text})
+            reply = spawn_claude(prompt, image_path=image)
+            history.append({"role": "assistant", "text": reply})
 
-            tg.send(chat_id, result.text)
-            log(f"[{label}] responded ({len(result.text)} chars)")
+            tg.send(chat_id, reply)
+            log(f"[{label}] responded ({len(reply)} chars)")
 
     claimed_chat.clear()
     from life.daemon.inbound import mark_read_for_session
