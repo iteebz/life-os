@@ -17,6 +17,7 @@ from life.contacts import get_stale_contacts
 from life.feedback import build_feedback_snapshot, render_feedback_headline
 from life.habit import get_habits
 from life.improvements import get_improvements
+from life.skills import list_skills
 from life.lib.clock import today
 from life.lib.dates import list_dates
 from life.lib.format import format_elapsed
@@ -161,6 +162,14 @@ def render_improvements() -> str:
     out = ["IMPROVEMENTS:"]
     out.extend(f"  [{short('i', i.id)}] {i.body}" for i in items[:5])
     return "\n".join(out)
+
+
+def render_skills() -> str:
+    skills = list_skills()
+    if not skills:
+        return ""
+    names = " · ".join(s.name for s in skills)
+    return f"SKILLS: {names}\n  load with `life skill <name>`"
 
 
 def render_mood() -> str:
