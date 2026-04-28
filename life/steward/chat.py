@@ -13,7 +13,6 @@ from fncli import cli
 from life.lib.providers.claude import build_env
 
 from . import (
-    create_session,
     get_sessions,
     set_session_active,
     set_session_idle,
@@ -132,6 +131,8 @@ def _launch(
             _followups.append(datetime.now())
             if db_session_id is not None:
                 update_session_followups(db_session_id, [ts.isoformat() for ts in _followups])
+            else:
+                _persist_followup(session_id, _followups)
 
     _ensure_hooks_config()
 
@@ -153,6 +154,9 @@ def _launch(
     env["STEWARD_SESSION_ID"] = session_id
     if db_session_id is not None:
         env["STEWARD_DB_SESSION_ID"] = str(db_session_id)
+    env["STEWARD_SESSION_NAME"] = name or session_id[:8]
+    env["STEWARD_SESSION_MODEL"] = model
+    env["STEWARD_SESSION_SOURCE"] = source
     env["GIT_AUTHOR_NAME"] = "steward"
     env["GIT_AUTHOR_EMAIL"] = "steward@life-os"
     env["GIT_COMMITTER_NAME"] = "steward"
@@ -162,9 +166,26 @@ def _launch(
     if db_session_id is not None:
         set_session_pid(db_session_id, proc.pid)
     rc = proc.wait()
-    if db_session_id is not None:
-        set_session_idle(db_session_id)
+    resolved_id = db_session_id or _lookup_session_id(session_id)
+    if resolved_id is not None:
+        set_session_idle(resolved_id)
     return rc
+
+
+def _lookup_session_id(claude_session_id: str) -> int | None:
+    from life.lib.store import get_db  # noqa: PLC0415
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT id FROM sessions WHERE claude_session_id = ? ORDER BY id DESC LIMIT 1",
+            (claude_session_id,),
+        ).fetchone()
+    return row[0] if row else None
+
+
+def _persist_followup(claude_session_id: str, followups: list[datetime]) -> None:
+    db_id = _lookup_session_id(claude_session_id)
+    if db_id is not None:
+        update_session_followups(db_id, [ts.isoformat() for ts in followups])
 
 
 @cli("life steward", flags={"model": ["-m", "--model"], "name": ["-n", "--name"], "opus": ["--opus"], "raw": ["--raw"]})
@@ -177,16 +198,8 @@ def chat(model: str | None = None, name: str | None = None, opus: bool = False, 
     label = name or datetime.now().strftime("%b %d %H:%M").lower()
 
     source = os.environ.get("STEWARD_SOURCE", "cli")
-    db_id = create_session(
-        summary=f"(active) {label}",
-        claude_session_id=session_id,
-        name=label,
-        model=model,
-        source=source,
-    )
-
-    print(f"session {db_id} → {session_id[:8]}  model={model}  source={source}{'  raw' if raw else ''}")
-    return _launch(model, session_id, name=label, source=source, db_session_id=db_id, raw=raw)
+    print(f"session → {session_id[:8]}  model={model}  source={source}{'  raw' if raw else ''}")
+    return _launch(model, session_id, name=label, source=source, db_session_id=None, raw=raw)
 
 
 @cli("life steward", flags={"ref": [], "model": ["-m", "--model"]})

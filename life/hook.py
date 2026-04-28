@@ -156,6 +156,37 @@ def _log_turn(direction: str, body: str, session_id: str) -> None:
         )
 
 
+def _ensure_session_row(claude_session_id: str) -> None:
+    """Lazy-create session row on first human prompt. No conversation = no row."""
+    if claude_session_id == "unknown" or os.environ.get("STEWARD_DB_SESSION_ID"):
+        return
+    name = os.environ.get("STEWARD_SESSION_NAME") or claude_session_id[:8]
+    model = os.environ.get("STEWARD_SESSION_MODEL")
+    source = os.environ.get("STEWARD_SESSION_SOURCE", "cli")
+    with contextlib.suppress(Exception):
+        with get_db() as conn:
+            row = conn.execute(
+                "SELECT id FROM sessions WHERE claude_session_id = ?",
+                (claude_session_id,),
+            ).fetchone()
+            if row:
+                conn.execute(
+                    "UPDATE sessions SET state = 'active', "
+                    "last_active_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime') "
+                    "WHERE id = ?",
+                    (row[0],),
+                )
+                return
+            conn.execute(
+                "INSERT INTO sessions (summary, claude_session_id, name, model, source, "
+                "state, started_at, last_active_at, pid) VALUES "
+                "(?, ?, ?, ?, ?, 'active', "
+                "STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime'), "
+                "STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime'), ?)",
+                (f"(active) {name}", claude_session_id, name, model, source, os.getppid()),
+            )
+
+
 def _surface_session_meta(session_id: str) -> None:
     with contextlib.suppress(Exception):
         with get_db() as conn:
@@ -201,6 +232,7 @@ def cmd_hook_prompt() -> None:
     if not body:
         return
     session_id = os.environ.get("STEWARD_SESSION_ID", "unknown")
+    _ensure_session_row(session_id)
     _log_turn("in", body, session_id)
     rows = events.drain_inbox()
     if rows:
