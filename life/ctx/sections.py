@@ -168,8 +168,12 @@ def render_skills() -> str:
     skills = list_skills()
     if not skills:
         return ""
-    names = " · ".join(s.name for s in skills)
-    return f"SKILLS: {names}\n  load with `life skill <name>`"
+    width = max(len(s.name) for s in skills)
+    out = ["SKILLS (load with `life skill <name>`):"]
+    for s in skills:
+        when = f"  {s.when}" if s.when else ""
+        out.append(f"  {s.name:<{width}}{when}")
+    return "\n".join(out)
 
 
 def render_mood() -> str:
