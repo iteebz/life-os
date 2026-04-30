@@ -171,6 +171,7 @@ def _format(msgs: list[dict[str, Any]], context: str = "") -> None:
 
 @cli(
     "life messages",
+    name="list",
     default=True,
     flags={
         "person": [],
@@ -182,7 +183,7 @@ def _format(msgs: list[dict[str, Any]], context: str = "") -> None:
         "received": ["--received"],
     },
 )
-def messages_cmd(
+def messages(
     person: str = "",
     limit: int = 0,
     since: str = "",
@@ -239,7 +240,7 @@ def auth_cmd(api_id: int, api_hash: str):
     print(f"saved — api_id={api_id}. run: life messages sync <person> to pull history")
 
 
-@cli("life message", default=True, flags={"channel": ["-c", "--channel"]})
+@cli("life message", name="send", default=True, flags={"channel": ["-c", "--channel"]})
 def send_cmd(person: str, text: str, channel: str = ""):
     """Send a message (auto-routes telegram or signal)"""
     peer_id, peer_channel = _resolve_peer(person)

@@ -99,7 +99,6 @@ def get_today_breakdown() -> tuple[int, int, int, int]:
     return get_day_breakdown(clock.today().isoformat())
 
 
-@cli("life")
 def dashboard() -> None:
     """Life dashboard"""
     items = get_tasks() + get_habits()
@@ -108,7 +107,7 @@ def dashboard() -> None:
     print(render_dashboard(items, today_breakdown, today_items=today_items))
 
 
-@cli("life", flags={"as_json": ["-j", "--json"]})
+@cli("life steward", flags={"as_json": ["-j", "--json"]})
 def status(as_json: bool = False) -> None:
     """System health check"""
     tasks = get_tasks()

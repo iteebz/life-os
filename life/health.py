@@ -3,8 +3,6 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-from fncli import cli
-
 from life.core import config
 from life.lib.store import get_db
 
@@ -161,12 +159,6 @@ def _render() -> None:
 
     if not result["ok"]:
         raise SystemExit(1)
-
-
-@cli("life", name="health")
-def health_cmd() -> None:
-    """Check database integrity"""
-    _render()
 
 
 if __name__ == "__main__":

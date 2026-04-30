@@ -100,6 +100,16 @@ def doctor() -> int:
     print("\ndb:")
     if DB.exists():
         _ok(f"db at {DB}")
+        from life.health import score  # noqa: PLC0415
+
+        result = score()
+        if result["ok"]:
+            total = sum(result.get("table_counts", {}).values())
+            _ok(f"integrity ok — {total} rows across {len(result.get('table_counts', {}))} tables")
+        else:
+            for issue in result.get("issues", []):
+                _fail(issue)
+            failures += len(result.get("issues", []))
     else:
         _fail(f"db missing at {DB}")
         failures += 1
