@@ -1,7 +1,8 @@
-"""Seed ~/life with the steward CLAUDE.md. Idempotent."""
+"""Seed ~/life with steward scaffold. Idempotent."""
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 from fncli import cli
@@ -9,23 +10,87 @@ from fncli import cli
 from life.core.config import Config, get_partner_tag, get_user_name
 
 LIFE_HOME = Path.home() / "life"
-TEMPLATE = Path(__file__).parent / "ctx" / "seed" / "CLAUDE.md"
+SEED_DIR = Path(__file__).parent / "ctx" / "seed"
 
 
-@cli("life", flags={"force": ["-f", "--force"]})
-def init(force: bool = False):
-    """Seed ~/life/CLAUDE.md with the steward mandate"""
+def _render(text: str, user: str, partner: str) -> str:
+    return (
+        text.replace("{User}", user.capitalize())
+        .replace("{user}", user)
+        .replace("{Partner}", partner.capitalize())
+        .replace("{partner}", partner)
+    )
+
+
+def _setup_git(github_url: str | None) -> None:
+    git_dir = LIFE_HOME / ".git"
+    if not git_dir.exists():
+        subprocess.run(["git", "init"], cwd=LIFE_HOME, check=True, capture_output=True)
+        print("  git init")
+
+    if github_url:
+        result = subprocess.run(
+            ["git", "remote", "get-url", "origin"],
+            cwd=LIFE_HOME,
+            capture_output=True,
+        )
+        if result.returncode == 0:
+            subprocess.run(
+                ["git", "remote", "set-url", "origin", github_url],
+                cwd=LIFE_HOME,
+                check=True,
+                capture_output=True,
+            )
+            print(f"  remote updated: {github_url}")
+        else:
+            subprocess.run(
+                ["git", "remote", "add", "origin", github_url],
+                cwd=LIFE_HOME,
+                check=True,
+                capture_output=True,
+            )
+            print(f"  remote added: {github_url}")
+
+
+@cli("life", flags={"force": ["-f", "--force"], "github": ["--github"]})
+def init(force: bool = False, github: str | None = None):
+    """Seed ~/life with steward scaffold (CLAUDE.md, LIFE.md, steward/, .gitignore)"""
     LIFE_HOME.mkdir(parents=True, exist_ok=True)
-    target = LIFE_HOME / "CLAUDE.md"
 
-    if target.exists() and not force:
-        print(f"already initialized: {target}")
-    else:
-        target.write_text(TEMPLATE.read_text())
-        print(f"{'overwrote' if force else 'created'}: {target}")
+    user = get_user_name()
+    partner = get_partner_tag() or "partner"
 
-    print(f"  user_name:   {get_user_name()}")
-    print(f"  partner_tag: {get_partner_tag() or '(unset)'}")
+    # seed files: (src relative to SEED_DIR, dst relative to LIFE_HOME, force-overwrite)
+    seed_files = [
+        ("CLAUDE.md", True),
+        ("LIFE.md", False),
+        (".gitignore", False),
+        ("steward/memory.md", False),
+        ("steward/human.md", False),
+    ]
+
+    for rel, overwritable in seed_files:
+        src = SEED_DIR / rel
+        dst = LIFE_HOME / rel
+        should_write = (force and overwritable) or not dst.exists()
+        if should_write:
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            content = _render(src.read_text(), user, partner)
+            verb = "overwrote" if dst.exists() else "created"
+            dst.write_text(content)
+            print(f"  {verb}: {rel}")
+        else:
+            print(f"  exists:  {rel}")
+
+    # steward/{user}/ placeholder
+    user_dir = LIFE_HOME / "steward" / user
+    user_dir.mkdir(parents=True, exist_ok=True)
+
+    _setup_git(github)
+
+    print()
+    print(f"  user_name:   {user}")
+    print(f"  partner_tag: {partner}")
     print("set with: life config user_name <name> / life config partner_tag <tag>")
 
 
