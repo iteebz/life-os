@@ -188,11 +188,13 @@ def _persist_followup(claude_session_id: str, followups: list[datetime]) -> None
         update_session_followups(db_id, [ts.isoformat() for ts in followups])
 
 
-@cli("life steward", flags={"model": ["-m", "--model"], "name": ["-n", "--name"], "opus": ["--opus"], "raw": ["--raw"]})
-def chat(model: str | None = None, name: str | None = None, opus: bool = False, raw: bool = False):
+@cli("life steward", flags={"model": ["-m", "--model"], "name": ["-n", "--name"], "opus": ["--opus"], "sonnet": ["--sonnet"], "raw": ["--raw"]})
+def chat(model: str | None = None, name: str | None = None, opus: bool = False, sonnet: bool = False, raw: bool = False):
     """Start a tracked interactive steward session"""
     if opus:
         model = "opus"
+    elif sonnet:
+        model = "sonnet"
     model = model or DEFAULT_MODEL
     session_id = str(uuid.uuid4())
     label = name or datetime.now().strftime("%b %d %H:%M").lower()

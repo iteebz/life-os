@@ -10,7 +10,7 @@ from .steward import get_sessions
 from .steward.chat import DEFAULT_MODEL, _launch, chat
 from .store import migrations as db
 
-_STEWARD_CHAT_FLAGS = {"--opus", "-m", "--model", "-n", "--name", "--raw"}
+_STEWARD_CHAT_FLAGS = {"--opus", "--sonnet", "-m", "--model", "-n", "--name", "--raw"}
 _RESUME_WINDOW_SECONDS = 3600
 
 
