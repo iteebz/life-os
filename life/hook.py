@@ -67,6 +67,12 @@ def _render_inbox(rows) -> list[str]:
     return [f"  [{ch}] {name or '?'}: {(body or '')[:200]}" for _id, ch, name, body, _ts in rows]
 
 
+def _inbox_signal(state: dict[str, str], parts: list[str]) -> None:
+    rows = events.drain_inbox()
+    if rows:
+        parts.append("inbox:\n" + "\n".join(_render_inbox(rows)))
+
+
 def _habit_status(state: dict[str, str], parts: list[str]) -> None:
     """Inject today's habit completion status."""
     if _throttled(state, "habits_at", 60):
@@ -260,12 +266,11 @@ def cmd_hook_tool() -> None:
     state = _load_state()
     parts: list[str] = []
 
-    rows = events.drain_inbox()
-    if rows:
-        parts.append("inbox:\n" + "\n".join(_render_inbox(rows)))
-    _habit_status(state, parts)
-    _mood(state, parts)
-    _active_tasks(state, parts)
+    for fn in (_inbox_signal, _habit_status, _mood, _active_tasks):
+        try:
+            fn(state, parts)
+        except Exception as e:
+            parts.append(f"[hook signal {fn.__name__} failed: {e}]")
 
     _save_state(state)
 

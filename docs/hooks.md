@@ -46,7 +46,5 @@ same pattern (PreToolUse, watermarks, --settings injection, JSON output). differ
 
 ## gaps
 
-- **no per-signal error isolation.** one signal throwing kills the entire hook invocation.
-  each handler should catch independently.
 - **interactive hook path.** chat-mode hooks depend on workspace settings file existing.
   if missing, interactive steward gets no context injection.
