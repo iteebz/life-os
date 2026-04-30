@@ -169,7 +169,7 @@ def render_skills() -> str:
     if not skills:
         return ""
     width = max(len(s.name) for s in skills)
-    out = ["SKILLS (load with `life skill <name>`):"]
+    out = ["SKILLS (load with `steward skill <name>`):"]
     for s in skills:
         when = f"  {s.when}" if s.when else ""
         out.append(f"  {s.name:<{width}}{when}")
