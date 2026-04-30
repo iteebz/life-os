@@ -2,32 +2,23 @@
 
 Two humans, two stewards, one engine.
 
-Tyson maintains `main`. Janice runs her own steward off the same codebase. When her steward improves the engine, those changes flow back via pull request.
+## Branches
 
-## Flow
+- `main` — stable trunk. Tyson maintains.
+- `janice` — long-lived branch. Janice pushes freely.
 
-1. Janice's steward branches: `git checkout -b janice/<topic>`
-2. Commits with steward identity (`steward@life-os`).
-3. Pushes: `git push -u origin janice/<topic>`
-4. Opens PR: `gh pr create --base main`
-5. Tyson reviews. Merges, requests changes, or closes with reason.
+Janice rebases on main when she wants upstream changes. Tyson rebases her changes onto main when they're ready. No PR ceremony required — both sides stay autonomous.
 
-## What flows back
+## What lives in the engine vs the instance
 
-- Bug fixes, ergonomics, infra cleanups — anything generic to the engine.
-- New CLI commands or domains that aren't person-specific.
-- Doc clarifications.
+**Engine (life-os repo):** CLI, daemon, steward logic, store, docs. Generic to any human.
 
-## What doesn't
-
-- Anything in the user's `~/life/` shell. That's their instance, not the engine.
-- Person-specific seed content. The seed at `life/ctx/seed/CLAUDE.md` is Tyson's mandate; Janice forks her own locally and doesn't PR hers up.
-- Memory, observations, mood, telegram history — all instance-local.
+**Instance (`~/life/`):** CLAUDE.md, LIFE.md, human/, steward/memory.md, mood, observations. Person-specific. Never flows back.
 
 ## Identity
 
-Both stewards commit as `steward@life-os`. PRs are attributed by branch prefix (`janice/...`, `tyson/...`) and PR description, not by author email. The engine is one steward; the humans are different.
+Both stewards commit as `steward@life-os`. Branch ownership (`main` vs `janice`) attributes the work, not author email.
 
 ## Conflicts
 
-Tyson holds final say on `main`. Disagreement on direction = conversation, not a merge fight.
+Conversation, not a merge fight.
