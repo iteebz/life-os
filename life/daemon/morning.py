@@ -82,8 +82,12 @@ def morning_thread(stop: threading.Event, claimed_chat: threading.Event) -> None
             if not claimed_chat.is_set():
                 opener = _build_opener()
                 run_session(
-                    chat_id, opener, stop, claimed_chat,
-                    label="morning", tone="Soft morning tone.",
+                    chat_id,
+                    opener,
+                    stop,
+                    claimed_chat,
+                    label="morning",
+                    tone="Soft morning tone.",
                 )
 
         if now.hour == NIGHTLY_HOUR and nightly_triggered != today_str:
@@ -92,8 +96,12 @@ def morning_thread(stop: threading.Event, claimed_chat: threading.Event) -> None
                 log("[nightly] user was active today — triggering")
                 opener = _build_nightly_opener()
                 run_session(
-                    chat_id, opener, stop, claimed_chat,
-                    label="nightly", tone="Warm wind-down tone.",
+                    chat_id,
+                    opener,
+                    stop,
+                    claimed_chat,
+                    label="nightly",
+                    tone="Warm wind-down tone.",
                 )
             elif not _user_active_today(chat_id):
                 log("[nightly] user off-grid today — skipping")

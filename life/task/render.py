@@ -42,9 +42,7 @@ def _fmt_time(t: str) -> str:
     return f"{theme.gray}{t}{_R}"
 
 
-def _fmt_rel_date(
-    due: date, today: date, time: str | None = None, is_deadline: bool = False
-) -> str:
+def _fmt_rel_date(due: date, today: date, time: str | None = None, is_deadline: bool = False) -> str:
     delta = (due - today).days
     if delta <= 7:
         day_label = due.strftime("%a").lower()
@@ -144,10 +142,7 @@ def _row_task(
     if show_date:
         prefix = ""
         if task.scheduled_date and task.scheduled_date.isoformat() not in (today_str, tomorrow_str):
-            prefix = (
-                _fmt_rel_date(task.scheduled_date, ctx.today, task.scheduled_time, task.is_deadline)
-                + " "
-            )
+            prefix = _fmt_rel_date(task.scheduled_date, ctx.today, task.scheduled_time, task.is_deadline) + " "
     else:
         prefix = f"{_fmt_time(task.scheduled_time)} " if task.scheduled_time else ""
 
@@ -175,15 +170,11 @@ def _row_task(
     for sub in completed_subs.get(task.id, []):
         tags_str2 = _fmt_tags(_get_direct_tags(sub, ctx.pending), ctx.tag_colors)
         time_str = f"{_fmt_time(sub.scheduled_time)} " if sub.scheduled_time else ""
-        rows.append(
-            f"{indent}  {gray('└ ' + time_str + '✓ ' + sub.content.lower())}{tags_str2}{id_str}"
-        )
+        rows.append(f"{indent}  {gray('└ ' + time_str + '✓ ' + sub.content.lower())}{tags_str2}{id_str}")
     return rows
 
 
-def _row_habit(
-    habit: Habit, checked_ids: set[str], ctx: RenderCtx, indent: str = "  "
-) -> list[str]:
+def _row_habit(habit: Habit, checked_ids: set[str], ctx: RenderCtx, indent: str = "  ") -> list[str]:
     tags_str = _fmt_tags(habit.tags, ctx.tag_colors)
     id_str = f" {dim('[' + habit.id[:8] + ']')}"
 
@@ -274,9 +265,7 @@ def _section_done(
                 parent = next((t for t in ctx.pending if t.id == item.parent_id), None)
                 if parent and not parent.completed_at:
                     parent_str = f" {dim('→ ' + parent.content.lower())}"
-            lines.append(
-                f"  {green('✓')} {_GREY}{time_str}{_R} {content}{tags_str}{id_str}{parent_str}"
-            )
+            lines.append(f"  {green('✓')} {_GREY}{time_str}{_R} {content}{tags_str}{id_str}{parent_str}")
     return lines
 
 
@@ -355,6 +344,7 @@ def _section_habits(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) 
     if not remaining:
         lines.append(f"  {gray('all done.')}")
         return lines
+
     def _habit_sort_key(h: Habit) -> tuple[int, str]:
         return (1 if h.scheduled_time else 0, h.scheduled_time or h.content.lower())
 
@@ -409,9 +399,7 @@ def render_dashboard(
         upcoming_by_date.setdefault(ev_date, []).append(ev)
 
     lines: list[str] = []
-    lines += _section_header(
-        ctx.today, tasks_today, habits_today, total_habits, added_today, deleted_today
-    )
+    lines += _section_header(ctx.today, tasks_today, habits_today, total_habits, added_today, deleted_today)
 
     done_lines = _section_done(today_items or [], ctx)
     if done_lines:
@@ -419,9 +407,7 @@ def render_dashboard(
         lines += done_lines
 
     overdue = [
-        t
-        for t in ctx.pending
-        if t.scheduled_date and t.scheduled_date < ctx.today and t.id not in ctx.subtask_ids
+        t for t in ctx.pending if t.scheduled_date and t.scheduled_date < ctx.today and t.id not in ctx.subtask_ids
     ]
     scheduled_ids: set[str] = set()
     if overdue:
@@ -430,9 +416,7 @@ def render_dashboard(
         scheduled_ids |= overdue_ids
 
     today_str = ctx.today.isoformat()
-    due_today = [
-        t for t in ctx.pending if t.scheduled_date and t.scheduled_date.isoformat() == today_str
-    ]
+    due_today = [t for t in ctx.pending if t.scheduled_date and t.scheduled_date.isoformat() == today_str]
     today_lines, today_ids = _section_schedule(
         due_today, "TODAY", ctx, is_today=True, events=upcoming_by_date.get(ctx.today, [])
     )
@@ -453,9 +437,7 @@ def render_dashboard(
         else:
             label = day.strftime("%-d %b").upper()
         due_day = [t for t in ctx.pending if t.scheduled_date and t.scheduled_date == day]
-        day_lines, day_ids = _section_schedule(
-            due_day, label, ctx, events=upcoming_by_date.get(day, [])
-        )
+        day_lines, day_ids = _section_schedule(due_day, label, ctx, events=upcoming_by_date.get(day, []))
         lines += day_lines
         scheduled_ids |= day_ids
 
@@ -466,11 +448,7 @@ def render_dashboard(
             completed_subs.setdefault(t.parent_id, []).append(t)
 
     ctx.scheduled_ids = scheduled_ids
-    backlog = [
-        i
-        for i in items
-        if isinstance(i, Task) and i.id not in scheduled_ids and i.id not in ctx.subtask_ids
-    ]
+    backlog = [i for i in items if isinstance(i, Task) and i.id not in scheduled_ids and i.id not in ctx.subtask_ids]
     lines += _section_backlog(backlog, ctx, completed_subs)
 
     return "\n".join(lines) + "\n"
@@ -486,9 +464,7 @@ def render_day_summary(
     habits_done, tasks_done, added, deleted = breakdown
     ctx = RenderCtx.build(completed_items)
 
-    lines = [
-        f"\n{bold(white(target_date.strftime('%a') + ' · ' + target_date.strftime('%-d %b %Y')))}"
-    ]
+    lines = [f"\n{bold(white(target_date.strftime('%a') + ' · ' + target_date.strftime('%-d %b %Y')))}"]
     lines.append(f"{_GREY}tasks:{_R} {green(str(tasks_done))}")
     habits_total_str = f"{_GREY}/{total_habits}{_R}" if total_habits else ""
     lines.append(f"{_GREY}habits:{_R} {purple(str(habits_done))}{habits_total_str}")
@@ -543,10 +519,7 @@ def _block_task(
     tags_str = _fmt_tags(task.tags, ctx.tag_colors)
     focus_str = f"{theme.bold}🔥{_R} " if task.focus else ""
     status = gray("✓") if task.completed_at else "□"
-    lines = [
-        f"{indent}{status} {focus_str}{dim('[' + task.id[:8] + ']')}  "
-        f"{task.content.lower()}{tags_str}"
-    ]
+    lines = [f"{indent}{status} {focus_str}{dim('[' + task.id[:8] + ']')}  {task.content.lower()}{tags_str}"]
 
     if task.scheduled_date:
         label = "deadline" if task.is_deadline else "scheduled"
@@ -564,8 +537,7 @@ def _block_task(
         sub_tags_str = _fmt_tags(_get_direct_tags(sub, ctx.pending), ctx.tag_colors)
         time_str = f"{dim(_fmt_time(sub.scheduled_time))} " if sub.scheduled_time else ""
         lines.append(
-            f"{indent}  └ {sub_status} {dim('[' + sub.id[:8] + ']')}  "
-            f"{time_str}{sub.content.lower()}{sub_tags_str}"
+            f"{indent}  └ {sub_status} {dim('[' + sub.id[:8] + ']')}  {time_str}{sub.content.lower()}{sub_tags_str}"
         )
 
     deferrals = [m for m in (mutations or []) if m.field == "defer" or m.reason == "overdue_reset"]

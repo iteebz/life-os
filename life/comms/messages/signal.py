@@ -48,9 +48,7 @@ def send(recipient: str, message: str, attachment: str | None = None) -> tuple[b
     return send_to(phone, recipient, message, attachment=attachment)
 
 
-def send_to(
-    phone: str, recipient: str, message: str, attachment: str | None = None
-) -> tuple[bool, str]:
+def send_to(phone: str, recipient: str, message: str, attachment: str | None = None) -> tuple[bool, str]:
     cmd = [SIGNAL_CLI, "-a", phone, "send"]
     if attachment:
         cmd.extend(["--attachment", attachment])
@@ -77,9 +75,7 @@ def send_group(phone: str, group_id: str, message: str) -> tuple[bool, str]:
     return False, result.stderr.strip() or "send failed"
 
 
-def receive(
-    timeout: int = 5, phone: str | None = None, store: bool = False
-) -> list[dict[str, Any]]:
+def receive(timeout: int = 5, phone: str | None = None, store: bool = False) -> list[dict[str, Any]]:
     acct = phone or _default_account()
     if not acct:
         return []
@@ -254,11 +250,7 @@ def list_contacts_for(phone: str) -> list[dict[str, Any]]:
     result = _run(["listContacts"], phone)
     if not result or not isinstance(result, list):
         return []
-    return [
-        {"number": c.get("number", ""), "name": c.get("name", "")}
-        for c in result
-        if c.get("number")
-    ]
+    return [{"number": c.get("number", ""), "name": c.get("name", "")} for c in result if c.get("number")]
 
 
 def list_groups(phone: str) -> list[dict[str, Any]]:

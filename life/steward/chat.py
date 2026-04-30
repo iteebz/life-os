@@ -48,9 +48,7 @@ def _session_meta_fragment(source: str) -> str:
     start = _session_start or now
     elapsed_s = int((now - start).total_seconds())
     elapsed_str = f"{elapsed_s // 60}m{elapsed_s % 60}s" if elapsed_s >= 60 else f"{elapsed_s}s"
-    timeline = ", ".join(
-        f"+{int((t - start).total_seconds())}s" for t in _followups
-    ) if _followups else "none"
+    timeline = ", ".join(f"+{int((t - start).total_seconds())}s" for t in _followups) if _followups else "none"
     return (
         f"\n\n[session meta] source={source} | started={start.strftime('%H:%M:%S')} | "
         f"runtime={elapsed_str} | follow-ups={timeline} | ts={now.isoformat(timespec='seconds')}"
@@ -70,15 +68,9 @@ def _ensure_hooks_config() -> None:
     project = str(LIFE_DIR / "life-os")
     runner = f"uv run --project {project} steward hook"
     desired_hooks = {
-        "PreToolUse": [
-            {"matcher": "", "hooks": [{"type": "command", "command": f"{runner} tool"}]}
-        ],
-        "UserPromptSubmit": [
-            {"matcher": "", "hooks": [{"type": "command", "command": f"{runner} prompt"}]}
-        ],
-        "Stop": [
-            {"matcher": "", "hooks": [{"type": "command", "command": f"{runner} stop"}]}
-        ],
+        "PreToolUse": [{"matcher": "", "hooks": [{"type": "command", "command": f"{runner} tool"}]}],
+        "UserPromptSubmit": [{"matcher": "", "hooks": [{"type": "command", "command": f"{runner} prompt"}]}],
+        "Stop": [{"matcher": "", "hooks": [{"type": "command", "command": f"{runner} stop"}]}],
     }
 
     if existing.get("hooks") != desired_hooks:
@@ -91,6 +83,7 @@ def _build_system_prompt(source: str, raw: bool) -> str:
     parts = []
     if not raw:
         from life.ctx.assemble import build_chat_prompt  # noqa: PLC0415, I001 — cycle: steward.chat→ctx.assemble→ctx.sections→life.steward→steward.chat
+
         wake = build_chat_prompt()
         if wake:
             parts.append(wake)
@@ -141,11 +134,15 @@ def _launch(
 
     cmd = [
         "claude",
-        "--model", model,
+        "--model",
+        model,
         "--dangerously-skip-permissions",
-        "--tools", TOOLS,
-        "--append-system-prompt", _build_system_prompt(source, raw or resume),
-        "--name", "steward",
+        "--tools",
+        TOOLS,
+        "--append-system-prompt",
+        _build_system_prompt(source, raw or resume),
+        "--name",
+        "steward",
     ]
     if resume:
         cmd.extend(["--resume", session_id])
@@ -177,6 +174,7 @@ def _launch(
 
 def _lookup_session_id(claude_session_id: str) -> int | None:
     from life.lib.store import get_db  # noqa: PLC0415
+
     with get_db() as conn:
         row = conn.execute(
             "SELECT id FROM sessions WHERE claude_session_id = ? ORDER BY id DESC LIMIT 1",
@@ -191,8 +189,19 @@ def _persist_followup(claude_session_id: str, followups: list[datetime]) -> None
         update_session_followups(db_id, [ts.isoformat() for ts in followups])
 
 
-@cli("life steward", flags={"model": ["-m", "--model"], "name": ["-n", "--name"], "opus": ["--opus"], "sonnet": ["--sonnet"], "raw": ["--raw"]})
-def chat(model: str | None = None, name: str | None = None, opus: bool = False, sonnet: bool = False, raw: bool = False):
+@cli(
+    "life steward",
+    flags={
+        "model": ["-m", "--model"],
+        "name": ["-n", "--name"],
+        "opus": ["--opus"],
+        "sonnet": ["--sonnet"],
+        "raw": ["--raw"],
+    },
+)
+def chat(
+    model: str | None = None, name: str | None = None, opus: bool = False, sonnet: bool = False, raw: bool = False
+):
     """Start a tracked interactive steward session"""
     if opus:
         model = "opus"
@@ -230,5 +239,3 @@ def resume(ref: str, model: str | None = None):
     source = os.environ.get("STEWARD_SOURCE", "cli")
     print(f"resuming {target.id} → {target.claude_session_id[:8]}  model={m}  source={source}")
     return _launch(m, target.claude_session_id, name=target.name, resume=True, source=source, db_session_id=target.id)
-
-

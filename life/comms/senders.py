@@ -117,9 +117,7 @@ def get_sender_stat(sender: str) -> SenderStat | None:
     if not row:
         return None
 
-    total_actions = (
-        row["replied_count"] + row["archived_count"] + row["deleted_count"] + row["flagged_count"]
-    )
+    total_actions = row["replied_count"] + row["archived_count"] + row["deleted_count"] + row["flagged_count"]
 
     response_rate = row["replied_count"] / total_actions if total_actions > 0 else 0
 
@@ -187,12 +185,7 @@ def get_top_senders(limit: int = 20) -> list[SenderStat]:
 
     stats = []
     for row in rows:
-        total_actions = (
-            row["replied_count"]
-            + row["archived_count"]
-            + row["deleted_count"]
-            + row["flagged_count"]
-        )
+        total_actions = row["replied_count"] + row["archived_count"] + row["deleted_count"] + row["flagged_count"]
         response_rate = row["replied_count"] / total_actions if total_actions > 0 else 0
 
         priority_score = _calculate_priority(

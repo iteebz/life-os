@@ -43,9 +43,7 @@ def add_messaging_account(provider: str, identifier: str) -> str:
             (account_id, "messaging", provider, identifier, 1),
         )
 
-    config_add_account(
-        "messaging", {"provider": provider, "identifier": identifier, "id": account_id}
-    )
+    config_add_account("messaging", {"provider": provider, "identifier": identifier, "id": account_id})
 
     return account_id
 
@@ -61,9 +59,7 @@ def get_account_by_id(account_id: str):
 def list_accounts(service_type: str | None = None):
     with get_db() as conn:
         if service_type:
-            rows = conn.execute(
-                "SELECT * FROM accounts WHERE service_type = ?", (service_type,)
-            ).fetchall()
+            rows = conn.execute("SELECT * FROM accounts WHERE service_type = ?", (service_type,)).fetchall()
         else:
             rows = conn.execute("SELECT * FROM accounts").fetchall()
         return [dict(row) for row in rows]

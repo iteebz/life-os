@@ -108,11 +108,13 @@ def _normalize(event: dict[str, Any], tool_map: dict[str, str]) -> list[dict[str
         out: list[dict[str, Any]] = []
         usage = msg.get("usage")
         if isinstance(usage, dict):
-            out.append({
-                "type": "usage",
-                "input_tokens": int(usage.get("input_tokens", 0)),
-                "output_tokens": int(usage.get("output_tokens", 0)),
-            })
+            out.append(
+                {
+                    "type": "usage",
+                    "input_tokens": int(usage.get("input_tokens", 0)),
+                    "output_tokens": int(usage.get("output_tokens", 0)),
+                }
+            )
         for block in msg.get("content", []):
             if not isinstance(block, dict):
                 continue
@@ -138,13 +140,15 @@ def _normalize(event: dict[str, Any], tool_map: dict[str, str]) -> list[dict[str
             if not isinstance(block, dict) or block.get("type") != "tool_result":
                 continue
             tid = str(block.get("tool_use_id", ""))
-            out.append({
-                "type": "tool_result",
-                "tool_use_id": tid,
-                "tool_name": block.get("tool_name") or tool_map.get(tid, ""),
-                "result": _stringify_content(block.get("content", "")),
-                "is_error": bool(block.get("is_error")),
-            })
+            out.append(
+                {
+                    "type": "tool_result",
+                    "tool_use_id": tid,
+                    "tool_name": block.get("tool_name") or tool_map.get(tid, ""),
+                    "result": _stringify_content(block.get("content", "")),
+                    "is_error": bool(block.get("is_error")),
+                }
+            )
         return out
 
     return []

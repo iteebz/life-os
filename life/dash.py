@@ -122,9 +122,7 @@ def status(as_json: bool = False) -> None:
     partner = [t for t in tasks if ptag and ptag in (t.tags or [])]
     focused = [t for t in tasks if t.focus]
 
-    snapshot = build_feedback_snapshot(
-        all_tasks=all_tasks, pending_tasks=tasks, habits=habits, today=today_date
-    )
+    snapshot = build_feedback_snapshot(all_tasks=all_tasks, pending_tasks=tasks, habits=habits, today=today_date)
 
     lc = last_completion()
     last_check_str = format_elapsed(lc, now()) if lc else "never"
@@ -146,10 +144,7 @@ def status(as_json: bool = False) -> None:
                         "partner_open": len(partner),
                     },
                     "flags": list(snapshot.flags),
-                    "tag_stats": {
-                        tag: {"open": s.open, "done_7d": s.done_7d}
-                        for tag, s in snapshot.tag_stats.items()
-                    },
+                    "tag_stats": {tag: {"open": s.open, "done_7d": s.done_7d} for tag, s in snapshot.tag_stats.items()},
                     "hot_list": {
                         "overdue": [{"id": t.id, "content": t.content} for t in hot_overdue],
                         "partner": [{"id": t.id, "content": t.content} for t in hot_partner],
@@ -160,10 +155,7 @@ def status(as_json: bool = False) -> None:
         return
 
     lines = []
-    lines.append(
-        f"tasks: {len(tasks)}  habits: {len(habits)}  "
-        f"focused: {len(focused)}  last check: {last_check_str}"
-    )
+    lines.append(f"tasks: {len(tasks)}  habits: {len(habits)}  focused: {len(focused)}  last check: {last_check_str}")
     lines.append("\nHEALTH:")
     lines.append(f"  untagged: {len(untagged)}")
     lines.append(f"  overdue: {len(overdue)}")
@@ -192,9 +184,7 @@ def stats() -> None:
     all_tasks = get_all_tasks()
     habits = get_habits()
     today_date = today()
-    snapshot = build_feedback_snapshot(
-        all_tasks=all_tasks, pending_tasks=tasks, habits=habits, today=today_date
-    )
+    snapshot = build_feedback_snapshot(all_tasks=all_tasks, pending_tasks=tasks, habits=habits, today=today_date)
     print("\n".join(render_feedback_snapshot(snapshot)))
 
 
@@ -233,9 +223,7 @@ def _show_day(target: date) -> None:
     mood = None
     with get_db() as conn:
         row = conn.execute(
-            "SELECT score, label FROM moods "
-            "WHERE DATE(logged_at) = DATE(?) "
-            "ORDER BY logged_at DESC LIMIT 1",
+            "SELECT score, label FROM moods WHERE DATE(logged_at) = DATE(?) ORDER BY logged_at DESC LIMIT 1",
             (date_str,),
         ).fetchone()
         if row:
@@ -267,9 +255,7 @@ def ls(tag: str | None = None, overdue: bool = False, as_json: bool = False) -> 
                         "id": t.id,
                         "content": t.content,
                         "tags": t.tags,
-                        "scheduled_date": t.scheduled_date.isoformat()
-                        if t.scheduled_date
-                        else None,
+                        "scheduled_date": t.scheduled_date.isoformat() if t.scheduled_date else None,
                         "scheduled_time": t.scheduled_time,
                         "focus": t.focus,
                         "parent_id": t.parent_id,

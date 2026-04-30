@@ -52,9 +52,7 @@ def _extract_email(addr: str) -> str:
     return addr.strip()
 
 
-def _build_reply_recipients(
-    messages: list[dict[str, Any]], my_email: str, reply_all: bool
-) -> tuple[str, str | None]:
+def _build_reply_recipients(messages: list[dict[str, Any]], my_email: str, reply_all: bool) -> tuple[str, str | None]:
     last_message = messages[-1]
     original_from = last_message["from"]
     to_addr = original_from
@@ -97,9 +95,7 @@ def reply_to_thread(
         raise ValueError(f"Thread not found: {thread_id}")
 
     original_subject = messages[0]["subject"]
-    reply_subject = (
-        original_subject if original_subject.startswith("Re: ") else f"Re: {original_subject}"
-    )
+    reply_subject = original_subject if original_subject.startswith("Re: ") else f"Re: {original_subject}"
 
     to_addr, cc_addr = _build_reply_recipients(messages, from_addr, reply_all)
 

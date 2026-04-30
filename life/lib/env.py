@@ -51,18 +51,32 @@ def is_interactive() -> bool:
 # --- env builder (used by launch sites) ---
 
 # Keys safe to inherit from host. Whitelist, not blacklist.
-_SAFE_KEYS = frozenset({
-    "HOME", "PATH", "SHELL", "TERM", "LANG", "USER", "TMPDIR",
-    "XDG_RUNTIME_DIR",
-    # life-os needs these
-    "LIFE_DB", "LIFE_DIR",
-})
+_SAFE_KEYS = frozenset(
+    {
+        "HOME",
+        "PATH",
+        "SHELL",
+        "TERM",
+        "LANG",
+        "USER",
+        "TMPDIR",
+        "XDG_RUNTIME_DIR",
+        # life-os needs these
+        "LIFE_DB",
+        "LIFE_DIR",
+    }
+)
 
 # Keys that must never leak into spawns.
-_BLOCKED_KEYS = frozenset({
-    "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "AWS_SECRET_ACCESS_KEY",
-    "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL",
-})
+_BLOCKED_KEYS = frozenset(
+    {
+        "ANTHROPIC_API_KEY",
+        "OPENAI_API_KEY",
+        "AWS_SECRET_ACCESS_KEY",
+        "ANTHROPIC_AUTH_TOKEN",
+        "ANTHROPIC_BASE_URL",
+    }
+)
 
 
 def build_base_env(spawn_mode: Mode) -> dict[str, str]:

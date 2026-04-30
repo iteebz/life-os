@@ -53,11 +53,7 @@ def parse_due_date(due_str: str) -> str | None:
     if re.match(r"^\d{1,2}:\d{2}$", due_str.strip()):
         return None
     try:
-        return (
-            dateutil_parser.parse(due_str, default=datetime(today.year, today.month, today.day))
-            .date()
-            .isoformat()
-        )
+        return dateutil_parser.parse(due_str, default=datetime(today.year, today.month, today.day)).date().isoformat()
     except (ParserError, ValueError, OverflowError):
         return None
 
@@ -75,17 +71,13 @@ def list_dates() -> list[dict[str, Any]]:
     """Get all special dates from DB, sorted by next occurrence."""
     today = clock.today()
     with get_db() as conn:
-        rows = conn.execute(
-            "SELECT id, name, month, day, type FROM special_dates ORDER BY name"
-        ).fetchall()
+        rows = conn.execute("SELECT id, name, month, day, type FROM special_dates ORDER BY name").fetchall()
 
     result = []
     for row in rows:
         id_, name, month, day, type_ = row
         days = _days_until(month, day, today)
-        result.append(
-            {"id": id_, "name": name, "month": month, "day": day, "type": type_, "days_until": days}
-        )
+        result.append({"id": id_, "name": name, "month": month, "day": day, "type": type_, "days_until": days})
 
     return sorted(result, key=lambda x: x["days_until"])
 

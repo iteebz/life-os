@@ -133,9 +133,9 @@ def _active_tasks(state: dict[str, str], parts: list[str]) -> None:
     parts.append(header + "\n" + "\n".join(lines))
 
 
-WRAP_THRESHOLD_CHARS = 100_000   # ~33k tokens
+WRAP_THRESHOLD_CHARS = 100_000  # ~33k tokens
 SLEEP_THRESHOLD_CHARS = 150_000  # ~50k tokens
-WRAP_THRESHOLD_SECONDS = 3300    # 55m
+WRAP_THRESHOLD_SECONDS = 3300  # 55m
 
 
 def _log_turn(direction: str, body: str, session_id: str) -> None:
@@ -199,8 +199,7 @@ def _surface_session_meta(session_id: str) -> None:
                 return
             db_id, logged_at = row
             char_row = conn.execute(
-                "SELECT COALESCE(SUM(LENGTH(body)), 0) FROM messages "
-                "WHERE channel = 'chat' AND peer = ?",
+                "SELECT COALESCE(SUM(LENGTH(body)), 0) FROM messages WHERE channel = 'chat' AND peer = ?",
                 (str(db_id),),
             ).fetchone()
             chars = char_row[0] if char_row else 0
@@ -209,7 +208,7 @@ def _surface_session_meta(session_id: str) -> None:
         age_str = f"{age // 60}m" if age >= 60 else f"{age}s"
         nudge = ""
         if chars >= SLEEP_THRESHOLD_CHARS:
-            nudge = "\nsleep now: close one loop, run `steward sleep \"...\"`, commit, end the session."
+            nudge = '\nsleep now: close one loop, run `steward sleep "..."`, commit, end the session.'
         elif chars >= WRAP_THRESHOLD_CHARS:
             nudge = "\nwrap soon: prefer closing the open loop over starting new threads."
         elif age >= WRAP_THRESHOLD_SECONDS:

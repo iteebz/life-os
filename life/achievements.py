@@ -32,9 +32,7 @@ def add_achievement(name: str, tags: str | None = None) -> str:
 
 def get_achievements() -> list[Achievement]:
     with get_db() as conn:
-        rows = conn.execute(
-            "SELECT id, name, tags, achieved_at FROM achievements ORDER BY achieved_at DESC"
-        ).fetchall()
+        rows = conn.execute("SELECT id, name, tags, achieved_at FROM achievements ORDER BY achieved_at DESC").fetchall()
     return [
         Achievement(
             id=row[0] or "",

@@ -100,20 +100,13 @@ def _table_count(conn: sqlite3.Connection, table: str) -> int:
 
 
 def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
-    return (
-        conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)
-        ).fetchone()
-        is not None
-    )
+    return conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)).fetchone() is not None
 
 
 _INTERNAL_TABLES = {"sqlite_sequence"}
 
 
-def _check_data_loss(
-    conn: sqlite3.Connection, before: dict[str, int], exempt: set[str] | None = None
-) -> None:
+def _check_data_loss(conn: sqlite3.Connection, before: dict[str, int], exempt: set[str] | None = None) -> None:
     for table, count in before.items():
         if table in _INTERNAL_TABLES:
             continue
@@ -128,9 +121,7 @@ def _check_data_loss(
 
 def _is_fresh(conn: sqlite3.Connection) -> bool:
     row = conn.execute(
-        "SELECT COUNT(*) FROM sqlite_master "
-        "WHERE type='table' AND name != '_migrations' "
-        "AND name != 'sqlite_sequence'"
+        "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name != '_migrations' AND name != 'sqlite_sequence'"
     ).fetchone()
     return row[0] == 0
 
@@ -139,10 +130,7 @@ def load_migrations() -> list[Migration]:
     migrations_dir = Path(__file__).parent / "migrations"
     if not migrations_dir.exists():
         return []
-    return [
-        (sql_file.stem, sql_file.read_text())
-        for sql_file in sorted(migrations_dir.glob("[0-9]*.sql"))
-    ]
+    return [(sql_file.stem, sql_file.read_text()) for sql_file in sorted(migrations_dir.glob("[0-9]*.sql"))]
 
 
 def _apply_migrations(conn: sqlite3.Connection, db_path: Path) -> None:
@@ -184,9 +172,7 @@ def _apply_migrations(conn: sqlite3.Connection, db_path: Path) -> None:
         tables = [
             row[0]
             for row in conn.execute(
-                "SELECT name FROM sqlite_master "
-                "WHERE type='table' AND name != ? "
-                "AND name NOT LIKE '%_fts%'",
+                "SELECT name FROM sqlite_master WHERE type='table' AND name != ? AND name NOT LIKE '%_fts%'",
                 (MIGRATIONS_TABLE,),
             ).fetchall()
         ]

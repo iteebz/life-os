@@ -25,8 +25,7 @@ def get_improvements(done: bool = False) -> list[Improvement]:
     with get_db() as conn:
         if done:
             rows = conn.execute(
-                "SELECT id, body, logged_at, done_at FROM improvements "
-                "WHERE deleted_at IS NULL ORDER BY logged_at DESC"
+                "SELECT id, body, logged_at, done_at FROM improvements WHERE deleted_at IS NULL ORDER BY logged_at DESC"
             ).fetchall()
         else:
             rows = conn.execute(

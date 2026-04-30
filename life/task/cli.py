@@ -64,9 +64,7 @@ def _schedule(args: list[str], remove: bool = False) -> None:
     except ValueError as e:
         raise UsageError(str(e)) from e
     if not date_str and not time_str:
-        raise UsageError(
-            "Schedule spec required: today, tomorrow, day name, YYYY-MM-DD, HH:MM, or 'now'"
-        )
+        raise UsageError("Schedule spec required: today, tomorrow, day name, YYYY-MM-DD, HH:MM, or 'now'")
     task, habit = resolve_item(item_name)
     if habit:
         if not time_str:
@@ -115,9 +113,7 @@ def due(ref: list[str], when: str, remove: bool = False) -> None:
         print(format_status("\u25a1", t.content, t.id))
         return
     if not date_str and not time_str:
-        raise UsageError(
-            "Due spec required: today, tomorrow, day name, YYYY-MM-DD, HH:MM, 'now', or -r to clear"
-        )
+        raise UsageError("Due spec required: today, tomorrow, day name, YYYY-MM-DD, HH:MM, 'now', or -r to clear")
     updates: dict[str, Any] = {"is_deadline": True}
     if date_str:
         updates["scheduled_date"] = date_str
@@ -260,10 +256,7 @@ def defer(ref: list[str], reason: str) -> None:
 @cli(
     "life",
     help={
-        "ref": (
-            "[DATE] [TIME] <task>  e.g. '14:00 call jeff', "
-            "'tomorrow 14:00 call jeff', '2026-03-01 09:00 dentist'"
-        )
+        "ref": ("[DATE] [TIME] <task>  e.g. '14:00 call jeff', 'tomorrow 14:00 call jeff', '2026-03-01 09:00 dentist'")
     },
 )
 def schedule(ref: list[str], remove: bool = False) -> None:

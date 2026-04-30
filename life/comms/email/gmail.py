@@ -138,9 +138,7 @@ def count_inbox_threads(email_addr: str) -> int:
     return label.get("threadsTotal", 0)
 
 
-def list_threads(
-    email_addr: str, label: str = "inbox", max_results: int = 50
-) -> list[dict[str, Any]]:
+def list_threads(email_addr: str, label: str = "inbox", max_results: int = 50) -> list[dict[str, Any]]:
     creds, _ = _get_credentials(email_addr)
     service = build("gmail", "v1", credentials=creds)
 
@@ -265,9 +263,7 @@ def archive_thread(thread_id: str, email_addr: str) -> bool:
     service = build("gmail", "v1", credentials=creds)
 
     try:
-        service.users().threads().modify(
-            userId="me", id=thread_id, body={"removeLabelIds": ["INBOX"]}
-        ).execute()
+        service.users().threads().modify(userId="me", id=thread_id, body={"removeLabelIds": ["INBOX"]}).execute()
         return True
     except Exception:
         return False
@@ -289,9 +285,7 @@ def flag_thread(thread_id: str, email_addr: str) -> bool:
     service = build("gmail", "v1", credentials=creds)
 
     try:
-        service.users().threads().modify(
-            userId="me", id=thread_id, body={"addLabelIds": ["STARRED"]}
-        ).execute()
+        service.users().threads().modify(userId="me", id=thread_id, body={"addLabelIds": ["STARRED"]}).execute()
         return True
     except Exception:
         return False
@@ -302,9 +296,7 @@ def unflag_thread(thread_id: str, email_addr: str) -> bool:
     service = build("gmail", "v1", credentials=creds)
 
     try:
-        service.users().threads().modify(
-            userId="me", id=thread_id, body={"removeLabelIds": ["STARRED"]}
-        ).execute()
+        service.users().threads().modify(userId="me", id=thread_id, body={"removeLabelIds": ["STARRED"]}).execute()
         return True
     except Exception:
         return False
@@ -315,9 +307,7 @@ def unarchive_thread(thread_id: str, email_addr: str) -> bool:
     service = build("gmail", "v1", credentials=creds)
 
     try:
-        service.users().threads().modify(
-            userId="me", id=thread_id, body={"addLabelIds": ["INBOX"]}
-        ).execute()
+        service.users().threads().modify(userId="me", id=thread_id, body={"addLabelIds": ["INBOX"]}).execute()
         return True
     except Exception:
         return False

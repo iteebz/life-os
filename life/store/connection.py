@@ -27,9 +27,7 @@ _DB_FILE = "life.db"
 _local = threading.local()
 _all_connections: weakref.WeakSet[sqlite3.Connection] = weakref.WeakSet()
 _all_connections_lock = threading.Lock()
-_db_path_override: contextvars.ContextVar[Path | None] = contextvars.ContextVar(
-    "db_path_override", default=None
-)
+_db_path_override: contextvars.ContextVar[Path | None] = contextvars.ContextVar("db_path_override", default=None)
 
 BEGIN_IMMEDIATE_RETRIES = 3
 BEGIN_IMMEDIATE_BACKOFF_SECS = 0.05
@@ -169,8 +167,7 @@ def resolve_db_path() -> Path:
     db_path = _life_dir() / _DB_FILE
     if os.environ.get("PYTEST_CURRENT_TEST"):
         raise RuntimeError(
-            f"TEST LEAKED: write to production DB blocked ({db_path}). "
-            "Use tmp_life_dir fixture to isolate DB writes."
+            f"TEST LEAKED: write to production DB blocked ({db_path}). Use tmp_life_dir fixture to isolate DB writes."
         )
     return db_path
 

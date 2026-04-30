@@ -2,7 +2,7 @@
 
 from datetime import date, datetime
 
-_QUIET_END = 6   # 6am
+_QUIET_END = 6  # 6am
 _QUIET_START = 24  # no evening quiet window
 
 

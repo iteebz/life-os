@@ -90,12 +90,8 @@ def _run_tail_stream(
         raise RuntimeError("subprocess streams unavailable")
 
     out_q: Queue[tuple[str, str | None]] = Queue()
-    stdout_thread = threading.Thread(
-        target=_read_stream_lines, args=("stdout", proc.stdout, out_q), daemon=True
-    )
-    stderr_thread = threading.Thread(
-        target=_read_stream_lines, args=("stderr", proc.stderr, out_q), daemon=True
-    )
+    stdout_thread = threading.Thread(target=_read_stream_lines, args=("stdout", proc.stdout, out_q), daemon=True)
+    stderr_thread = threading.Thread(target=_read_stream_lines, args=("stderr", proc.stderr, out_q), daemon=True)
     stdout_thread.start()
     stderr_thread.start()
 
@@ -176,9 +172,7 @@ def _run_tail_stream(
 
 def _select_required_real_world_task(tasks: list[Any]) -> Task | None:
     discomfort = {"finance", "legal", "janice"}
-    candidates: list[Task] = [
-        t for t in tasks if isinstance(t, Task) and set(t.tags or []).intersection(discomfort)
-    ]
+    candidates: list[Task] = [t for t in tasks if isinstance(t, Task) and set(t.tags or []).intersection(discomfort)]
     if not candidates:
         return None
     overdue = [t for t in candidates if t.scheduled_date and t.scheduled_date < today()]
@@ -268,9 +262,7 @@ def run_autonomous() -> None:
     newly_completed = [
         tid
         for tid, before_task in before_map.items()
-        if before_task.completed_at is None
-        and tid in after_map
-        and after_map[tid].completed_at is not None
+        if before_task.completed_at is None and tid in after_map and after_map[tid].completed_at is not None
     ]
     shipped_life = bool(newly_completed)
 

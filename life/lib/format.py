@@ -73,9 +73,7 @@ def render_row(
     sys.stdout.flush()
 
 
-def render_done_row(
-    content: str, time_str: str, tags: list[str], item_id: str, is_habit: bool = False
-) -> None:
+def render_done_row(content: str, time_str: str, tags: list[str], item_id: str, is_habit: bool = False) -> None:
     symbol = ansi.purple("●") if is_habit else ansi.green("✓")
     render_row(content, tags, item_id, symbol=symbol, time_str=time_str)
 
@@ -128,9 +126,7 @@ def format_task(task, tags: list[str] | None = None, show_id: bool = False) -> s
     return " ".join(parts)
 
 
-def format_habit(
-    habit, checked: bool = False, tags: list[str] | None = None, show_id: bool = False
-) -> str:
+def format_habit(habit, checked: bool = False, tags: list[str] | None = None, show_id: bool = False) -> str:
     """Format a habit for display. Returns: [✓|□] content [#tags] [id]"""
     parts = []
 

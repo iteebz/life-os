@@ -46,9 +46,7 @@ _TASK_COLS = (
 )
 
 
-def fetch_tasks(
-    conn, where: str, params: tuple[object, ...] = ()
-) -> list[Task]:
+def fetch_tasks(conn, where: str, params: tuple[object, ...] = ()) -> list[Task]:
     cursor = conn.execute(
         f"SELECT {_TASK_COLS} FROM tasks WHERE deleted_at IS NULL AND ({where})",  # noqa: S608
         params,
@@ -69,15 +67,9 @@ def task_sort_key(task: Task) -> tuple[bool, bool, object, object]:
 
 
 _AUTOTAG_PATTERNS = {
-    "comms": re.compile(
-        r"\b(call|message|whatsapp|email|voicemail|reply|text|telegram|signal)\b", re.IGNORECASE
-    ),
-    "finance": re.compile(
-        r"\b(invoice|pay|transfer|liquidate|buy|order|purchase|refund|deposit)\b", re.IGNORECASE
-    ),
-    "health": re.compile(
-        r"\b(dentist|doctor|physio|health|medical|pharmacy|chemist)\b", re.IGNORECASE
-    ),
+    "comms": re.compile(r"\b(call|message|whatsapp|email|voicemail|reply|text|telegram|signal)\b", re.IGNORECASE),
+    "finance": re.compile(r"\b(invoice|pay|transfer|liquidate|buy|order|purchase|refund|deposit)\b", re.IGNORECASE),
+    "health": re.compile(r"\b(dentist|doctor|physio|health|medical|pharmacy|chemist)\b", re.IGNORECASE),
 }
 
 
@@ -180,7 +172,6 @@ def get_subtasks(parent_id: str) -> list[Task]:
         return fetch_tasks(conn, "parent_id = ?", (parent_id,))
 
 
-
 def update_task(
     task_id: str,
     content: str | None = None,
@@ -253,9 +244,7 @@ def defer_task(task_id: str, reason: str) -> Task | None:
         return None
     with get_db() as conn:
         conn.execute(
-            "INSERT INTO mutations "
-            "(task_id, field, old_value, new_value, reason) "
-            "VALUES (?, 'defer', NULL, NULL, ?)",
+            "INSERT INTO mutations (task_id, field, old_value, new_value, reason) VALUES (?, 'defer', NULL, NULL, ?)",
             (task_id, reason),
         )
     return task
@@ -267,8 +256,7 @@ def delete_task(task_id: str, cancel_reason: str | None = None, hard: bool = Fal
             conn.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
         elif cancel_reason:
             conn.execute(
-                "UPDATE tasks SET deleted_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now'), "
-                "cancel_reason = ? WHERE id = ?",
+                "UPDATE tasks SET deleted_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now'), cancel_reason = ? WHERE id = ?",
                 (cancel_reason, task_id),
             )
         else:
@@ -361,13 +349,9 @@ def set_blocked_by(task_id: str, blocker_id: str | None) -> Task | None:
 def last_completion() -> datetime | None:
     with get_db() as conn:
         task_row = conn.execute(
-            "SELECT completed_at FROM tasks "
-            "WHERE completed_at IS NOT NULL "
-            "ORDER BY completed_at DESC LIMIT 1"
+            "SELECT completed_at FROM tasks WHERE completed_at IS NOT NULL ORDER BY completed_at DESC LIMIT 1"
         ).fetchone()
-        check_row = conn.execute(
-            "SELECT completed_at FROM habit_checks ORDER BY completed_at DESC LIMIT 1"
-        ).fetchone()
+        check_row = conn.execute("SELECT completed_at FROM habit_checks ORDER BY completed_at DESC LIMIT 1").fetchone()
     candidates: list[datetime] = []
     for row in (task_row, check_row):
         if row and row[0]:
@@ -388,11 +372,7 @@ def check_task_cmd(task: Task, completed_at: str | None = None) -> None:
     completed_task, parent_completed = check_task(task.id, completed_at=completed_at)
     if completed_task and completed_task.completed_at:
         time_str = completed_task.completed_at.strftime("%H:%M")
-        render_done_row(
-            completed_task.content.lower(), time_str, completed_task.tags, completed_task.id
-        )
+        render_done_row(completed_task.content.lower(), time_str, completed_task.tags, completed_task.id)
     if parent_completed and parent_completed.completed_at:
         time_str = parent_completed.completed_at.strftime("%H:%M")
-        render_done_row(
-            parent_completed.content.lower(), time_str, parent_completed.tags, parent_completed.id
-        )
+        render_done_row(parent_completed.content.lower(), time_str, parent_completed.tags, parent_completed.id)

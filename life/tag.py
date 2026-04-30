@@ -107,9 +107,7 @@ def list_all_tags() -> list[str]:
         return [row[0] for row in cursor.fetchall()]
 
 
-def _load_tags_by_column(
-    column: str, ids: list[str], conn: Any | None = None
-) -> dict[str, list[str]]:
+def _load_tags_by_column(column: str, ids: list[str], conn: Any | None = None) -> dict[str, list[str]]:
     """Batch load tags for items by column name (task_id or habit_id)."""
     if not ids:
         return {}
@@ -130,15 +128,11 @@ def _load_tags_by_column(
         return _run(c)
 
 
-def load_tags_for_tasks(
-    task_ids: list[str], conn: Any | None = None
-) -> dict[str, list[str]]:
+def load_tags_for_tasks(task_ids: list[str], conn: Any | None = None) -> dict[str, list[str]]:
     return _load_tags_by_column("task_id", task_ids, conn)
 
 
-def load_tags_for_habits(
-    habit_ids: list[str], conn: Any | None = None
-) -> dict[str, list[str]]:
+def load_tags_for_habits(habit_ids: list[str], conn: Any | None = None) -> dict[str, list[str]]:
     return _load_tags_by_column("habit_id", habit_ids, conn)
 
 
@@ -146,6 +140,7 @@ def load_tags_for_habits(
 def tag_cmd(ref: str, tag_name: str, remove: bool = False) -> None:
     """Add or remove a tag from an item (-r to remove)"""
     from life.resolve import resolve_item_exact  # noqa: PLC0415 — circular: tag→resolve→task→tag
+
     task, habit = resolve_item_exact(ref)
     if task:
         if remove:

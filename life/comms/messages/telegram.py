@@ -114,9 +114,7 @@ def _poll(tok: str, timeout: int) -> list[dict[str, Any]]:
             "id": msg["message_id"],
             "chat_id": msg["chat"]["id"],
             "from_id": sender.get("id"),
-            "from_name": (
-                sender.get("first_name", "") + (" " + last_name if last_name else "")
-            ).strip(),
+            "from_name": (sender.get("first_name", "") + (" " + last_name if last_name else "")).strip(),
             "body": body,
             "image_path": image_path,
             "timestamp": msg["date"],
@@ -125,7 +123,6 @@ def _poll(tok: str, timeout: int) -> list[dict[str, Any]]:
         _store_incoming(parsed)
 
     return messages
-
 
 
 def _download_photo(msg: dict[str, Any], token: str) -> str | None:
@@ -156,9 +153,7 @@ def _download_photo(msg: dict[str, Any], token: str) -> str | None:
         return None
 
 
-def get_history(
-    chat_id: int | None = None, limit: int = 50, hours: int | None = None
-) -> list[dict[str, Any]]:
+def get_history(chat_id: int | None = None, limit: int = 50, hours: int | None = None) -> list[dict[str, Any]]:
     """Read stored telegram messages from DB."""
     conditions = ["channel = 'telegram'"]
     params: list[Any] = []

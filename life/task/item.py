@@ -53,9 +53,7 @@ def check(ref: list[str], date: str | None = None, time: str | None = None) -> N
         already_checked = any(c.date() == check_on for c in checks)
         if already_checked:
             uncheck_habit(habit.id, check_on=check_on)
-            render_uncheck_row(
-                f"{habit.content.lower()} ({parsed})", habit.tags, habit.id, is_habit=True
-            )
+            render_uncheck_row(f"{habit.content.lower()} ({parsed})", habit.tags, habit.id, is_habit=True)
         else:
             check_habit(habit.id, check_on=check_on, check_time=time)
             render_done_row(

@@ -37,6 +37,7 @@ Message: {message}
 
 Respond directly. Start with 🌱. Short and actionable. No markdown headers."""
 
+
 MAX_HISTORY_CHARS = 8000
 POLL_INTERVAL = 5
 HISTORY_LOOKBACK_HOURS = 2
@@ -56,9 +57,7 @@ def trim_history(history: list[dict[str, str]]) -> list[dict[str, str]]:
     return history[cutoff:]
 
 
-def build_reply_prompt(
-    history: list[dict[str, str]], message: str, tone: str = ""
-) -> str:
+def build_reply_prompt(history: list[dict[str, str]], message: str, tone: str = "") -> str:
     recent = trim_history(history)
     truncated = len(recent) < len(history)
     tone_str = f" {tone}" if tone else ""
@@ -89,10 +88,7 @@ def load_history_from_db(chat_id: int, hours: int = HISTORY_LOOKBACK_HOURS) -> l
                 "ORDER BY timestamp ASC",
                 (str(chat_id), cutoff),
             ).fetchall()
-        return [
-            {"role": "user" if row[0] == "in" else "assistant", "text": row[1]}
-            for row in rows
-        ]
+        return [{"role": "user" if row[0] == "in" else "assistant", "text": row[1]} for row in rows]
     except Exception as e:
         log(f"[session] history load failed: {e}")
         return []

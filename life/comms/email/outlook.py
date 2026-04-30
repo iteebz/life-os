@@ -73,9 +73,7 @@ def _get_access_token(email: str) -> str | None:
     return None
 
 
-def _api_get(
-    email: str, endpoint: str, params: dict[str, Any] | None = None
-) -> dict[str, Any] | None:
+def _api_get(email: str, endpoint: str, params: dict[str, Any] | None = None) -> dict[str, Any] | None:
     token = _get_access_token(email)
     if not token:
         return None
@@ -284,9 +282,7 @@ def delete_thread(thread_id: str, email: str) -> bool:
 
     success = True
     for msg in result.get("value", []):
-        if not _api_post(
-            email, f"/me/messages/{msg['id']}/move", {"destinationId": "deleteditems"}
-        ):
+        if not _api_post(email, f"/me/messages/{msg['id']}/move", {"destinationId": "deleteditems"}):
             success = False
 
     return success
@@ -308,9 +304,7 @@ def _set_thread_flag(thread_id: str, email: str, flag_status: str) -> bool:
 
     success = True
     for msg in result.get("value", []):
-        if not _api_patch(
-            email, f"/me/messages/{msg['id']}", {"flag": {"flagStatus": flag_status}}
-        ):
+        if not _api_patch(email, f"/me/messages/{msg['id']}", {"flag": {"flagStatus": flag_status}}):
             success = False
 
     return success

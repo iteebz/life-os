@@ -45,9 +45,7 @@ def _load_allowed_tg_chats() -> set[int]:
     return chat_ids
 
 
-def _telegram_thread(
-    stop: threading.Event, interval: int, claimed_chat: threading.Event
-) -> None:
+def _telegram_thread(stop: threading.Event, interval: int, claimed_chat: threading.Event) -> None:
     allowed = _load_allowed_tg_chats()
     if not allowed:
         log("[telegram] no people with telegram chat_id — thread disabled")
@@ -221,21 +219,15 @@ def run(
     threads.append(tg_thread)
     tg_thread.start()
 
-    morning = threading.Thread(
-        target=morning_thread, args=(stop, claimed_chat), daemon=True, name="morning"
-    )
+    morning = threading.Thread(target=morning_thread, args=(stop, claimed_chat), daemon=True, name="morning")
     threads.append(morning)
     morning.start()
 
-    sig = threading.Thread(
-        target=_signal_thread, args=(stop, signal_interval), daemon=True, name="signal"
-    )
+    sig = threading.Thread(target=_signal_thread, args=(stop, signal_interval), daemon=True, name="signal")
     threads.append(sig)
     sig.start()
 
-    reap = threading.Thread(
-        target=_reap_thread, args=(stop,), daemon=True, name="reap"
-    )
+    reap = threading.Thread(target=_reap_thread, args=(stop,), daemon=True, name="reap")
     threads.append(reap)
     reap.start()
 

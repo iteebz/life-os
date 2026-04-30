@@ -19,8 +19,7 @@ def resolve_or_create(channel: str, address: str, display_name: str | None = Non
             peer_id = row[0]
             if display_name:
                 conn.execute(
-                    "UPDATE peers SET display_name = ? "
-                    "WHERE id = ? AND display_name = ?",
+                    "UPDATE peers SET display_name = ? WHERE id = ? AND display_name = ?",
                     (display_name, peer_id, address),
                 )
             return peer_id

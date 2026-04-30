@@ -10,12 +10,12 @@ from life.lib.format import format_elapsed
 from life.lib.ids import short
 from life.lib.store import get_db
 
-from . import add_observation, close_session, create_session, get_observations
+from . import add_observation, clear_handover, close_session, create_session, get_observations
 
 
-@cli("life steward")
-def sleep(note: str):
-    """Write handover summary for the next steward — what happened, what's open, what's next"""
+@cli("life steward", flags={"note": [], "handover": ["-h", "--handover"]})
+def sleep(note: str, handover: str | None = None):
+    """Close the session — note recaps, --handover points the next steward at the next physical action"""
     db_id_env = os.environ.get("STEWARD_DB_SESSION_ID")
     session_id_env = os.environ.get("STEWARD_SESSION_ID")
     db_id: int | None = None
@@ -33,10 +33,17 @@ def sleep(note: str):
                 db_id = row[0]
 
     if db_id is not None:
-        close_session(db_id, summary=note)
+        close_session(db_id, summary=note, handover=handover)
     else:
         create_session(note, source="unknown")
-    print("→ session closed")
+    print("→ session closed" + (f"  handover: {handover}" if handover else ""))
+
+
+@cli("life steward")
+def handover_clear():
+    """Null the most recent handover — call after acting on it"""
+    n = clear_handover()
+    print("→ cleared" if n else "→ no handover to clear")
 
 
 @cli("life steward", flags={"body": [], "tag": ["-t", "--tag"], "about": ["-a", "--about"]})
@@ -67,5 +74,3 @@ def observe(
     suffix = f" #{tag}" if tag else ""
     about_str = f" (about {about_date})" if about_date else ""
     print(f"→ {body}{suffix}{about_str}")
-
-

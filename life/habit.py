@@ -53,9 +53,7 @@ def _get_habit_checks(conn, habit_id: str) -> list[datetime]:
     return [datetime.fromisoformat(row[0]) for row in cursor.fetchall()]
 
 
-def _fetch_habits(
-    conn, where: str, params: tuple[object, ...] = ()
-) -> list[Habit]:
+def _fetch_habits(conn, where: str, params: tuple[object, ...] = ()) -> list[Habit]:
     """Fetch habits matching a WHERE clause and hydrate checks + tags."""
     cursor = conn.execute(
         f"SELECT {_HABIT_COLS} FROM habits WHERE {where}",  # noqa: S608
@@ -65,8 +63,7 @@ def _fetch_habits(
     all_ids = [row[0] for row in rows]
     tags_map = load_tags_for_habits(all_ids, conn=conn)
     return [
-        _hydrate_habit(row_to_habit(row), _get_habit_checks(conn, row[0]), tags_map.get(row[0], []))
-        for row in rows
+        _hydrate_habit(row_to_habit(row), _get_habit_checks(conn, row[0]), tags_map.get(row[0], [])) for row in rows
     ]
 
 
@@ -81,8 +78,7 @@ def add_habit(
     with get_db() as conn:
         try:
             conn.execute(
-                "INSERT INTO habits (id, content, parent_id, private, cadence)"
-                " VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO habits (id, content, parent_id, private, cadence) VALUES (?, ?, ?, ?, ?)",
                 (habit_id, content, parent_id, int(private), cadence),
             )
         except StoreIntegrityError as e:
@@ -167,9 +163,7 @@ def get_habits(habit_ids: list[str] | None = None, include_private: bool = True)
         return []
     placeholders = ",".join("?" * len(habit_ids))
     with get_db() as conn:
-        return _fetch_habits(
-            conn, f"deleted_at IS NULL AND id IN ({placeholders})", tuple(habit_ids)
-        )
+        return _fetch_habits(conn, f"deleted_at IS NULL AND id IN ({placeholders})", tuple(habit_ids))
 
 
 def get_checks(habit_id: str) -> list[datetime]:
@@ -249,9 +243,7 @@ def get_subhabits(parent_id: str) -> list["Habit"]:
 
 def get_archived_habits() -> list[Habit]:
     with get_db() as conn:
-        return _fetch_habits(
-            conn, "deleted_at IS NULL AND archived_at IS NOT NULL ORDER BY archived_at DESC"
-        )
+        return _fetch_habits(conn, "deleted_at IS NULL AND archived_at IS NOT NULL ORDER BY archived_at DESC")
 
 
 def archive_habit(habit_id: str) -> Habit | None:
@@ -282,9 +274,7 @@ def resolve_habit(ref: str) -> Habit:
     return habit
 
 
-def check_habit(
-    habit_id: str, check_on: date | None = None, check_time: str | None = None
-) -> Habit | None:
+def check_habit(habit_id: str, check_on: date | None = None, check_time: str | None = None) -> Habit | None:
     habit = get_habit(habit_id)
     if not habit:
         return None
@@ -293,9 +283,7 @@ def check_habit(
         completed_at = f"{check_date}T{check_time}:00" if check_time else f"{check_date}T23:59:59"
     else:
         check_date = clock.today().isoformat()
-        completed_at = (
-            f"{check_date}T{check_time.zfill(5)}:00" if check_time else datetime.now().isoformat()
-        )
+        completed_at = f"{check_date}T{check_time.zfill(5)}:00" if check_time else datetime.now().isoformat()
     with get_db() as conn:
         with contextlib.suppress(StoreIntegrityError):
             conn.execute(
@@ -392,6 +380,7 @@ def _render_habit_matrix(habits: list[Habit]) -> str:
         dates = [(today - timedelta(days=i)) for i in range(6, -1, -1)]
         header = "habit           " + " ".join(day_names) + "   key"
         lines += [header, "-" * len(header)]
+
         def _habit_sort_key(h: Habit) -> tuple[int, str]:
             return (1 if h.scheduled_time else 0, h.scheduled_time or h.content.lower())
 
@@ -449,5 +438,3 @@ def habit(ref: list[str] | None = None, tag: list[str] | None = None, weekly: bo
     habit_id = add_habit(name, tags=tag, cadence=cadence)
     cadence_suffix = f" {ansi.dim('(weekly)')}" if weekly else ""
     render_row(f"{name.lower()}{cadence_suffix}", tag, habit_id, symbol=ansi.purple("○"))
-
-

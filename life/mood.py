@@ -29,33 +29,23 @@ def get_recent_moods(hours: int = 24) -> list[MoodEntry]:
     cutoff = datetime.now(UTC) - timedelta(hours=hours)
     with get_db() as conn:
         rows = conn.execute(
-            "SELECT id, score, label, logged_at FROM moods "
-            "WHERE logged_at > ? ORDER BY logged_at DESC",
+            "SELECT id, score, label, logged_at FROM moods WHERE logged_at > ? ORDER BY logged_at DESC",
             (cutoff.isoformat(),),
         ).fetchall()
-    return [
-        MoodEntry(id=row[0], score=row[1], label=row[2], logged_at=datetime.fromisoformat(row[3]))
-        for row in rows
-    ]
+    return [MoodEntry(id=row[0], score=row[1], label=row[2], logged_at=datetime.fromisoformat(row[3])) for row in rows]
 
 
 def get_latest_mood() -> MoodEntry | None:
     with get_db() as conn:
-        row = conn.execute(
-            "SELECT id, score, label, logged_at FROM moods ORDER BY logged_at DESC LIMIT 1"
-        ).fetchone()
+        row = conn.execute("SELECT id, score, label, logged_at FROM moods ORDER BY logged_at DESC LIMIT 1").fetchone()
     if not row:
         return None
-    return MoodEntry(
-        id=row[0], score=row[1], label=row[2], logged_at=datetime.fromisoformat(row[3])
-    )
+    return MoodEntry(id=row[0], score=row[1], label=row[2], logged_at=datetime.fromisoformat(row[3]))
 
 
 def delete_latest_mood(within_seconds: int = 3600) -> MoodEntry | None:
     with get_db() as conn:
-        row = conn.execute(
-            "SELECT id, score, label, logged_at FROM moods ORDER BY logged_at DESC LIMIT 1"
-        ).fetchone()
+        row = conn.execute("SELECT id, score, label, logged_at FROM moods ORDER BY logged_at DESC LIMIT 1").fetchone()
         if not row:
             return None
         logged_at = datetime.fromisoformat(row[3])

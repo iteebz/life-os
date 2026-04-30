@@ -40,9 +40,7 @@ def search_tasks(query: str, limit: int = 20) -> list[SearchResult]:
         results = []
         for row in rows:
             task = row_to_task(row)
-            results.append(
-                SearchResult(id=task.id, content=task.content, type="task", rank=row[-1], task=task)
-            )
+            results.append(SearchResult(id=task.id, content=task.content, type="task", rank=row[-1], task=task))
         return results
 
 
@@ -88,9 +86,7 @@ def search_tags(query: str, limit: int = 20) -> list[SearchResult]:
         results = []
         for row in rows:
             tag_name, task_id, habit_id, rank = row
-            results.append(
-                SearchResult(id=task_id or habit_id or "", content=tag_name, type="tag", rank=rank)
-            )
+            results.append(SearchResult(id=task_id or habit_id or "", content=tag_name, type="tag", rank=rank))
         return results
 
 
@@ -118,11 +114,7 @@ def search_by_tag(tag: str, limit: int = 20) -> list[SearchResult]:
         results = []
         for row in rows:
             task = row_to_task(row)
-            results.append(
-                SearchResult(
-                    id=task.id, content=task.content, type="task", rank=0.0, task=task, tag=tag
-                )
-            )
+            results.append(SearchResult(id=task.id, content=task.content, type="task", rank=0.0, task=task, tag=tag))
 
         habit_rows = conn.execute(
             """
@@ -134,10 +126,7 @@ def search_by_tag(tag: str, limit: int = 20) -> list[SearchResult]:
             (tag,),
         ).fetchall()
 
-        results.extend(
-            SearchResult(id=row[0], content=row[1], type="habit", rank=0.0, tag=tag)
-            for row in habit_rows
-        )
+        results.extend(SearchResult(id=row[0], content=row[1], type="habit", rank=0.0, tag=tag) for row in habit_rows)
 
         return results[:limit]
 
@@ -153,17 +142,13 @@ def search_fuzzy(query: str, limit: int = 20) -> list[SearchResult]:
     task_match = find_in_pool(query, tasks)
     if task_match:
         results.append(
-            SearchResult(
-                id=task_match.id, content=task_match.content, type="task", rank=0.0, task=task_match
-            )
+            SearchResult(id=task_match.id, content=task_match.content, type="task", rank=0.0, task=task_match)
         )
 
     habits = get_habits()
     habit_match = find_in_pool(query, habits)
     if habit_match:
-        results.append(
-            SearchResult(id=habit_match.id, content=habit_match.content, type="habit", rank=0.0)
-        )
+        results.append(SearchResult(id=habit_match.id, content=habit_match.content, type="habit", rank=0.0))
 
     return results[:limit]
 

@@ -39,6 +39,7 @@ def main():
     user_args = sys.argv[1:]
     if not user_args or user_args == ["-v"] or user_args == ["--verbose"]:
         from .dash import dashboard  # noqa: PLC0415 — circular: cli→dash→habit→tag→resolve→task→tag
+
         dashboard()
         return
     # life steward (bare) → smart resume

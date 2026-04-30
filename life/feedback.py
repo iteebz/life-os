@@ -74,9 +74,7 @@ def _format_ratio(done: int, total: int) -> str:
 def _count_defers(window_start: date, window_end: date) -> int:
     with get_db() as conn:
         row = conn.execute(
-            "SELECT COUNT(*) FROM mutations "
-            "WHERE field = 'defer' "
-            "AND date(mutated_at) >= ? AND date(mutated_at) <= ?",
+            "SELECT COUNT(*) FROM mutations WHERE field = 'defer' AND date(mutated_at) >= ? AND date(mutated_at) <= ?",
             (window_start.isoformat(), window_end.isoformat()),
         ).fetchone()
         return row[0] if row else 0
@@ -110,18 +108,14 @@ def build_feedback_snapshot(
     top_all = [t for t in all_tasks if _is_top_level(t)]
     top_pending = [t for t in pending_tasks if _is_top_level(t)]
 
-    closure_earned = sum(
-        _task_weight(t) for t in top_all if _in_window(t.completed_at, window_start, today)
-    )
+    closure_earned = sum(_task_weight(t) for t in top_all if _in_window(t.completed_at, window_start, today))
     closure_open = sum(_task_weight(t) for t in top_pending)
     closure_possible = closure_earned + closure_open
     closure_score = closure_earned / closure_possible if closure_possible else 0.0
 
     ptag = get_partner_tag()
     partner_done = sum(
-        1
-        for t in top_all
-        if ptag and ptag in (t.tags or []) and _in_window(t.completed_at, window_start, today)
+        1 for t in top_all if ptag and ptag in (t.tags or []) and _in_window(t.completed_at, window_start, today)
     )
     partner_open = sum(1 for t in top_pending if ptag and ptag in (t.tags or []))
 
@@ -132,9 +126,7 @@ def build_feedback_snapshot(
     weekly_habits = [h for h in habits if h.cadence == "weekly"]
     weeks_in_window = max(1, window_days // 7)
     habit_possible = len(daily_habits) * window_days + len(weekly_habits) * weeks_in_window
-    habit_checked = sum(
-        1 for h in daily_habits for c in h.checks if window_start <= c.date() <= today
-    )
+    habit_checked = sum(1 for h in daily_habits for c in h.checks if window_start <= c.date() <= today)
     for h in weekly_habits:
         week_dates = {c.date() for c in h.checks if window_start <= c.date() <= today}
         weeks_hit = len({d.isocalendar()[1] for d in week_dates})
@@ -143,9 +135,7 @@ def build_feedback_snapshot(
 
     prior_start = window_start - timedelta(days=window_days)
     prior_end = window_start - timedelta(days=1)
-    prior_earned = sum(
-        _task_weight(t) for t in top_all if _in_window(t.completed_at, prior_start, prior_end)
-    )
+    prior_earned = sum(_task_weight(t) for t in top_all if _in_window(t.completed_at, prior_start, prior_end))
     _momentum_threshold = 0.10
     if prior_earned == 0:
         momentum = "↑" if closure_earned > 0 else "≈"
@@ -159,11 +149,7 @@ def build_feedback_snapshot(
     tracked_tags = set(TAG_WEIGHT.keys())
     tag_stats: dict[str, TagStat] = {}
     for tag in tracked_tags:
-        done = sum(
-            1
-            for t in top_all
-            if tag in (t.tags or []) and _in_window(t.completed_at, window_start, today)
-        )
+        done = sum(1 for t in top_all if tag in (t.tags or []) and _in_window(t.completed_at, window_start, today))
         open_ = sum(1 for t in top_pending if tag in (t.tags or []))
         if done or open_:
             tag_stats[tag] = TagStat(open=open_, done_7d=done)
@@ -210,8 +196,7 @@ def render_feedback_snapshot(snapshot: FeedbackSnapshot) -> list[str]:
             f"({snapshot.partner_done}/{partner_total})"
         )
     lines += [
-        f"  habits:   {snapshot.habit_rate:.0%} "
-        f"({snapshot.habit_checked}/{snapshot.habit_possible})",
+        f"  habits:   {snapshot.habit_rate:.0%} ({snapshot.habit_checked}/{snapshot.habit_possible})",
         f"  dodges:   {snapshot.defer_count}",
         f"  slips:    {snapshot.overdue_resets}",
     ]

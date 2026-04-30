@@ -106,16 +106,12 @@ def reply(thread_id: str, body: str | None = None, email: str | None = None, all
 
 
 @cli("life email", name="draft-reply")
-def draft_reply(
-    thread_id: str, instructions: str | None = None, email: str | None = None, all: bool = False
-):
+def draft_reply(thread_id: str, instructions: str | None = None, email: str | None = None, all: bool = False):
     """Generate AI reply draft"""
     full_id = _run_service(services.resolve_thread_id, thread_id, email) or thread_id
     messages = _run_service(services.fetch_thread, full_id, email)
 
-    context = "\n---\n".join(
-        f"From: {m['from']}\nDate: {m['date']}\nBody: {m['body'][:500]}" for m in messages[-5:]
-    )
+    context = "\n---\n".join(f"From: {m['from']}\nDate: {m['date']}\nBody: {m['body'][:500]}" for m in messages[-5:])
     print("generating draft...")
     body, reasoning = claude.generate_reply(context, instructions)
     if not body:
@@ -212,10 +208,7 @@ def senders(limit: int = 20):
         return
     for s in top:
         resp = f"{s.response_rate:.0%}" if s.received_count > 0 else "n/a"
-        print(
-            f"  {s.sender[:30]:30} | recv:{s.received_count:3} "
-            f"resp:{resp:4} pri:{s.priority_score:.2f}"
-        )
+        print(f"  {s.sender[:30]:30} | recv:{s.received_count:3} resp:{resp:4} pri:{s.priority_score:.2f}")
 
 
 @cli("life email", name="rules")

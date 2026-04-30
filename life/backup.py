@@ -176,9 +176,7 @@ def run_backup() -> dict[str, Any]:
     }
 
 
-def run_prune(
-    keep_daily_days: int = _KEEP_DAILY_DAYS, keep_hourly_hours: int = _KEEP_HOURLY_HOURS
-) -> int:
+def run_prune(keep_daily_days: int = _KEEP_DAILY_DAYS, keep_hourly_hours: int = _KEEP_HOURLY_HOURS) -> int:
     backup_dir = config.BACKUP_DIR
     if not backup_dir.exists():
         return 0

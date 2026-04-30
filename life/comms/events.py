@@ -61,6 +61,7 @@ def mark_read_for_session(chat_id: int) -> None:
             (str(chat_id),),
         )
 
+
 _DIRECTION_TO_KIND = {"in": "inbound", "out": "outbound"}
 
 
@@ -87,8 +88,7 @@ def record_message(
     if raw_id:
         with get_db() as conn:
             row = conn.execute(
-                "SELECT id FROM events "
-                "WHERE channel = ? AND json_extract(payload, '$.raw_id') = ?",
+                "SELECT id FROM events WHERE channel = ? AND json_extract(payload, '$.raw_id') = ?",
                 (channel, raw_id),
             ).fetchone()
             if row:
@@ -110,8 +110,7 @@ def record_message(
     )
     with get_db() as conn:
         cursor = conn.execute(
-            "INSERT INTO events (ts, kind, peer_id, channel, payload) "
-            "VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO events (ts, kind, peer_id, channel, payload) VALUES (?, ?, ?, ?, ?)",
             (timestamp, kind, peer_id, channel, payload),
         )
         return cursor.lastrowid
@@ -132,8 +131,7 @@ def record(
     body = json.dumps(payload or {})
     with get_db() as conn:
         cursor = conn.execute(
-            "INSERT INTO events (ts, kind, peer_id, channel, ref_id, session_id, payload) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO events (ts, kind, peer_id, channel, ref_id, session_id, payload) VALUES (?, ?, ?, ?, ?, ?, ?)",
             (ts, kind, peer_id, channel, ref_id, session_id, body),
         )
         return cursor.lastrowid

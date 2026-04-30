@@ -13,9 +13,7 @@ MIGRATIONS_TABLE = "_migrations"
 
 
 def _core_tables(conn: sqlite3.Connection) -> list[str]:
-    rows = conn.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
-    ).fetchall()
+    rows = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").fetchall()
     return sorted(name for (name,) in rows if "_fts" not in name and name != MIGRATIONS_TABLE)
 
 
@@ -44,9 +42,7 @@ def _expected_schema() -> dict[str, set[str]] | None:
     mem = sqlite3.connect(":memory:")
     try:
         mem.executescript(schema_path.read_text())
-        rows = mem.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
-        ).fetchall()
+        rows = mem.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").fetchall()
         schema: dict[str, set[str]] = {}
         for (table,) in rows:
             if "_fts" in table or table == MIGRATIONS_TABLE:

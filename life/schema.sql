@@ -85,7 +85,8 @@ CREATE TABLE sessions (
     pid INTEGER,
     runtime_seconds INTEGER,
     prompt_chars INTEGER,
-    response_chars INTEGER
+    response_chars INTEGER,
+    handover TEXT
 );
 
 CREATE TABLE observations (

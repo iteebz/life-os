@@ -77,9 +77,7 @@ def get_draft(draft_id: str) -> Draft | None:
             from_account_id=row_dict.get("from_account_id"),
             from_addr=row_dict.get("from_addr"),
             created_at=datetime.fromisoformat(row_dict["created_at"]),
-            approved_at=datetime.fromisoformat(row_dict["approved_at"])
-            if row_dict["approved_at"]
-            else None,
+            approved_at=datetime.fromisoformat(row_dict["approved_at"]) if row_dict["approved_at"] else None,
             sent_at=datetime.fromisoformat(row_dict["sent_at"]) if row_dict["sent_at"] else None,
         )
 

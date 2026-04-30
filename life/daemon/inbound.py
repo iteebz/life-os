@@ -112,8 +112,6 @@ def _latest_inbound_event(channel: str, address: str) -> int | None:
         return None
 
 
-
-
 def catch_up(chat_id: int) -> str:
     """Process unread inbound telegram messages on daemon start."""
     try:

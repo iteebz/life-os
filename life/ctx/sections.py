@@ -24,7 +24,7 @@ from life.lib.format import format_elapsed
 from life.lib.ids import short
 from life.mood import get_recent_moods
 from life.skills import list_skills
-from life.steward import get_observations, get_sessions
+from life.steward import get_observations, get_sessions, latest_handover
 from life.task import get_all_tasks, get_tasks
 
 from .fragments import STEWARD_BIRTHDAY
@@ -55,6 +55,13 @@ def render_feedback() -> str:
     return render_feedback_headline(snapshot)
 
 
+def render_handover() -> str:
+    text = latest_handover()
+    if not text:
+        return ""
+    return f"** HANDOVER ** {text}\n   (clear with `life steward handover-clear` after acting)"
+
+
 def render_last_session() -> str:
     sessions = get_sessions(limit=1)
     if not sessions:
@@ -74,12 +81,8 @@ def render_contracts() -> str:
     for block in blocks[1:]:
         lines = block.splitlines()
         name = lines[0].strip()
-        ratified = next(
-            (ln.split("**ratified:**")[1].strip() for ln in lines if "**ratified:**" in ln), ""
-        )
-        status = next(
-            (ln.split("**status:**")[1].strip() for ln in lines if "**status:**" in ln), ""
-        )
+        ratified = next((ln.split("**ratified:**")[1].strip() for ln in lines if "**ratified:**" in ln), "")
+        status = next((ln.split("**status:**")[1].strip() for ln in lines if "**status:**" in ln), "")
         contracts.append((name, ratified, status))
     if not contracts:
         return ""
@@ -97,9 +100,7 @@ def render_observations() -> str:
     tasks = get_tasks()
 
     upcoming = [o for o in recent if o.about_date and o.about_date >= today_d]
-    fresh = [
-        o for o in recent if not o.about_date and (now - o.logged_at).total_seconds() < 86400
-    ]
+    fresh = [o for o in recent if not o.about_date and (now - o.logged_at).total_seconds() < 86400]
     active_tags = {tag for t in tasks for tag in (getattr(t, "tags", None) or [])}
     tagged: list = []  # type: ignore[type-arg]
     horizon = 86400 * 3
@@ -199,10 +200,7 @@ def _tracked_repos() -> list[tuple[str, Path]]:
     ]
     repos_dir = life_root / "repos"
     if repos_dir.exists():
-        repos.extend(
-            (p.name, p) for p in sorted(repos_dir.iterdir())
-            if p.is_dir() and (p / ".git").exists()
-        )
+        repos.extend((p.name, p) for p in sorted(repos_dir.iterdir()) if p.is_dir() and (p / ".git").exists())
     return repos
 
 
@@ -216,15 +214,21 @@ def render_commits() -> str:
         try:
             log_result = subprocess.run(
                 ["git", "log", since_arg, "--format=%an"],
-                cwd=repo, capture_output=True, text=True,
+                cwd=repo,
+                capture_output=True,
+                text=True,
             )
             last_result = subprocess.run(
                 ["git", "log", "-1", "--format=%ct %s"],
-                cwd=repo, capture_output=True, text=True,
+                cwd=repo,
+                capture_output=True,
+                text=True,
             )
             dirty_result = subprocess.run(
                 ["git", "status", "--porcelain"],
-                cwd=repo, capture_output=True, text=True,
+                cwd=repo,
+                capture_output=True,
+                text=True,
             )
             authors: dict[str, int] = {}
             for line in log_result.stdout.splitlines():
@@ -246,9 +250,7 @@ def render_commits() -> str:
                 else:
                     age = f"{int(secs // (86400 * 7))}w"
                 last_msg = f"  {age:<4}  {msg[:50]}"
-            author_parts = [
-                f"{name} {n}" for name, n in sorted(authors.items(), key=lambda x: -x[1])
-            ]
+            author_parts = [f"{name} {n}" for name, n in sorted(authors.items(), key=lambda x: -x[1])]
             author_str = "  ".join(author_parts) if author_parts else "no commits"
             out.append(f"  {dirty} {label:<12}  {total:>3}c  {author_str:<36}{last_msg}")
         except Exception:

@@ -45,8 +45,7 @@ def _last_synced_ts(peer: str) -> int:
     try:
         with get_db() as conn:
             row = conn.execute(
-                "SELECT MAX(timestamp) FROM messages "
-                "WHERE channel = 'telegram' AND peer = ?",
+                "SELECT MAX(timestamp) FROM messages WHERE channel = 'telegram' AND peer = ?",
                 (peer,),
             ).fetchone()
             return row[0] or 0 if row else 0
@@ -106,9 +105,9 @@ async def _sync_chat(
 
     peer_id = str(entity.id)
     if isinstance(entity, User):
-        peer_name = (
-            (entity.first_name or "") + (" " + entity.last_name if entity.last_name else "")
-        ).strip() or str(entity.id)
+        peer_name = ((entity.first_name or "") + (" " + entity.last_name if entity.last_name else "")).strip() or str(
+            entity.id
+        )
     else:
         peer_name = getattr(entity, "title", str(entity.id))
 
@@ -148,9 +147,7 @@ async def _run_sync(
 ) -> int:
     creds = _get_credentials()
     if not creds:
-        raise ValueError(
-            "telegram user API not configured — run: life comms telegram auth <api_id> <api_hash>"
-        )
+        raise ValueError("telegram user API not configured — run: life comms telegram auth <api_id> <api_hash>")
 
     api_id, api_hash = creds
     SESSION_DIR.mkdir(parents=True, exist_ok=True)
