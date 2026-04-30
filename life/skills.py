@@ -1,7 +1,7 @@
 """Skills — markdown playbooks loadable on demand.
 
 Files in ~/life/steward/skills/<name>.md. Optional frontmatter `when:` one-liner
-indexed in wake; body fetched via `steward skill <name>`.
+indexed in wake; body fetched via `life skill <name>`.
 """
 
 from __future__ import annotations
@@ -52,11 +52,11 @@ def list_skills() -> list[Skill]:
 def get_skill(name: str) -> Skill:
     path = SKILLS_DIR / f"{name}.md"
     if not path.exists():
-        raise NotFoundError(f"no skill '{name}' — try `steward skill`")
+        raise NotFoundError(f"no skill '{name}' — try `life skill`")
     return _parse(path)
 
 
-@cli("life steward", flags={"name": []})
+@cli("life", flags={"name": []})
 def skill(name: str | None = None):
     """Show a skill, or list available skills"""
     if not name:
