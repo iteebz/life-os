@@ -1,3 +1,13 @@
+# life-os
+
+personal life assistant. single agent (steward), not a swarm.
+
+**new machine?** → [`docs/setup.md`](docs/setup.md)  
+**architecture?** → [`docs/arch.md`](docs/arch.md)  
+**collaborating?** → [`COLLABORATING.md`](COLLABORATING.md)
+
+---
+
 Entry: `life/cli.py`. Domain: `life/task.py`, `life/habit.py`, etc. Infrastructure: `life/lib/`. Output via `echo()`, errors via `exit_error()` — `life/lib/errors.py`.
 
 Resolve refs at CLI boundary via `lib/resolve.py`. `resolve_task(ref)` / `resolve_item(ref)` — domain functions only receive IDs. Fuzzy match: UUID prefix → substring → fuzzy (0.8 cutoff). Fuzzy hits print `→ matched: <content>`.
