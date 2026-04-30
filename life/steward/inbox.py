@@ -5,7 +5,7 @@ from fncli import cli
 from life.comms.events import peek_inbox
 
 
-@cli("life")
+@cli("life steward")
 def inbox():
     """Check for messages received while steward was idle"""
     rows = peek_inbox()

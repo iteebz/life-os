@@ -15,7 +15,7 @@ from life.lib.store import get_db
 from . import add_observation, close_session, create_session, delete_observation, get_observations
 
 
-@cli("life")
+@cli("life steward")
 def sleep(note: str):
     """Write handover summary for the next steward — what happened, what's open, what's next"""
     db_id_env = os.environ.get("STEWARD_DB_SESSION_ID")
@@ -41,7 +41,7 @@ def sleep(note: str):
     print("→ session closed")
 
 
-@cli("life", flags={"body": [], "tag": ["-t", "--tag"], "about": ["-a", "--about"]})
+@cli("life steward", flags={"body": [], "tag": ["-t", "--tag"], "about": ["-a", "--about"]})
 def observe(
     body: str | None = None,
     tag: str | None = None,
@@ -71,7 +71,7 @@ def observe(
     print(f"→ {body}{suffix}{about_str}")
 
 
-@cli("life", name="rm-obs")
+@cli("life steward", name="rm-obs")
 def rm(prefix: str, hard: bool = False):
     """Remove an observation or improvement by UUID prefix"""
     obs = resolve_prefix(prefix, get_observations(limit=200))
