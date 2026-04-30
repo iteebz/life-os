@@ -36,11 +36,11 @@ def config(key: str | None = None, value: str | None = None):
     if key is None:
         for k in ("user_name", "partner_tag", "profile"):
             v = cfg.get(k)
-            print(f"  {k}: {v if v else '(unset)'}")
+            print(f"  {k}: {v or '(unset)'}")
         return
     if value is None:
         v = cfg.get(key)
-        print(v if v else "(unset)")
+        print(v or "(unset)")
         return
     cfg.set(key, value)
     print(f"set {key} = {value}")

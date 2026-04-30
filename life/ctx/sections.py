@@ -11,19 +11,19 @@ from pathlib import Path
 
 from life.comms.accounts import list_accounts
 from life.comms.drafts import list_pending_drafts
+from life.comms.events import peek_inbox
 from life.comms.messages.telegram import get_history
 from life.comms.services import get_email_adapter
 from life.contacts import get_stale_contacts
 from life.feedback import build_feedback_snapshot, render_feedback_headline
 from life.habit import get_habits
 from life.improvements import get_improvements
-from life.skills import list_skills
 from life.lib.clock import today
 from life.lib.dates import list_dates
 from life.lib.format import format_elapsed
 from life.lib.ids import short
-from life.comms.events import peek_inbox
 from life.mood import get_recent_moods
+from life.skills import list_skills
 from life.steward import get_observations, get_sessions
 from life.task import get_all_tasks, get_tasks
 

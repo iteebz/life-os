@@ -1,0 +1,19 @@
+# ignore all subdirectories — sub-repos manage their own history
+*/
+
+# track these explicitly
+!human/
+!human/**
+!steward/
+!steward/**
+
+# secrets — never track
+.env
+.env.*
+*.key
+*.pem
+
+# os / editor noise
+.DS_Store
+*.swp
+*.swo

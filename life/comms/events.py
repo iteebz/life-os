@@ -12,7 +12,6 @@ from collections.abc import Mapping
 from life.comms.peers import resolve_or_create
 from life.lib.store import get_db
 
-
 _INBOX_LIMIT = 10
 
 

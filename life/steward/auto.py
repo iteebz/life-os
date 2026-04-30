@@ -7,7 +7,6 @@ from pathlib import Path
 from queue import Empty, Queue
 from typing import Any
 
-from life.steward._stream import StreamParser, ansi_strip, format_entry
 from fncli import cli
 
 from life.core.errors import LifeError
@@ -17,6 +16,7 @@ from life.habit import get_habits
 from life.lib.clock import today
 from life.lib.providers import claude
 from life.loop import load_loop_state, require_real_world_closure, save_loop_state, update_loop_state
+from life.steward._stream import StreamParser, ansi_strip, format_entry
 from life.task import get_all_tasks, get_tasks
 
 from . import close_session, create_session

@@ -8,7 +8,6 @@ from life.habit import (
     add_habit,
     check_habit,
     check_habit_cmd,
-    delete_habit,
     get_checks,
     rename_habit,
     resolve_habit,
@@ -24,7 +23,6 @@ from life.resolve import resolve_item, resolve_item_any, resolve_task
 from life.task import (
     add_task,
     check_task_cmd,
-    delete_task,
     get_task,
     rename_task,
     uncheck_task,
@@ -88,38 +86,6 @@ def check(ref: list[str], date: str | None = None, time: str | None = None) -> N
             render_uncheck_row(task.content.lower(), task.tags, task.id)
         else:
             check_task_cmd(task)
-
-
-@cli("life", name="rm")
-def rm(ref: list[str], hard: bool = False) -> None:
-    """Delete item"""
-    from life.improvements import delete_improvement, get_improvements  # noqa: PLC0415
-    from life.lib.ids import resolve_prefix  # noqa: PLC0415
-    from life.steward import delete_observation, get_observations  # noqa: PLC0415
-
-    item_ref = " ".join(ref) if ref else ""
-    if not item_ref:
-        raise UsageError("Usage: life rm <item>")
-    task, habit = resolve_item_any(item_ref)
-    if task:
-        delete_task(task.id, hard=hard)
-        print(ansi.strikethrough(task.content))
-        return
-    if habit:
-        delete_habit(habit.id)
-        print(ansi.strikethrough(habit.content))
-        return
-    obs = resolve_prefix(item_ref, get_observations(limit=200))
-    if obs:
-        delete_observation(obs.id, hard=hard)
-        print(ansi.strikethrough(obs.body[:80]))
-        return
-    imp = resolve_prefix(item_ref, get_improvements())
-    if imp:
-        delete_improvement(imp.id, hard=hard)
-        print(ansi.strikethrough(imp.body[:80]))
-        return
-    raise NotFoundError(f"no item matching '{item_ref}'")
 
 
 def add(

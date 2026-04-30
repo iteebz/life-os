@@ -68,6 +68,15 @@ def tmp_life_dir(monkeypatch, tmp_path):
     cfg_path = tmp_path / "config.yaml"
 
     monkeypatch.setenv("LIFE_DIR", str(tmp_path))
+    for var in (
+        "STEWARD_DB_SESSION_ID",
+        "STEWARD_SESSION_ID",
+        "STEWARD_SESSION_NAME",
+        "STEWARD_SESSION_MODEL",
+        "STEWARD_SESSION_SOURCE",
+        "STEWARD_MODE",
+    ):
+        monkeypatch.delenv(var, raising=False)
 
     monkeypatch.setattr("life.core.config.LIFE_DIR", tmp_path)
     monkeypatch.setattr("life.core.config.DB_PATH", db_path)

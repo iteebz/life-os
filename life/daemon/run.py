@@ -8,10 +8,10 @@ import yaml
 
 import life.daemon.shared as shared
 from life.comms import accounts as accts_module
+from life.comms.events import mark_read_for_session
 from life.comms.messages import signal as signal_adapter
 from life.comms.messages import telegram as tg
 from life.daemon.commands import handle_command
-from life.comms.events import mark_read_for_session
 from life.daemon.inbound import catch_up
 from life.daemon.inbound import handle as handle_inbound
 from life.daemon.morning import morning_thread

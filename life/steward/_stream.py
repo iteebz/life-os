@@ -1,4 +1,4 @@
-"""Minimal claude stream-json parser — replaces atrace dependency."""
+"""Minimal claude stream-json parser."""
 
 import json
 import re
@@ -217,9 +217,9 @@ def format_entry(entry: dict[str, Any], quiet_system: bool = True) -> str | None
             cmd = str(args.get("command", "")).split("\n")[0].replace(_HOME, "~")
             name, arg = _parse_bash(cmd)
             name = _TOOL_DISPLAY.get(name, name)
-        elif raw_name in ("WebFetch",):
+        elif raw_name == "WebFetch":
             arg = str(args.get("url", ""))
-        elif raw_name in ("WebSearch",):
+        elif raw_name == "WebSearch":
             arg = str(args.get("query", ""))
         else:
             arg = str(args.get("path") or args.get("file_path") or args.get("pattern") or "")

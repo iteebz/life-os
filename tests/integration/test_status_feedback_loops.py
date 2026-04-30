@@ -9,7 +9,7 @@ def test_status_shows_feedback_metrics(tmp_life_dir):
     invoke(["task", "call bank", "--tag", "finance", "--due", "today"])
     invoke(["task", "wedding vids", "--tag", "janice"])
 
-    result = invoke(["status"])
+    result = invoke(["steward", "status"])
 
     assert result.exit_code == 0
     assert "HEALTH:" in result.stdout
@@ -29,7 +29,7 @@ def test_status_flags_relationship_and_stuck_task(tmp_life_dir):
             ((today - timedelta(days=4)).isoformat(), "call bank"),
         )
 
-    result = invoke(["status"])
+    result = invoke(["steward", "status"])
 
     assert result.exit_code == 0
     assert "FLAGS:" in result.stdout
