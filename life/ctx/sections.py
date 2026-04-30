@@ -59,7 +59,7 @@ def render_handover() -> str:
     text = latest_handover()
     if not text:
         return ""
-    return f"** HANDOVER ** {text}\n   (clear with `life steward handover-clear` after acting)"
+    return f"** HANDOVER ** {text}\n   (mark done with `steward handover --done`)"
 
 
 def render_last_session() -> str:

@@ -10,7 +10,13 @@ from life.lib.format import format_elapsed
 from life.lib.ids import short
 from life.lib.store import get_db
 
-from . import add_observation, clear_handover, close_session, create_session, get_observations
+from . import (
+    add_observation,
+    clear_handover,
+    close_session,
+    create_session,
+    get_observations,
+)
 
 
 @cli("life steward", flags={"note": [], "handover": ["-h", "--handover"]})
@@ -39,11 +45,23 @@ def sleep(note: str, handover: str | None = None):
     print("→ session closed" + (f"  handover: {handover}" if handover else ""))
 
 
-@cli("life steward")
-def handover_clear():
-    """Null the most recent handover — call after acting on it"""
-    n = clear_handover()
-    print("→ cleared" if n else "→ no handover to clear")
+@cli("life steward", flags={"text": [], "done": ["-d", "--done"]})
+def handover(text: str | None = None, done: bool = False):
+    """Show, set, or mark-done the handover pointer for the next session"""
+    from life.steward import latest_handover  # noqa: PLC0415
+
+    if done:
+        n = clear_handover()
+        print("→ done" if n else "→ no handover to clear")
+        return
+    if text:
+        from life.steward import update_session_handover  # noqa: PLC0415
+
+        update_session_handover(text)
+        print(f"→ {text}")
+        return
+    current = latest_handover()
+    print(current or "(no handover)")
 
 
 @cli("life steward", flags={"body": [], "tag": ["-t", "--tag"], "about": ["-a", "--about"]})

@@ -117,6 +117,17 @@ def latest_handover() -> str | None:
     return row[0] if row else None
 
 
+def update_session_handover(text: str) -> int:
+    """Set handover on the most recent session (active, idle, or closed). Returns affected count."""
+    with get_db() as conn:
+        cur = conn.execute(
+            "UPDATE sessions SET handover = ? WHERE id = ("
+            "SELECT id FROM sessions ORDER BY COALESCE(last_active_at, logged_at) DESC LIMIT 1)",
+            (text,),
+        )
+        return cur.rowcount
+
+
 def clear_handover() -> int:
     """Null the handover on the most recent session that has one. Returns affected count."""
     with get_db() as conn:
