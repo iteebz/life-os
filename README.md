@@ -4,7 +4,7 @@ personal life assistant. single agent (steward), not a swarm.
 
 **new machine?** → [`docs/setup.md`](docs/setup.md)  
 **architecture?** → [`docs/arch.md`](docs/arch.md)  
-**collaborating?** → [`COLLABORATING.md`](COLLABORATING.md)
+**collaborating?** → [`JANICE.md`](JANICE.md)
 
 ---
 

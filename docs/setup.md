@@ -70,4 +70,4 @@ get a token from [@BotFather](https://t.me/BotFather). get your chat ID by messa
 
 ## collaborating with Tyson
 
-see `COLLABORATING.md`. short version: branch `janice/<topic>`, commit as steward, open a PR to `main`.
+see `JANICE.md`. short version: push to the long-lived `janice` branch; tyson rebases it onto `main` when ready.
