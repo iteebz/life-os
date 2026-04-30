@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 from life.comms.messages import telegram as tg
+from life.core.config import get_user_name
 from life.daemon.commands import handle_command
 from life.daemon.shared import TG_SESSION_TIMEOUT, log
 from life.daemon.spawn import spawn_claude
@@ -61,17 +62,18 @@ def build_reply_prompt(
     recent = trim_history(history)
     truncated = len(recent) < len(history)
     tone_str = f" {tone}" if tone else ""
+    user = get_user_name().capitalize()
     parts = [
-        "You are Steward in a Telegram conversation with Tyson. "
+        f"You are Steward in a Telegram conversation with {user}. "
         f"Be concise — chat format.{tone_str} You have access to all life CLI tools.\n",
     ]
     if truncated:
         parts.append("[earlier conversation truncated]\n")
     parts.append("Conversation so far:")
     for entry in recent:
-        role = "Tyson" if entry["role"] == "user" else "Steward"
+        role = user if entry["role"] == "user" else "Steward"
         parts.append(f"{role}: {entry['text']}")
-    parts.append(f"\nTyson: {message}")
+    parts.append(f"\n{user}: {message}")
     parts.append("\nRespond directly. Short and actionable. No markdown headers.")
     return "\n".join(parts)
 
@@ -96,8 +98,8 @@ def load_history_from_db(chat_id: int, hours: int = HISTORY_LOOKBACK_HOURS) -> l
         return []
 
 
-def get_tyson_chat_id() -> int | None:
-    result = resolve_people_field("tyson", "telegram")
+def get_user_chat_id() -> int | None:
+    result = resolve_people_field(get_user_name(), "telegram")
     return int(result) if result else None
 
 
@@ -190,10 +192,11 @@ def log_session(label: str, history: list[dict[str, str]]) -> None:
     filename = now.strftime(f"%Y-%m-%d-%H%M-{label}.md")
     path = sessions_dir / filename
 
+    user = get_user_name().capitalize()
     lines = [f"# {label} session — {now.strftime('%Y-%m-%d %H:%M')}", ""]
     msg_count = 0
     for entry in history:
-        role = "Tyson" if entry["role"] == "user" else "Steward"
+        role = user if entry["role"] == "user" else "Steward"
         lines.append(f"**{role}:** {entry['text']}")
         lines.append("")
         msg_count += 1

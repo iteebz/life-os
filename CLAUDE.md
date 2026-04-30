@@ -5,6 +5,7 @@ steward's own tooling. python CLI + daemon + hooks.
 ## before acting
 
 read `docs/` first. `docs/arch.md` is the map.
+if you're proposing a change from a non-tyson instance, read `COLLABORATING.md` — PR flow, what flows back, what stays local.
 
 docs/ is architectural design rationale — why things are shaped this way. not implementation
 details. no function names, line numbers, specific values, or anything that rots when code

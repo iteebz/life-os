@@ -101,6 +101,9 @@ def _build_system_prompt(source: str, raw: bool) -> str:
 def _unlock_keychain() -> None:
     if os.environ.get("KEYCHAIN_UNLOCKED"):
         return
+    if not (os.environ.get("SSH_CONNECTION") or os.environ.get("SSH_TTY") or os.environ.get("SSH_CLIENT")):
+        os.environ["KEYCHAIN_UNLOCKED"] = "true"
+        return
     home = Path.home()
     keychain = home / "Library" / "Keychains" / "login.keychain-db"
     if keychain.exists():

@@ -3,6 +3,7 @@ from datetime import date, datetime, timedelta
 
 from fncli import UsageError, cli
 
+from .core.config import get_partner_tag
 from .core.models import Habit, Task
 from .feedback import build_feedback_snapshot, render_feedback_snapshot
 from .habit import get_habits
@@ -115,9 +116,10 @@ def status(as_json: bool = False) -> None:
     habits = get_habits()
     today_date = today()
 
+    ptag = get_partner_tag()
     untagged = [t for t in tasks if not t.tags]
     overdue = [t for t in tasks if t.scheduled_date and t.scheduled_date < today_date]
-    janice = [t for t in tasks if "janice" in (t.tags or [])]
+    partner = [t for t in tasks if ptag and ptag in (t.tags or [])]
     focused = [t for t in tasks if t.focus]
 
     snapshot = build_feedback_snapshot(
@@ -130,7 +132,7 @@ def status(as_json: bool = False) -> None:
     if as_json:
         overdue_ids = {t.id for t in overdue}
         hot_overdue = overdue[:3]
-        hot_janice = [t for t in janice if t.id not in overdue_ids][:3]
+        hot_partner = [t for t in partner if t.id not in overdue_ids][:3]
         print(
             json.dumps(
                 {
@@ -141,7 +143,7 @@ def status(as_json: bool = False) -> None:
                     "health": {
                         "untagged": len(untagged),
                         "overdue": len(overdue),
-                        "janice_open": len(janice),
+                        "partner_open": len(partner),
                     },
                     "flags": list(snapshot.flags),
                     "tag_stats": {
@@ -150,7 +152,7 @@ def status(as_json: bool = False) -> None:
                     },
                     "hot_list": {
                         "overdue": [{"id": t.id, "content": t.content} for t in hot_overdue],
-                        "janice": [{"id": t.id, "content": t.content} for t in hot_janice],
+                        "partner": [{"id": t.id, "content": t.content} for t in hot_partner],
                     },
                 }
             )
@@ -165,7 +167,8 @@ def status(as_json: bool = False) -> None:
     lines.append("\nHEALTH:")
     lines.append(f"  untagged: {len(untagged)}")
     lines.append(f"  overdue: {len(overdue)}")
-    lines.append(f"  janice_open: {len(janice)}")
+    if ptag:
+        lines.append(f"  {ptag}_open: {len(partner)}")
     lines.append("\nFLAGS:")
     if snapshot.flags:
         lines.append("  " + ", ".join(snapshot.flags))
@@ -174,10 +177,10 @@ def status(as_json: bool = False) -> None:
     lines.append("\nHOT LIST:")
     overdue_ids = {t.id for t in overdue}
     hot_overdue = overdue[:3]
-    hot_janice = [t for t in janice if t.id not in overdue_ids][:3]
+    hot_partner = [t for t in partner if t.id not in overdue_ids][:3]
     lines.extend(f"  ! {t.content}" for t in hot_overdue)
-    lines.extend(f"  \u2665 {t.content}" for t in hot_janice)
-    if not hot_overdue and not hot_janice:
+    lines.extend(f"  \u2665 {t.content}" for t in hot_partner)
+    if not hot_overdue and not hot_partner:
         lines.append("  none")
     print("\n".join(lines))
 

@@ -10,7 +10,7 @@ from pathlib import Path
 from fncli import cli
 
 from life.daemon.__main__ import supervise
-from life.daemon.session import get_tyson_chat_id, run_session
+from life.daemon.session import get_user_chat_id, run_session
 from life.daemon.shared import pid
 from life.daemon.spawn import fetch_wake_context
 
@@ -115,9 +115,9 @@ def daemon_nightly() -> None:
         print("daemon is running — stop it first or let the nightly thread handle it")
         return
 
-    chat_id = get_tyson_chat_id()
+    chat_id = get_user_chat_id()
     if not chat_id:
-        print("no telegram chat_id for tyson")
+        print("no telegram chat_id for user")
         return
 
     stop = threading.Event()

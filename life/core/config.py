@@ -51,6 +51,12 @@ class Config:
 _config = Config()
 
 
+def get_user_name() -> str:
+    """Get the human's name for prompt/log strings (e.g. 'tyson'). Defaults to 'you'."""
+    val = _config.get("user_name")
+    return str(val).strip() if val else "you"
+
+
 def get_partner_tag() -> str | None:
     """Get the tag used to track partner-facing tasks (e.g. 'janice'). None = disabled."""
     val = _config.get("partner_tag")

@@ -45,7 +45,7 @@ def observe(
     tag: str | None = None,
     about: str | None = None,
 ):
-    """Log a raw observation — things Tyson says that should persist as context"""
+    """Log a raw observation — things the human says that should persist as context"""
     if body is None:
         observations = get_observations(limit=20, tag=tag)
         if not observations:

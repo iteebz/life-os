@@ -16,7 +16,7 @@ from life.daemon.inbound import catch_up
 from life.daemon.inbound import handle as handle_inbound
 from life.daemon.morning import morning_thread
 from life.daemon.reap import sweep as reap_sweep
-from life.daemon.session import get_tyson_chat_id
+from life.daemon.session import get_user_chat_id
 from life.daemon.shared import (
     DAEMON_DIR,
     MAX_TG_SPAWNS_PER_HOUR,
@@ -201,11 +201,11 @@ def run(
 
     # Catch up on unread messages in a background thread — never block startup.
     def _catchup_thread() -> None:
-        tyson_chat = get_tyson_chat_id()
-        if not tyson_chat or is_quiet_now():
+        user_chat = get_user_chat_id()
+        if not user_chat or is_quiet_now():
             return
         try:
-            action = catch_up(tyson_chat)
+            action = catch_up(user_chat)
             if action == "caught_up":
                 log("[startup] caught up on unread messages")
         except Exception as e:

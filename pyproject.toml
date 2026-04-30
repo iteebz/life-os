@@ -40,6 +40,9 @@ steward = "life.steward.main:main"
 [tool.hatch.build.targets.wheel]
 packages = ["life"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"life/ctx/seed" = "life/ctx/seed"
+
 [tool.pyright]
 pythonVersion = "3.12"
 venvPath = "."

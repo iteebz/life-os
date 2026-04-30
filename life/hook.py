@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from life.comms import events
+from life.core.config import get_user_name
 from life.habit import get_habits
 from life.lib.clock import today
 from life.lib.store import get_db
@@ -142,7 +143,7 @@ def _log_turn(direction: str, body: str, session_id: str) -> None:
         body = body[:10000] + f"\n... [{len(body) - 10000} chars truncated]"
     ts = int(time.time())
     msg_id = f"chat-{session_id[:8]}-{ts}-{direction}"
-    peer_name = "tyson" if direction == "in" else "steward"
+    peer_name = get_user_name() if direction == "in" else "steward"
     with contextlib.suppress(Exception):
         events.record_message(
             channel="chat",

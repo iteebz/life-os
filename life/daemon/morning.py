@@ -1,7 +1,7 @@
 """Morning + nightly steward sessions via Telegram.
 
 Morning: fires once at 8am unconditionally.
-Nightly: fires once at 8pm ONLY if tyson was active today (sent a telegram message).
+Nightly: fires once at 8pm ONLY if user was active today (sent a telegram message).
 """
 
 import threading
@@ -9,7 +9,8 @@ import time
 from datetime import datetime
 
 from life.comms.messages.telegram import get_history
-from life.daemon.session import get_tyson_chat_id, load_memory, run_session
+from life.core.config import get_user_name
+from life.daemon.session import get_user_chat_id, load_memory, run_session
 from life.daemon.shared import log
 from life.daemon.spawn import fetch_wake_context
 
@@ -20,13 +21,14 @@ NIGHTLY_HOUR = 20
 def _build_opener() -> str:
     wake = fetch_wake_context()
     memory = load_memory()
+    user = get_user_name().capitalize()
     parts = [f"Current life state:\n{wake}"]
     if memory:
         parts.append(f"\nSteward memory:\n{memory}")
     parts.append(
         "\n<brief>"
         "\nObjective: consolidated morning brief via Telegram. It's 8am."
-        "\nThis is Tyson's only unprompted message today. Make it count."
+        f"\nThis is {user}'s only unprompted message today. Make it count."
         "\nInclude: one thing worth knowing, overdue items (if any), one nudge."
         "\nStart with 🌱. Plain text only. 2-3 sentences max."
         "\n</brief>"
@@ -37,13 +39,14 @@ def _build_opener() -> str:
 def _build_nightly_opener() -> str:
     wake = fetch_wake_context()
     memory = load_memory()
+    user = get_user_name().capitalize()
     parts = [f"Current life state:\n{wake}"]
     if memory:
         parts.append(f"\nSteward memory:\n{memory}")
     parts.append(
         "\n<brief>"
         "\nObjective: end-of-day check-in via Telegram. It's 8pm."
-        "\nTyson was active today. Reflect what got done, what didn't."
+        f"\n{user} was active today. Reflect what got done, what didn't."
         "\nIf something important slipped, name it. If the day was good, say so."
         "\nStart with 🌙. Plain text only. 2-3 sentences max."
         "\n</brief>"
@@ -51,8 +54,8 @@ def _build_nightly_opener() -> str:
     return "\n".join(parts)
 
 
-def _tyson_active_today(chat_id: int) -> bool:
-    """Check if tyson sent any telegram messages today."""
+def _user_active_today(chat_id: int) -> bool:
+    """Check if user sent any telegram messages today."""
     now = time.time()
     midnight = now - (datetime.now().hour * 3600 + datetime.now().minute * 60 + datetime.now().second)
     hours_since_midnight = max(1, int((now - midnight) / 3600))
@@ -61,9 +64,9 @@ def _tyson_active_today(chat_id: int) -> bool:
 
 
 def morning_thread(stop: threading.Event, claimed_chat: threading.Event) -> None:
-    chat_id = get_tyson_chat_id()
+    chat_id = get_user_chat_id()
     if not chat_id:
-        log("[morning] no telegram chat_id for tyson — disabled")
+        log(f"[morning] no telegram chat_id for {get_user_name()} — disabled")
         return
 
     log(f"[morning] thread started, morning={MORNING_HOUR}:00 nightly={NIGHTLY_HOUR}:00")
@@ -85,14 +88,14 @@ def morning_thread(stop: threading.Event, claimed_chat: threading.Event) -> None
 
         if now.hour == NIGHTLY_HOUR and nightly_triggered != today_str:
             nightly_triggered = today_str
-            if not claimed_chat.is_set() and _tyson_active_today(chat_id):
-                log("[nightly] tyson was active today — triggering")
+            if not claimed_chat.is_set() and _user_active_today(chat_id):
+                log("[nightly] user was active today — triggering")
                 opener = _build_nightly_opener()
                 run_session(
                     chat_id, opener, stop, claimed_chat,
                     label="nightly", tone="Warm wind-down tone.",
                 )
-            elif not _tyson_active_today(chat_id):
-                log("[nightly] tyson off-grid today — skipping")
+            elif not _user_active_today(chat_id):
+                log("[nightly] user off-grid today — skipping")
 
         stop.wait(30)
