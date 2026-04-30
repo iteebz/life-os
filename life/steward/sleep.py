@@ -4,15 +4,13 @@ from datetime import date, datetime
 
 from fncli import cli
 
-from life.core.errors import NotFoundError
-from life.improvements import delete_improvement, get_improvements
 from life.lib import ansi
 from life.lib.dates import parse_due_date
 from life.lib.format import format_elapsed
-from life.lib.ids import resolve_prefix, short
+from life.lib.ids import short
 from life.lib.store import get_db
 
-from . import add_observation, close_session, create_session, delete_observation, get_observations
+from . import add_observation, close_session, create_session, get_observations
 
 
 @cli("life steward")
@@ -71,19 +69,3 @@ def observe(
     print(f"→ {body}{suffix}{about_str}")
 
 
-@cli("life steward", name="rm-obs")
-def rm(prefix: str, hard: bool = False):
-    """Remove an observation or improvement by UUID prefix"""
-    obs = resolve_prefix(prefix, get_observations(limit=200))
-    if obs:
-        delete_observation(obs.id, hard=hard)
-        print(f"→ removed: {obs.body[:80]}")
-        return
-
-    imp = resolve_prefix(prefix, get_improvements())
-    if imp:
-        delete_improvement(imp.id, hard=hard)
-        print(f"→ removed: {imp.body[:80]}")
-        return
-
-    raise NotFoundError(f"no item matching '{prefix}'")
