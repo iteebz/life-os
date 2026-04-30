@@ -16,7 +16,7 @@ plist:
     set -e
     SRC="scripts/com.life.daemon.plist"
     DST="$HOME/Library/LaunchAgents/com.life.daemon.plist"
-    cp "$SRC" "$DST"
+    sed "s|/Users/iteebz|$HOME|g" "$SRC" > "$DST"
     launchctl bootout gui/$(id -u) "$DST" 2>/dev/null || true
     launchctl bootstrap gui/$(id -u) "$DST"
 
