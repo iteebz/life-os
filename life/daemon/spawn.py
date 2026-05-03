@@ -56,7 +56,7 @@ def spawn_claude(
     if image_path:
         cmd += ["--image", image_path]
 
-    env = build_claude_env("tg")
+    env = build_claude_env("auto")
 
     try:
         result = subprocess.run(
