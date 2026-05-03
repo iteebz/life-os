@@ -1,8 +1,10 @@
 import os
 import re
 import signal
+import subprocess
 import threading
 import time
+from pathlib import Path
 
 import yaml
 
@@ -153,6 +155,19 @@ def _signal_thread(stop: threading.Event, interval: int) -> None:
         stop.wait(interval)
 
 
+def _sync_traces(stop: threading.Event) -> None:
+    src = str(Path.home() / ".claude" / "projects") + "/"
+    dst = str(Path.home() / ".life" / "traces") + "/"
+    Path(dst).mkdir(parents=True, exist_ok=True)
+    while not stop.is_set():
+        try:
+            subprocess.run(["rsync", "-a", "--delete", src, dst], capture_output=True)
+            log("[traces] synced ~/.claude/projects → ~/.life/traces")
+        except Exception as e:
+            log(f"[traces] sync error: {e}")
+        stop.wait(3600)
+
+
 def _reap_thread(stop: threading.Event) -> None:
     log("[reap] started, sweeping every 10s")
     while not stop.is_set():
@@ -230,6 +245,10 @@ def run(
     reap = threading.Thread(target=_reap_thread, args=(stop,), daemon=True, name="reap")
     threads.append(reap)
     reap.start()
+
+    traces = threading.Thread(target=_sync_traces, args=(stop,), daemon=True, name="traces")
+    threads.append(traces)
+    traces.start()
 
     if auto_every > 0:
         auto = threading.Thread(
