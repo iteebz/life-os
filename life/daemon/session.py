@@ -181,7 +181,7 @@ def run_session(
 
 def log_session(label: str, history: list[dict[str, str]]) -> None:
     """Write session transcript to steward/sessions/ for traceability."""
-    sessions_dir = Path.home() / "life" / "steward" / "sessions"
+    sessions_dir = Path.home() / ".life" / "traces"
     sessions_dir.mkdir(parents=True, exist_ok=True)
 
     now = datetime.now()
