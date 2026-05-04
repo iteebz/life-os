@@ -2,8 +2,6 @@
 */
 
 # track these explicitly
-!human/
-!human/**
 !steward/
 !steward/**
 

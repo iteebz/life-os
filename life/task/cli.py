@@ -135,6 +135,8 @@ def due(ref: list[str], when: str, remove: bool = False) -> None:
         "parent": ["-p", "--parent"],
         "content": ["-c", "--content"],
         "notes": ["-n", "--notes"],
+        "due": ["-d", "--due"],
+        "schedule": ["-s", "--schedule"],
     },
 )
 def set_cmd(
@@ -142,11 +144,13 @@ def set_cmd(
     parent: str | None = None,
     content: str | None = None,
     notes: str | None = None,
+    due: str | None = None,
+    schedule: str | None = None,
 ) -> None:
-    """Set parent, content, or notes on task"""
+    """Set parent, content, notes, or schedule on task"""
     item_ref = " ".join(ref) if ref else ""
     if not item_ref:
-        raise UsageError("Usage: life set <task> [-p parent] [-c content]")
+        raise UsageError("Usage: life set <task> [-p parent] [-c content] [-d due] [-s schedule]")
     t = resolve_task(item_ref)
     parent_id: str | None = None
     has_update = False
@@ -168,17 +172,28 @@ def set_cmd(
     if notes is not None:
         task_notes = notes if notes != "" else None
         has_update = True
+    when = due or schedule
+    if when is not None:
+        date_str, time_str, _ = parse_due_and_item([*when.split(), "x"])
+        date_updates: dict[str, Any] = {"is_deadline": due is not None}
+        if date_str:
+            date_updates["scheduled_date"] = date_str
+        if time_str:
+            date_updates["scheduled_time"] = time_str
+        update_task(t.id, **date_updates)
+        has_update = True
     if not has_update:
-        raise UsageError("Nothing to set. Use -p for parent, -c for content, or --notes for notes.")
-    update_task(
-        t.id,
-        content=content,
-        parent_id=parent_id if parent is not None else UNSET,
-        notes=task_notes if notes is not None else UNSET,
-    )
+        raise UsageError("Nothing to set. Use -p, -c, -n, -d, or -s.")
+    if content is not None or parent is not None or notes is not None:
+        update_task(
+            t.id,
+            content=content,
+            parent_id=parent_id if parent is not None else UNSET,
+            notes=task_notes if notes is not None else UNSET,
+        )
     updated = resolve_task(content or item_ref)
-    prefix = "  \u2514 " if updated.parent_id else ""
-    print(f"{prefix}{format_status('\u25a1', updated.content, updated.id)}")
+    prefix = "  └ " if updated.parent_id else ""
+    print(f"{prefix}{format_status('□', updated.content, updated.id)}")
 
 
 @cli("life", flags={"as_json": ["-j", "--json"]})
