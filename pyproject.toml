@@ -24,6 +24,7 @@ dependencies = [
     "qrcode>=8.2",
     "telethon>=1.36.0",
     "python-dateutil>=2.9.0.post0",
+    "rich>=15.0.0",
 ]
 
 [dependency-groups]

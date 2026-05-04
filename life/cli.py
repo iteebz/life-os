@@ -32,6 +32,28 @@ def _smart_resume() -> int:
     return chat() or 0
 
 
+def _watch() -> None:
+    import time  # noqa: PLC0415
+
+    from rich.live import Live  # noqa: PLC0415
+    from rich.text import Text  # noqa: PLC0415
+
+    from .dash import get_habits, get_tasks, get_today_breakdown, get_today_completed  # noqa: PLC0415
+    from .task.render import render_dashboard  # noqa: PLC0415
+
+    def _render() -> Text:
+        items = get_tasks() + get_habits()
+        return Text(render_dashboard(items, get_today_breakdown(), today_items=get_today_completed()))
+
+    with Live(_render(), refresh_per_second=1, screen=True) as live:
+        try:
+            while True:
+                time.sleep(5)
+                live.update(_render())
+        except KeyboardInterrupt:
+            pass
+
+
 def main():
     db.init()
     fncli.autodiscover(Path(__file__).parent, "life")
@@ -41,6 +63,9 @@ def main():
         from .dash import dashboard  # noqa: PLC0415 — circular: cli→dash→habit→tag→resolve→task→tag
 
         dashboard()
+        return
+    if user_args == ["-w"]:
+        _watch()
         return
     # life steward (bare) → new session
     if user_args == ["steward"]:
