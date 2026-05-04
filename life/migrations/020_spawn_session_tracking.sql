@@ -1,4 +1,0 @@
-ALTER TABLE spawns ADD COLUMN pid INTEGER;
-ALTER TABLE spawns ADD COLUMN last_active_at TIMESTAMP;
-ALTER TABLE spawns ADD COLUMN provider_session_id TEXT;
-ALTER TABLE spawns ADD COLUMN slept_at TIMESTAMP;
