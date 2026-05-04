@@ -66,10 +66,20 @@ def _get_direct_tags(task: Task, pending: list[Task]) -> list[str]:
     return [tag for tag in task.tags if tag not in parent.tags]
 
 
+def _tag_hash(tag: str) -> int:
+    import hashlib  # noqa: PLC0415
+
+    return int(hashlib.md5(tag.encode()).hexdigest(), 16)  # noqa: S324
+
+
 def _build_tag_colors(items: Sequence[Task | Habit]) -> dict[str, str]:
     tags = sorted({tag for item in items for tag in item.tags})
     pool = [code for code, _ in POOL]
-    return {tag: pool[hash(tag) % len(pool)] for tag in tags}
+    n = len(pool)
+    # sort by stable hash then step evenly for maximum spread
+    ordered = sorted(tags, key=_tag_hash)
+    step = max(1, n // max(len(ordered), 1))
+    return {tag: pool[(i * step) % n] for i, tag in enumerate(ordered)}
 
 
 def _get_trend(current: int, previous: int) -> str:
