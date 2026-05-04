@@ -5,8 +5,9 @@ from datetime import date, datetime, timedelta
 from life.core.models import Habit, Task, TaskMutation, Weekly
 from life.habit import get_subhabits
 from life.lib import clock
-from life.lib.ansi import POOL, bold, dim, gold, gray, green, purple, red, theme, white
+from life.lib.ansi import NAMED_COLORS, POOL, bold, dim, gold, gray, green, purple, red, theme, white
 from life.lib.dates import upcoming_dates
+from life.lib.tags import load_tag_overrides
 from life.task import task_sort_key
 
 __all__ = [
@@ -76,10 +77,13 @@ def _build_tag_colors(items: Sequence[Task | Habit]) -> dict[str, str]:
     tags = sorted({tag for item in items for tag in item.tags})
     pool = [code for code, _ in POOL]
     n = len(pool)
-    # sort by stable hash then step evenly for maximum spread
     ordered = sorted(tags, key=_tag_hash)
     step = max(1, n // max(len(ordered), 1))
-    return {tag: pool[(i * step) % n] for i, tag in enumerate(ordered)}
+    colors = {tag: pool[(i * step) % n] for i, tag in enumerate(ordered)}
+    for tag, color_name in load_tag_overrides().items():
+        if tag in colors and color_name in NAMED_COLORS:
+            colors[tag] = NAMED_COLORS[color_name]
+    return colors
 
 
 def _get_trend(current: int, previous: int) -> str:

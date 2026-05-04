@@ -2,6 +2,8 @@ import sys
 from datetime import UTC, date, datetime
 
 from . import ansi
+from .ansi import NAMED_COLORS
+from .tags import load_tag_overrides
 
 __all__ = [
     "format_due",
@@ -47,9 +49,11 @@ def _fmt_tags(tags: list[str]) -> str:
         return ""
     r = ansi.theme.reset
     pool = [code for code, _ in ansi.POOL]
-    # Deterministic: sorted tag list → stable color assignment
     all_tags = sorted(set(tags))
     colors = {t: pool[i % len(pool)] for i, t in enumerate(all_tags)}
+    for tag, color_name in load_tag_overrides().items():
+        if tag in colors and color_name in NAMED_COLORS:
+            colors[tag] = NAMED_COLORS[color_name]
     parts = [f"{colors[t]}#{t}{r}" for t in tags]
     return " " + " ".join(parts)
 

@@ -96,6 +96,29 @@ POOL: list[tuple[str, str]] = [
     ("\033[38;5;217m", "peach"),  # soft pink    ~340°
 ]
 
+# Extended named colors for tag overrides (pool names + extras)
+NAMED_COLORS: dict[str, str] = {name: code for code, name in POOL} | {
+    "golden-mustard": "\033[38;5;136m",  # deep golden yellow
+    "red": DEFAULT.red,
+    "green": DEFAULT.green,
+    "yellow": DEFAULT.yellow,
+    "blue": DEFAULT.blue,
+    "magenta": DEFAULT.magenta,
+    "cyan": DEFAULT.cyan,
+    "orange": DEFAULT.orange,
+    "pink": DEFAULT.pink,
+    "teal": DEFAULT.teal,
+    "gold": DEFAULT.gold,
+    "purple": DEFAULT.purple,
+    "mint": DEFAULT.mint,
+    "lavender": DEFAULT.lavender,
+    "slate": DEFAULT.slate,
+    "sage": DEFAULT.sage,
+    "forest": DEFAULT.forest,
+    "amber": DEFAULT.amber,
+    "mauve": DEFAULT.mauve,
+}
+
 
 def __getattr__(name: str) -> Callable[[str], str]:
     if name in _COLORS:
