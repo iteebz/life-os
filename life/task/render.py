@@ -212,13 +212,12 @@ def _row_habit(habit: Habit, checked_ids: set[str], ctx: RenderCtx, indent: str 
 
     trend = "↗" if count_p1 > count_p2 else "↘" if count_p1 < count_p2 else "→"
     time_str = f" {gray(habit.scheduled_time)}" if habit.scheduled_time else ""
-    id_str = f" {dim('[' + habit.id[:8] + ']')}"
     if habit.id in checked_ids:
         label = f"{gray(habit.content.lower())}{cadence_label}{tags_str}"
-        lines = [f"{indent}{purple('●')} {gray(trend)} {label}{time_str}{id_str}"]
+        lines = [f"{indent}{purple('●')} {gray(trend)} {label}{time_str}"]
     else:
         label = f"{habit.content.lower()}{cadence_label}{tags_str}"
-        lines = [f"{indent}{purple('○')} {gray(trend)} {label}{time_str}{id_str}"]
+        lines = [f"{indent}{purple('○')} {gray(trend)} {label}{time_str}"]
     for sub in get_subhabits(habit.id):
         lines.extend(_row_habit(sub, checked_ids, ctx, indent="   └ "))
     return lines
