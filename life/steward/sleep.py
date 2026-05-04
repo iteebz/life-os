@@ -88,7 +88,7 @@ def handover(text: str | None = None, done: bool = False):
     """Show, set, or mark-done the handover pointer for the next session"""
     from life.steward import latest_handover  # noqa: PLC0415
 
-    if done:
+    if done or text == "done":
         n = clear_handover()
         print("→ done" if n else "→ no handover to clear")
         return
