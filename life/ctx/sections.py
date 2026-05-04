@@ -9,6 +9,7 @@ import time
 from datetime import date, datetime
 from pathlib import Path
 
+from life.achievements import get_achievements
 from life.comms.accounts import list_accounts
 from life.comms.drafts import list_pending_drafts
 from life.comms.events import peek_inbox
@@ -34,6 +35,20 @@ def render_header() -> str:
     age_days = (datetime.now() - STEWARD_BIRTHDAY).days
     now = datetime.now()
     return f"STEWARD — day {age_days}  |  {now.strftime('%a %d %b %Y  %I:%M%p').lower()}"
+
+
+def render_milestones() -> str:
+    today_d = date.today()
+    milestones = [
+        a for a in get_achievements() if a.achieved_at.replace(tzinfo=datetime.UTC).astimezone().date() == today_d
+    ]
+    if not milestones:
+        return ""
+    out = ["★ MILESTONE" + ("S" if len(milestones) > 1 else "") + " TODAY:"]
+    for m in milestones:
+        tag_str = f"  #{m.tags}" if m.tags else ""
+        out.append(f"  {m.name}{tag_str}")
+    return "\n".join(out)
 
 
 def render_steward_tasks() -> str:
