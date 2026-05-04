@@ -10,7 +10,7 @@ from .habit import get_habits
 from .lib import ansi, clock
 from .lib.ansi import POOL
 from .lib.clock import now, today
-from .lib.format import format_elapsed, format_task
+from .lib.format import format_elapsed
 from .lib.store import get_db
 from .momentum import weekly_momentum
 from .task import fetch_tasks, get_all_tasks, get_completed_today, get_tasks, last_completion
@@ -236,42 +236,6 @@ def _show_day(target: date) -> None:
 def momentum() -> None:
     """Momentum and weekly trends"""
     print(render_momentum(weekly_momentum()))
-
-
-@cli("life", flags={"as_json": ["-j", "--json"]})
-def ls(tag: str | None = None, overdue: bool = False, as_json: bool = False) -> None:
-    """List tasks with optional filters (--tag <tag>, --overdue, --json)"""
-    tasks = get_tasks()
-    if tag:
-        tasks = [t for t in tasks if tag in (t.tags or [])]
-    if overdue:
-        today_date = today()
-        tasks = [t for t in tasks if t.scheduled_date and t.scheduled_date < today_date]
-    if as_json:
-        print(
-            json.dumps(
-                [
-                    {
-                        "id": t.id,
-                        "content": t.content,
-                        "tags": t.tags,
-                        "scheduled_date": t.scheduled_date.isoformat() if t.scheduled_date else None,
-                        "scheduled_time": t.scheduled_time,
-                        "focus": t.focus,
-                        "parent_id": t.parent_id,
-                        "blocked_by": t.blocked_by,
-                        "notes": t.notes,
-                    }
-                    for t in tasks
-                ]
-            )
-        )
-        return
-    if not tasks:
-        print("no tasks")
-        return
-    for t in tasks:
-        print(f"  □ {format_task(t, tags=t.tags, show_id=True)}")
 
 
 @cli("life")
