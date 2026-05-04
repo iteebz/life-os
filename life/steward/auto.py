@@ -20,7 +20,7 @@ from life.loop import load_loop_state, require_real_world_closure, save_loop_sta
 from life.steward._stream import StreamParser, ansi_strip, format_entry
 from life.task import get_all_tasks, get_tasks
 
-from . import close_session, create_session
+from . import close_session, create_session, messages_since_last_auto_spawn
 
 _STEWARD_DIR = Path.home() / ".life" / "steward"
 _OFF_SENTINEL = _STEWARD_DIR / "off"
@@ -223,6 +223,18 @@ def run_autonomous() -> None:
     required_task = _select_required_real_world_task(tasks_before) if gate_required else None
 
     prompt = _steward_prompt()
+    msg_count = messages_since_last_auto_spawn()
+    if msg_count == 0:
+        prompt += (
+            "\n\nSILENCE WINDOW: No human messages since last auto spawn. "
+            "Use this session to improve your context window: compress stale observations, "
+            "update steward/human.md with recent patterns, prune LIFE.md of resolved items, "
+            "and tighten any context that's drifted from reality."
+        )
+        print("steward: silence window — context improvement mode")
+    else:
+        print(f"steward: {msg_count} message(s) since last spawn — normal mode")
+
     if required_task:
         prompt += (
             "\n\nHARD GATE: Before any meta/refactor work, close this real-world task in this run: "

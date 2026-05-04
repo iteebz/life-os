@@ -181,6 +181,23 @@ def hookable_session() -> Session | None:
     return None
 
 
+def messages_since_last_auto_spawn() -> int:
+    """Return count of inbound human messages (any session) since the last auto spawn started."""
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT started_at FROM sessions WHERE source = 'daemon' "
+            "ORDER BY COALESCE(started_at, logged_at) DESC LIMIT 1"
+        ).fetchone()
+        if not row or not row[0]:
+            return 0
+        started_at = row[0]
+        count = conn.execute(
+            "SELECT COUNT(*) FROM messages WHERE direction = 'in' AND logged_at > ?",
+            (started_at,),
+        ).fetchone()
+    return count[0] if count else 0
+
+
 def get_sessions(limit: int = 10, state: str | None = None) -> list[Session]:
     with get_db() as conn:
         if state:
