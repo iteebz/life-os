@@ -80,7 +80,12 @@ def build_reply_prompt(history: list[dict[str, str]], message: str, tone: str = 
 def load_history_from_db(chat_id: int, hours: int = HISTORY_LOOKBACK_HOURS) -> list[dict[str, str]]:
     """Load recent telegram messages from DB to survive daemon restarts."""
     try:
+        from life.daemon.commands import get_sleep_marker  # noqa: PLC0415
+
         cutoff = int(time.time()) - (hours * 3600)
+        sleep_marker = get_sleep_marker()
+        if sleep_marker > cutoff:
+            cutoff = int(sleep_marker)
         with get_db() as conn:
             rows = conn.execute(
                 "SELECT direction, body, timestamp FROM messages "

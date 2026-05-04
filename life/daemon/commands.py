@@ -1,10 +1,26 @@
 """Telegram slash commands — instant responses, no Claude spawn."""
 
+import subprocess
 import time
+from pathlib import Path
 
 from life.daemon.shared import DAEMON_START_TIME, TG_SESSION_MAX_CHARS, TG_SESSION_TIMEOUT
 from life.mood import get_recent_moods
 from life.task import get_tasks
+
+SLEEP_MARKER_PATH = Path.home() / ".life" / "tg_sleep_marker"
+
+
+def get_sleep_marker() -> float:
+    """Return timestamp of last /sleep, or 0.0 if never."""
+    try:
+        return float(SLEEP_MARKER_PATH.read_text().strip())
+    except Exception:
+        return 0.0
+
+
+def set_sleep_marker() -> None:
+    SLEEP_MARKER_PATH.write_text(str(time.time()))
 
 
 def handle_command(
@@ -14,7 +30,9 @@ def handle_command(
     session_chars: int,
 ) -> str | None:
     """Return a response string if command is handled, else None."""
-    cmd = command.strip().split()[0].lower() if command.strip() else ""
+    parts = command.strip().split(maxsplit=1)
+    cmd = parts[0].lower() if parts else ""
+    args = parts[1] if len(parts) > 1 else ""
 
     if cmd == "/ctx":
         return _cmd_ctx(session_chars)
@@ -24,6 +42,8 @@ def handle_command(
         return _cmd_session(session_history, session_last_time, session_chars)
     if cmd == "/status":
         return _cmd_status(session_history, session_last_time, session_chars)
+    if cmd == "/sleep":
+        return _cmd_sleep(args, session_chars)
     if cmd == "/help":
         return _cmd_help()
     return None
@@ -129,10 +149,29 @@ def _cmd_status(
     return "\n".join(lines)
 
 
+def _cmd_sleep(note: str, session_chars: int) -> str:
+    note = note.strip() or "session closed via telegram"
+    try:
+        result = subprocess.run(
+            ["life", "steward", "sleep", note],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        output = (result.stdout or result.stderr or "").strip()
+    except Exception as e:
+        output = f"sleep failed: {e}"
+    set_sleep_marker()
+    pct = (session_chars / TG_SESSION_MAX_CHARS) * 100
+    ctx_line = f"ctx: {pct:.0f}% used at close"
+    return f"🌱 sleep\n{output}\n{ctx_line}"
+
+
 def _cmd_help() -> str:
     return (
         "🌱 commands\n"
         "/status — full dashboard\n"
+        "/sleep [note] — close session, set history marker\n"
         "/ctx — context utilization\n"
         "/stats — tasks, mood\n"
         "/session — active session info\n"
