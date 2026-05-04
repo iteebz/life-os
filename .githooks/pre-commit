@@ -1,15 +1,2 @@
-#!/usr/bin/env bash
-set -e
-
-ROOT="$(git rev-parse --show-toplevel)"
-RUFF="$ROOT/.venv/bin/ruff"
-[ -x "$RUFF" ] || RUFF="ruff"
-
-STAGED=$(git diff --cached --name-only --diff-filter=ACMR | /usr/bin/grep -E '\.pyi?$' || true)
-[ -z "$STAGED" ] && exit 0
-
-echo "pre-commit: format check"
-echo "$STAGED" | xargs "$RUFF" format --check || { echo "BLOCKED — run 'ruff format' first" >&2; exit 1; }
-
-echo "pre-commit: lint"
-echo "$STAGED" | xargs "$RUFF" check || { echo "BLOCKED — fix lint errors" >&2; exit 1; }
+#!/bin/sh
+exec steward-hook pre-commit

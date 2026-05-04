@@ -397,6 +397,46 @@ def cmd_hook_tool() -> None:
         print(json.dumps(output), end="")
 
 
+def cmd_hook_commit() -> None:
+    """commit-msg — enforce 72-char subject line limit."""
+    args = sys.argv[2:]
+    if not args:
+        print("usage: life hook commit <msg-file>", file=sys.stderr)
+        sys.exit(1)
+    msg_file = Path(args[0])
+    subject = msg_file.read_text().splitlines()[0] if msg_file.exists() else ""
+    if len(subject) > 72:
+        print(f"BLOCKED — commit subject is {len(subject)} chars (max 72): {subject}", file=sys.stderr)
+        sys.exit(1)
+
+
+def cmd_hook_pre_commit() -> None:
+    """pre-commit — ruff format check + lint on staged Python files."""
+    result = subprocess.run(
+        ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR"],
+        capture_output=True,
+        text=True,
+    )
+    staged = [f for f in result.stdout.splitlines() if f.endswith((".py", ".pyi"))]
+    if not staged:
+        return
+
+    root = Path(subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip())
+    ruff = root / ".venv" / "bin" / "ruff"
+    if not ruff.is_file():
+        ruff = Path("ruff")
+
+    fmt = subprocess.run([str(ruff), "format", "--check", *staged])
+    if fmt.returncode != 0:
+        print("BLOCKED — run 'ruff format' first", file=sys.stderr)
+        sys.exit(1)
+
+    lint = subprocess.run([str(ruff), "check", *staged])
+    if lint.returncode != 0:
+        print("BLOCKED — fix lint errors", file=sys.stderr)
+        sys.exit(1)
+
+
 def main() -> None:
     """Entry point: life hook <event>"""
     args = sys.argv[1:]
@@ -409,6 +449,8 @@ def main() -> None:
         "prompt": cmd_hook_prompt,
         "stop": cmd_hook_stop,
         "session-end": cmd_hook_session_end,
+        "commit": cmd_hook_commit,
+        "pre-commit": cmd_hook_pre_commit,
     }
     fn = dispatch.get(args[0])
     if fn is None:

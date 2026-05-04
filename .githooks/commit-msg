@@ -1,0 +1,2 @@
+#!/bin/sh
+exec steward-hook commit "$1"
