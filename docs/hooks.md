@@ -11,10 +11,10 @@ at the moment a tool fires. steward stays oriented mid-flight.
 
 ## design
 
-one hook event (PreToolUse), empty matcher (catches all tools). same pattern as spacebrr.
+four hook events (PreToolUse, UserPromptSubmit, Stop, SessionEnd). same pattern as spacebrr.
 
-daemon spawns inject hook settings via `--settings` JSON at spawn time — no writes to global
-claude settings. interactive sessions get hooks via workspace `.claude/settings.json`.
+all sessions (chat and auto) inject hook settings via `--settings` JSON at spawn time.
+no writes to `.claude/settings.*` — hooks live in launch architecture, not config.
 
 ## state model
 
@@ -48,7 +48,13 @@ same pattern (PreToolUse, watermarks, --settings injection, JSON output). differ
 - no credential guards (steward is trusted, no multi-agent isolation)
 - python not rust
 
-## gaps
+## session lifecycle
 
-- **interactive hook path.** chat-mode hooks depend on workspace settings file existing.
-  if missing, interactive steward gets no context injection.
+| event | handler | what it does |
+|-------|---------|-------------|
+| UserPromptSubmit | `hook prompt` | log human turn, drain inbox, surface session meta |
+| PreToolUse | `hook tool` | inject ambient signals (habits, tasks, mood, commits, inbox) |
+| Stop | `hook stop` | log steward response |
+| SessionEnd | `hook session-end` | auto-close session record, push all repos |
+
+SessionEnd auto-sleep generates a mechanical summary from the message log — no human required.

@@ -22,6 +22,7 @@ from life.habit import get_habits
 from life.lib.clock import today
 from life.lib.store import get_db
 from life.mood import get_recent_moods
+from life.steward.sleep import _push_repos
 from life.store.migrations import init
 from life.task import get_tasks
 
@@ -309,6 +310,66 @@ def cmd_hook_stop() -> None:
     _log_turn("out", body, session_id)
 
 
+def _auto_sleep_summary(session_id: str) -> str:
+    """Generate a mechanical sleep summary from session message log."""
+    with contextlib.suppress(Exception):
+        with get_db() as conn:
+            row = conn.execute(
+                "SELECT id FROM sessions WHERE claude_session_id = ? ORDER BY id DESC LIMIT 1",
+                (session_id,),
+            ).fetchone()
+            if not row:
+                return "auto-closed (no session record)"
+            db_id = row[0]
+            msgs = conn.execute(
+                "SELECT direction, body FROM messages WHERE channel = 'chat' AND peer = ? ORDER BY logged_at DESC LIMIT 10",
+                (str(db_id),),
+            ).fetchall()
+
+        if not msgs:
+            return "auto-closed (no messages)"
+
+        human_msgs = [m[1][:120] for m in msgs if m[0] == "in"]
+        last_out = next((m[1][:200] for m in msgs if m[0] == "out"), None)
+
+        parts = []
+        if human_msgs:
+            topics = " / ".join(human_msgs[:3])
+            parts.append(f"discussed: {topics}")
+        if last_out:
+            parts.append(f"last: {last_out}")
+        return " — ".join(parts) if parts else "auto-closed"
+    return "auto-closed (summary failed)"
+
+
+def cmd_hook_session_end() -> None:
+    """SessionEnd — auto-sleep: close session record and push repos."""
+    init()
+    _read_event()  # consume stdin
+    session_id = os.environ.get("STEWARD_SESSION_ID", "unknown")
+    if session_id == "unknown":
+        return
+
+    summary = _auto_sleep_summary(session_id)
+
+    with contextlib.suppress(Exception):
+        with get_db() as conn:
+            row = conn.execute(
+                "SELECT id, state FROM sessions WHERE claude_session_id = ? ORDER BY id DESC LIMIT 1",
+                (session_id,),
+            ).fetchone()
+            if row and row[1] != "closed":
+                conn.execute(
+                    "UPDATE sessions SET state = 'closed', summary = ?, "
+                    "last_active_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime') "
+                    "WHERE id = ?",
+                    (summary, row[0]),
+                )
+
+    with contextlib.suppress(Exception):
+        _push_repos()
+
+
 def cmd_hook_tool() -> None:
     """PreToolUse hook — reads tool-call JSON from stdin, emits context."""
     init()
@@ -347,6 +408,7 @@ def main() -> None:
         "tool": cmd_hook_tool,
         "prompt": cmd_hook_prompt,
         "stop": cmd_hook_stop,
+        "session-end": cmd_hook_session_end,
     }
     fn = dispatch.get(args[0])
     if fn is None:

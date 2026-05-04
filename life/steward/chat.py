@@ -1,6 +1,5 @@
 """steward — interactive sessions with tracking. Default command."""
 
-import contextlib
 import json
 import os
 import subprocess
@@ -55,27 +54,19 @@ def _session_meta_fragment(source: str) -> str:
     )
 
 
-def _ensure_hooks_config() -> None:
-    """Write hooks into ~/life/.claude/settings.local.json so chat turns get logged."""
-    settings_path = LIFE_DIR / ".claude" / "settings.local.json"
-    settings_path.parent.mkdir(parents=True, exist_ok=True)
-
-    existing: dict[str, object] = {}
-    if settings_path.exists():
-        with contextlib.suppress(json.JSONDecodeError, ValueError):
-            existing = json.loads(settings_path.read_text())
-
-    project = str(LIFE_DIR / "life-os")
-    runner = f"uv run --project {project} steward hook"
-    desired_hooks = {
-        "PreToolUse": [{"matcher": "", "hooks": [{"type": "command", "command": f"{runner} tool"}]}],
-        "UserPromptSubmit": [{"matcher": "", "hooks": [{"type": "command", "command": f"{runner} prompt"}]}],
-        "Stop": [{"matcher": "", "hooks": [{"type": "command", "command": f"{runner} stop"}]}],
-    }
-
-    if existing.get("hooks") != desired_hooks:
-        existing["hooks"] = desired_hooks
-        settings_path.write_text(json.dumps(existing, indent=2) + "\n")
+def _build_hook_settings_json() -> str:
+    """Return --settings JSON with all steward hooks. Injected at spawn time — no filesystem writes."""
+    runner = f"uv run --project {LIFE_DIR / 'life-os'} steward hook"
+    return json.dumps(
+        {
+            "hooks": {
+                "PreToolUse": [{"matcher": "", "hooks": [{"type": "command", "command": f"{runner} tool"}]}],
+                "UserPromptSubmit": [{"matcher": "", "hooks": [{"type": "command", "command": f"{runner} prompt"}]}],
+                "Stop": [{"matcher": "", "hooks": [{"type": "command", "command": f"{runner} stop"}]}],
+                "SessionEnd": [{"matcher": "", "hooks": [{"type": "command", "command": f"{runner} session-end"}]}],
+            }
+        }
+    )
 
 
 def _build_system_prompt(source: str, raw: bool) -> str:
@@ -130,8 +121,6 @@ def _launch(
             else:
                 _persist_followup(session_id, _followups)
 
-    _ensure_hooks_config()
-
     cmd = [
         "claude",
         "--model",
@@ -143,6 +132,8 @@ def _launch(
         _build_system_prompt(source, raw or resume),
         "--name",
         "steward",
+        "--settings",
+        _build_hook_settings_json(),
     ]
     if resume:
         cmd.extend(["--resume", session_id])

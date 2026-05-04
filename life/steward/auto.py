@@ -182,6 +182,8 @@ def _select_required_real_world_task(tasks: list[Any]) -> Task | None:
 
 
 def _build_cmd_env(prompt: str) -> tuple[list[str], dict[str, str]]:
+    from life.steward.chat import _build_hook_settings_json  # noqa: PLC0415
+
     env = claude.build_env("auto")
     cmd = [
         "claude",
@@ -190,6 +192,8 @@ def _build_cmd_env(prompt: str) -> tuple[list[str], dict[str, str]]:
         "stream-json",
         "--verbose",
         "--dangerously-skip-permissions",
+        "--settings",
+        _build_hook_settings_json(),
         prompt,
     ]
 
