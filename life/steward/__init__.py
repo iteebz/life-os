@@ -121,6 +121,7 @@ def latest_handover() -> str | None:
     with get_db() as conn:
         row = conn.execute(
             "SELECT handover FROM sessions WHERE handover IS NOT NULL "
+            "AND DATE(COALESCE(ended_at, last_active_at, logged_at), 'localtime') = DATE('now', 'localtime') "
             "ORDER BY COALESCE(ended_at, last_active_at, logged_at) DESC LIMIT 1"
         ).fetchone()
     return row[0] if row else None
