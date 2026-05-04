@@ -20,7 +20,7 @@ from life.lib.store import get_db
 from life.steward import create_session, current_session, hookable_session, set_session_idle, touch_session
 
 
-def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> str:
+def handle(channel: str, sender: str, body: str, chat_id: int | None = None, image_path: str | None = None) -> str:
     """Handle an inbound message. Returns action taken."""
     started_ms = time.time() * 1000
     address = str(chat_id) if channel == "telegram" and chat_id is not None else sender
@@ -64,7 +64,7 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> 
     if current and current.claude_session_id and channel == "telegram" and chat_id is not None:
         log(f"[inbound] resuming session {current.id} ({current.claude_session_id[:8]})")
         touch_session(current.id)
-        response = spawn_claude(body, resume_session_id=current.claude_session_id)
+        response = spawn_claude(body, resume_session_id=current.claude_session_id, image_path=image_path)
         tg.send(chat_id, response)
         set_session_idle(current.id)
         _emit("resumed", session_id=current.id)
@@ -84,7 +84,7 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None) -> 
             source="tg",
             name=f"tg {sender}",
         )
-        response = spawn_claude(prompt)
+        response = spawn_claude(prompt, image_path=image_path)
         tg.send(chat_id, response)
         set_session_idle(db_sid)
         log(f"[inbound] new session {db_sid}, responded ({len(response)} chars)")

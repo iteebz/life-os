@@ -114,9 +114,10 @@ def _telegram_thread(stop: threading.Event, interval: int, claimed_chat: threadi
                     body = "\n".join(m["body"] for m in remaining)
                     log(f"[telegram] bundling {len(remaining)} messages from {sender}")
 
+                image_path = remaining[-1].get("image_path")
                 log(f"[telegram] [{sender}] {body[:80]}")
                 spawn_times.append(now)
-                action = handle_inbound("telegram", sender, body, chat_id=chat_id)
+                action = handle_inbound("telegram", sender, body, chat_id=chat_id, image_path=image_path)
                 if action in ("responded", "resumed"):
                     mark_read_for_session(chat_id)
                 log(f"[telegram] inbound → {action}")
