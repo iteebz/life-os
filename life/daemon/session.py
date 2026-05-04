@@ -2,7 +2,6 @@
 
 import threading
 import time
-from datetime import datetime
 from pathlib import Path
 
 from life.comms.events import mark_read_for_session
@@ -14,6 +13,7 @@ from life.daemon.spawn import spawn_claude
 from life.lib.clock import is_quiet_now
 from life.lib.resolve import resolve_people_field
 from life.lib.store import get_db
+from life.steward import close_session, create_session
 
 
 def load_memory() -> str:
@@ -121,6 +121,7 @@ def run_session(
     """
     log(f"[{label}] starting session")
     claimed_chat.set()
+    db_session_id = create_session(f"(active) {label}", name=label, source="daemon")
 
     history: list[dict[str, str]] = []
     if load_db_history:
@@ -175,33 +176,7 @@ def run_session(
 
     claimed_chat.clear()
     mark_read_for_session(chat_id)
-    log_session(label, history)
+
+    summary = response[:120] if response else label
+    close_session(db_session_id, summary=f"{label}: {summary}")
     log(f"[{label}] session ended")
-
-
-def log_session(label: str, history: list[dict[str, str]]) -> None:
-    """Write session transcript to steward/sessions/ for traceability."""
-    sessions_dir = Path.home() / ".life" / "traces"
-    sessions_dir.mkdir(parents=True, exist_ok=True)
-
-    now = datetime.now()
-    filename = now.strftime(f"%Y-%m-%d-%H%M-{label}.md")
-    path = sessions_dir / filename
-
-    user = get_user_name().capitalize()
-    lines = [f"# {label} session — {now.strftime('%Y-%m-%d %H:%M')}", ""]
-    msg_count = 0
-    for entry in history:
-        role = user if entry["role"] == "user" else "Steward"
-        lines.append(f"**{role}:** {entry['text']}")
-        lines.append("")
-        msg_count += 1
-
-    if msg_count == 0:
-        return  # don't log empty sessions
-
-    try:
-        path.write_text("\n".join(lines))
-        log(f"[{label}] session logged to {path.name}")
-    except Exception as e:
-        log(f"[{label}] session log failed: {e}")
