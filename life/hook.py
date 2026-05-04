@@ -399,7 +399,7 @@ def cmd_hook_tool() -> None:
 
 def cmd_hook_commit() -> None:
     """commit-msg — enforce 72-char subject line limit."""
-    args = sys.argv[2:]
+    args = [a for a in sys.argv[1:] if a not in ("hook", "commit")]
     if not args:
         print("usage: life hook commit <msg-file>", file=sys.stderr)
         sys.exit(1)
@@ -439,9 +439,9 @@ def cmd_hook_pre_commit() -> None:
 
 def main() -> None:
     """Entry point: life hook <event>"""
-    args = sys.argv[1:]
+    args = [a for a in sys.argv[1:] if a != "hook"]
     if not args:
-        print("usage: life hook <tool>", file=sys.stderr)
+        print("usage: life hook <event>", file=sys.stderr)
         sys.exit(1)
 
     dispatch = {

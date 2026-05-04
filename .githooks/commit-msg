@@ -1,2 +1,2 @@
 #!/bin/sh
-exec steward-hook commit "$1"
+exec life hook commit "$1"

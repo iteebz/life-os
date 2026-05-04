@@ -53,6 +53,12 @@ def main():
     # life steward --opus → life steward chat --opus
     if len(user_args) >= 2 and user_args[0] == "steward" and user_args[1] in _STEWARD_CHAT_FLAGS:
         user_args = ["steward", "chat", *user_args[1:]]
+    if user_args[0] == "hook":
+        from .hook import main as hook_main  # noqa: PLC0415
+
+        sys.argv = ["life", *user_args]
+        hook_main()
+        return
     argv = ["life", *user_args]
     try:
         code = fncli.dispatch(argv)
