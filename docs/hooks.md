@@ -24,18 +24,22 @@ signals (mood) check rarely. state is ephemeral — dies with the session. no cl
 
 ## signals
 
-five ambient signals, each independently throttled:
+seven ambient signals, each independently throttled:
 
-| signal | what steward sees | why |
-|--------|------------------|-----|
-| inbox | queued messages from when steward was busy | don't lose async messages |
-| messages | new telegram messages since last check | stay current on conversation |
-| habits | today's completion status | awareness of daily rhythm |
-| mood | latest mood score | calibrate tone and recommendations |
-| tasks | open task summary | keep working set visible |
+| signal | what steward sees | throttle |
+|--------|------------------|---------|
+| dirty_state | uncommitted ~/life changes | once per spawn |
+| life_os_commits | new life-os commits since last seen HEAD | watermark (HEAD hash) |
+| inbox | queued messages from when steward was busy | drain (no throttle) |
+| habits | today's completion status | 60s |
+| mood | latest mood score | 300s |
+| tasks | open task summary | 60s |
+
+dirty_state fires once per spawn — presence of uncommitted changes is the signal, not frequency.
+life_os_commits uses HEAD-hash watermarking (spacebrr pattern): fires only when HEAD advances, never on repeated calls.
 
 all signals fire on every tool call (no tool-name routing). acceptable for a single agent
-with five cheap signals. if signal count grows, add routing.
+with seven cheap signals. if signal count grows, add routing.
 
 ## vs spacebrr hooks
 

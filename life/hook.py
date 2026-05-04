@@ -9,6 +9,7 @@ Entry point: life hook tool (reads claude tool-call JSON from stdin).
 import contextlib
 import json
 import os
+import subprocess
 import sys
 import time
 from datetime import UTC, datetime
@@ -139,6 +140,57 @@ def _active_tasks(state: dict[str, str], parts: list[str]) -> None:
     parts.append(header + "\n" + "\n".join(lines))
 
 
+_LIFE_ROOT = Path.home() / "life"
+_LIFE_OS_ROOT = _LIFE_ROOT / "life-os"
+
+
+def _dirty_state(state: dict[str, str], parts: list[str]) -> None:
+    """Once per spawn: surface uncommitted changes in ~/life."""
+    if state.get("dirty_shown"):
+        return
+    state["dirty_shown"] = "1"
+    with contextlib.suppress(Exception):
+        result = subprocess.run(
+            ["git", "-C", str(_LIFE_ROOT), "status", "--porcelain"],
+            capture_output=True,
+            text=True,
+            timeout=2,
+        )
+        lines = [line for line in result.stdout.splitlines() if line.strip()]
+        if lines:
+            summary = "\n".join(lines[:10])
+            if len(lines) > 10:
+                summary += f"\n... +{len(lines) - 10} more"
+            parts.append(f"~/life dirty ({len(lines)} files):\n{summary}")
+
+
+def _life_os_commits(state: dict[str, str], parts: list[str]) -> None:
+    """Watermark-based: surface new life-os commits since last seen HEAD."""
+    with contextlib.suppress(Exception):
+        result = subprocess.run(
+            ["git", "-C", str(_LIFE_OS_ROOT), "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=2,
+        )
+        head = result.stdout.strip()
+        if not head:
+            return
+        last = state.get("life_os_head")
+        state["life_os_head"] = head
+        if last is None or last == head:
+            return
+        log = subprocess.run(
+            ["git", "-C", str(_LIFE_OS_ROOT), "log", "--oneline", f"{last}..{head}"],
+            capture_output=True,
+            text=True,
+            timeout=2,
+        )
+        commits = log.stdout.strip()
+        if commits:
+            parts.append(f"life-os new commits:\n{commits[:400]}")
+
+
 WRAP_THRESHOLD_CHARS = 100_000  # ~33k tokens
 SLEEP_THRESHOLD_CHARS = 150_000  # ~50k tokens
 WRAP_THRESHOLD_SECONDS = 3300  # 55m
@@ -266,7 +318,7 @@ def cmd_hook_tool() -> None:
     state = _load_state()
     parts: list[str] = []
 
-    for fn in (_inbox_signal, _habit_status, _mood, _active_tasks):
+    for fn in (_dirty_state, _life_os_commits, _inbox_signal, _habit_status, _mood, _active_tasks):
         try:
             fn(state, parts)
         except Exception as e:
