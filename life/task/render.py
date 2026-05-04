@@ -189,6 +189,7 @@ def _row_task(
 
 def _row_habit(habit: Habit, checked_ids: set[str], ctx: RenderCtx, indent: str = "  ") -> list[str]:
     tags_str = _fmt_tags(habit.tags, ctx.tag_colors)
+    id_str = f" {dim('[' + habit.id[:8] + ']')}"
 
     if habit.cadence == "weekly":
         # Trend: last 4 weeks vs prior 4 weeks
@@ -214,10 +215,10 @@ def _row_habit(habit: Habit, checked_ids: set[str], ctx: RenderCtx, indent: str 
     time_str = f" {gray(habit.scheduled_time)}" if habit.scheduled_time else ""
     if habit.id in checked_ids:
         label = f"{gray(habit.content.lower())}{cadence_label}{tags_str}"
-        lines = [f"{indent}{purple('●')} {gray(trend)} {label}{time_str}"]
+        lines = [f"{indent}{purple('●')} {gray(trend)} {label}{time_str}{id_str}"]
     else:
         label = f"{habit.content.lower()}{cadence_label}{tags_str}"
-        lines = [f"{indent}{purple('○')} {gray(trend)} {label}{time_str}"]
+        lines = [f"{indent}{purple('○')} {gray(trend)} {label}{time_str}{id_str}"]
     for sub in get_subhabits(habit.id):
         lines.extend(_row_habit(sub, checked_ids, ctx, indent="   └ "))
     return lines

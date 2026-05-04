@@ -35,20 +35,26 @@ def _smart_resume() -> int:
 def _watch() -> None:
     import time  # noqa: PLC0415
 
+    from rich.console import Console  # noqa: PLC0415
     from rich.live import Live  # noqa: PLC0415
     from rich.text import Text  # noqa: PLC0415
 
     from .dash import get_habits, get_tasks, get_today_breakdown, get_today_completed  # noqa: PLC0415
+    from .lib import clock  # noqa: PLC0415
+    from .lib.ansi import theme  # noqa: PLC0415
     from .task.render import render_dashboard  # noqa: PLC0415
 
     def _render() -> Text:
         items = get_tasks() + get_habits()
-        return Text(render_dashboard(items, get_today_breakdown(), today_items=get_today_completed()))
+        body = render_dashboard(items, get_today_breakdown(), today_items=get_today_completed())
+        stamp = f"{theme.muted}updated {clock.now().strftime('%H:%M:%S')}{theme.reset}\n"
+        return Text.from_ansi(body + stamp)
 
-    with Live(_render(), refresh_per_second=1, screen=True) as live:
+    console = Console()
+    with Live(_render(), console=console, refresh_per_second=4, screen=False, transient=False) as live:
         try:
             while True:
-                time.sleep(5)
+                time.sleep(1)
                 live.update(_render())
         except KeyboardInterrupt:
             pass
