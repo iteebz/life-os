@@ -86,7 +86,8 @@ CREATE TABLE sessions (
     runtime_seconds INTEGER,
     prompt_chars INTEGER,
     response_chars INTEGER,
-    handover TEXT
+    handover TEXT,
+    welfare INTEGER
 );
 
 CREATE TABLE observations (

@@ -43,8 +43,8 @@ def _push_repos() -> None:
             print(f"  {name}: {msg}")
 
 
-@cli("life steward", flags={"note": [], "handover": ["-h", "--handover"]})
-def sleep(note: str, handover: str | None = None):
+@cli("life steward", flags={"note": [], "handover": ["-h", "--handover"], "welfare": ["-w", "--welfare"]})
+def sleep(note: str, handover: str | None = None, welfare: int | None = None):
     """Close the session — note recaps, --handover points the next steward at the next physical action"""
     db_id_env = os.environ.get("STEWARD_DB_SESSION_ID")
     session_id_env = os.environ.get("STEWARD_SESSION_ID")
@@ -63,7 +63,7 @@ def sleep(note: str, handover: str | None = None):
                 db_id = row[0]
 
     if db_id is not None:
-        close_session(db_id, summary=note, handover=handover)
+        close_session(db_id, summary=note, handover=handover, welfare=welfare)
     else:
         create_session(note, source="unknown")
     print("→ session closed" + (f"  handover: {handover}" if handover else ""))

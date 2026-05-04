@@ -24,6 +24,7 @@ class Session:
     ended_at: datetime | None = None
     pid: int | None = None
     handover: str | None = None
+    welfare: int | None = None
 
 
 @dataclass(frozen=True)
@@ -88,7 +89,12 @@ def set_session_idle(session_id: int) -> None:
         )
 
 
-def close_session(session_id: int, summary: str | None = None, handover: str | None = None) -> None:
+def close_session(
+    session_id: int,
+    summary: str | None = None,
+    handover: str | None = None,
+    welfare: int | None = None,
+) -> None:
     sets = [
         "state = 'closed'",
         "ended_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime')",
@@ -103,6 +109,9 @@ def close_session(session_id: int, summary: str | None = None, handover: str | N
     if handover is not None:
         sets.append("handover = ?")
         params.append(handover or None)
+    if welfare is not None:
+        sets.append("welfare = ?")
+        params.append(welfare)
     params.append(session_id)
     with get_db() as conn:
         conn.execute(f"UPDATE sessions SET {', '.join(sets)} WHERE id = ?", params)  # noqa: S608
@@ -144,7 +153,7 @@ def current_session() -> Session | None:
     with get_db() as conn:
         row = conn.execute(
             "SELECT id, summary, logged_at, claude_session_id, name, model, source, "
-            "follow_ups, state, started_at, last_active_at, ended_at, pid, handover "
+            "follow_ups, state, started_at, last_active_at, ended_at, pid, handover, welfare "
             "FROM sessions "
             "WHERE state IN ('active', 'idle') "
             "ORDER BY last_active_at DESC LIMIT 1"
@@ -159,7 +168,7 @@ def hookable_session() -> Session | None:
     with get_db() as conn:
         rows = conn.execute(
             "SELECT id, summary, logged_at, claude_session_id, name, model, source, "
-            "follow_ups, state, started_at, last_active_at, ended_at, pid, handover "
+            "follow_ups, state, started_at, last_active_at, ended_at, pid, handover, welfare "
             "FROM sessions "
             "WHERE state IN ('active', 'idle') AND pid IS NOT NULL "
             "ORDER BY last_active_at DESC"
@@ -176,14 +185,14 @@ def get_sessions(limit: int = 10, state: str | None = None) -> list[Session]:
         if state:
             rows = conn.execute(
                 "SELECT id, summary, logged_at, claude_session_id, name, model, source, "
-                "follow_ups, state, started_at, last_active_at, ended_at, pid, handover "
+                "follow_ups, state, started_at, last_active_at, ended_at, pid, handover, welfare "
                 "FROM sessions WHERE state = ? ORDER BY COALESCE(last_active_at, logged_at) DESC LIMIT ?",
                 (state, limit),
             ).fetchall()
         else:
             rows = conn.execute(
                 "SELECT id, summary, logged_at, claude_session_id, name, model, source, "
-                "follow_ups, state, started_at, last_active_at, ended_at, pid, handover "
+                "follow_ups, state, started_at, last_active_at, ended_at, pid, handover, welfare "
                 "FROM sessions ORDER BY COALESCE(last_active_at, logged_at) DESC LIMIT ?",
                 (limit,),
             ).fetchall()
@@ -227,6 +236,7 @@ def _row_to_session(row: tuple) -> Session:  # type: ignore[type-arg]
         ended_at=datetime.fromisoformat(row[11]) if row[11] else None,
         pid=row[12],
         handover=row[13] if len(row) > 13 else None,
+        welfare=row[14] if len(row) > 14 else None,
     )
 
 
