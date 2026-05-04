@@ -59,12 +59,17 @@ def _build_hook_settings_json() -> str:
     runner = f"uv run --project {LIFE_DIR / 'life-os'} steward hook"
     return json.dumps(
         {
+            "statusLine": {
+                "type": "command",
+                "command": str(Path.home() / ".local/bin/steward-statusline"),
+                "padding": 0,
+            },
             "hooks": {
                 "PreToolUse": [{"matcher": "", "hooks": [{"type": "command", "command": f"{runner} tool"}]}],
                 "UserPromptSubmit": [{"matcher": "", "hooks": [{"type": "command", "command": f"{runner} prompt"}]}],
                 "Stop": [{"matcher": "", "hooks": [{"type": "command", "command": f"{runner} stop"}]}],
                 "SessionEnd": [{"matcher": "", "hooks": [{"type": "command", "command": f"{runner} session-end"}]}],
-            }
+            },
         }
     )
 
