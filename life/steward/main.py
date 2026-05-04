@@ -25,8 +25,8 @@ def main():
         from life.steward.chat import chat  # noqa: PLC0415
 
         sys.exit(chat() or 0)
-    # steward continue → smart resume (no flags supported)
-    if args[0] == "continue":
+    # steward continue / steward chat → smart resume
+    if args[0] in ("continue", "chat") and len(args) == 1:
         from life.cli import _smart_resume  # noqa: PLC0415
 
         sys.exit(_smart_resume())
