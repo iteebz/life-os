@@ -42,8 +42,13 @@ def main():
 
         dashboard()
         return
-    # life steward (bare) → smart resume
+    # life steward (bare) → new session
     if user_args == ["steward"]:
+        from .steward.chat import chat  # noqa: PLC0415
+
+        sys.exit(chat() or 0)
+    # life steward continue / life steward chat → smart resume
+    if len(user_args) == 2 and user_args[0] == "steward" and user_args[1] in ("continue", "chat"):
         sys.exit(_smart_resume())
     # life steward --opus → life steward chat --opus
     if len(user_args) >= 2 and user_args[0] == "steward" and user_args[1] in _STEWARD_CHAT_FLAGS:
