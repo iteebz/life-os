@@ -51,6 +51,16 @@ def improve(
     print(f"→ {body}")
 
 
+@cli("life steward improve", flags={"id": []})
+def close(id: str) -> None:
+    """Close an improvement by id or prefix"""
+    target = mark_improvement_done(id)
+    if target:
+        print(f"✓ {target.body}")
+    else:
+        raise NotFoundError(f"no open improvement matching '{id}'")
+
+
 @cli("life steward")
 def improvements(done: bool = False) -> None:
     """Show outstanding (or completed) improvements"""
