@@ -64,9 +64,22 @@ def sleep(note: str, handover: str | None = None, welfare: int | None = None):
 
     if db_id is not None:
         close_session(db_id, summary=note, handover=handover, welfare=welfare)
+        with get_db() as conn:
+            row = conn.execute("SELECT runtime_seconds, welfare FROM sessions WHERE id = ?", (db_id,)).fetchone()
+        runtime_str = ""
+        welfare_str = ""
+        if row:
+            if row[0]:
+                mins = row[0] // 60
+                runtime_str = f"  {mins}m"
+            if row[1]:
+                welfare_str = f"  welfare {row[1]}/10"
     else:
         create_session(note, source="unknown")
-    print("→ session closed" + (f"  handover: {handover}" if handover else ""))
+        runtime_str = ""
+        welfare_str = ""
+    handover_str = f"  handover: {handover}" if handover else ""
+    print(f"→ session closed{runtime_str}{welfare_str}{handover_str}")
     _push_repos()
 
 

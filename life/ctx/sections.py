@@ -83,7 +83,10 @@ def render_last_session() -> str:
         return ""
     s = sessions[0]
     rel = format_elapsed(s.logged_at, datetime.now())
-    return f"LAST LIFE ({rel}): {s.summary}"
+    recent = get_sessions(limit=14)
+    scores = [r.welfare for r in recent if r.welfare is not None]
+    welfare_str = f"  welfare 7d avg {sum(scores) / len(scores):.1f}/10" if scores else ""
+    return f"LAST LIFE ({rel}): ({s.state}) {s.summary}{welfare_str}"
 
 
 def render_contracts() -> str:
