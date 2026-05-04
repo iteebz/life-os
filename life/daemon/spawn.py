@@ -54,7 +54,7 @@ def spawn_claude(
     if resume_session_id:
         cmd += ["--resume", resume_session_id]
     if image_path:
-        cmd += ["--image", image_path]
+        prompt = f"[image attached at {image_path} — use Read tool to view it]\n\n{prompt}"
 
     env = build_claude_env("auto")
 
