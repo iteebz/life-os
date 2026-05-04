@@ -70,7 +70,7 @@ def find_achievement(ref: str, pool: list[Achievement] | None = None) -> Achieve
         match = next(e for e in entries if e.name.lower() == close[0])
         print(f"→ matched: {match.name}")
         return match
-    raise UsageError(f"no achievement matching '{ref}'")
+    raise UsageError(f"no milestone matching '{ref}'")
 
 
 def _tag_colors(entries: list[Achievement]) -> dict[str, str]:
@@ -84,10 +84,10 @@ def _tag_colors(entries: list[Achievement]) -> dict[str, str]:
 
 def _print_achievements(entries: list[Achievement]) -> None:
     if not entries:
-        print("no achievements yet")
+        print("no milestones yet")
         return
     tag_colors = _tag_colors(entries)
-    print(white("ACHIEVEMENTS:"))
+    print(white("MILESTONES:"))
     for e in entries:
         date_str = dim(e.achieved_at.strftime("%d/%m/%y").lower())
         dot = gray("·")
@@ -104,8 +104,8 @@ def _print_achievements(entries: list[Achievement]) -> None:
 
 
 @cli("life", flags={"ref": [], "tags": ["-t"]})
-def achieve(ref: list[str] | None = None, tags: str | None = None) -> None:
-    """List achievements or log one: `life achieve "name"`"""
+def milestone(ref: list[str] | None = None, tags: str | None = None) -> None:
+    """List milestones or log one: `life milestone "name"`"""
     if not ref:
         _print_achievements(get_achievements())
         return
@@ -114,9 +114,9 @@ def achieve(ref: list[str] | None = None, tags: str | None = None) -> None:
     print(f"★ {name}")
 
 
-@cli("life achieve", flags={"ref": []})
+@cli("life milestone", flags={"ref": []})
 def rm(ref: list[str]) -> None:
-    """Remove an achievement by name or UUID prefix"""
+    """Remove a milestone by name or UUID prefix"""
     a = find_achievement(" ".join(ref))
     with get_db() as conn:
         conn.execute("DELETE FROM achievements WHERE id = ?", (a.id,))
@@ -124,11 +124,11 @@ def rm(ref: list[str]) -> None:
 
 
 @cli(
-    "life achieve",
+    "life milestone",
     flags={"ref": [], "name": ["-n"], "tags": ["-t"]},
 )
 def update(ref: list[str], name: str | None = None, tags: str | None = None) -> None:
-    """Update an achievement by name or UUID prefix"""
+    """Update a milestone by name or UUID prefix"""
     a = find_achievement(" ".join(ref))
     fields, values = [], []
     if name is not None:
