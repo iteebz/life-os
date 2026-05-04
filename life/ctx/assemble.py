@@ -12,6 +12,7 @@ LIFE_DIR = Path.home() / "life"
 STEWARD_DIR = LIFE_DIR / "steward"
 
 CONSTITUTION = [
+    ("geometry", STEWARD_DIR / "geometry.md"),
     ("life", LIFE_DIR / "LIFE.md"),
     ("memory", STEWARD_DIR / "memory.md"),
     ("human", STEWARD_DIR / "human.md"),
