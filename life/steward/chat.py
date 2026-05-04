@@ -61,7 +61,7 @@ def _build_hook_settings_json() -> str:
         {
             "statusLine": {
                 "type": "command",
-                "command": str(Path.home() / ".local/bin/steward-statusline"),
+                "command": str(Path.home() / ".local/bin/life-statusline"),
                 "padding": 0,
             },
             "hooks": {

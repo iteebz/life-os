@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+"""life-statusline: minimal claude code footer — ctx + done today."""
+
+import json
+import sqlite3
+import sys
+from pathlib import Path
+
+
+def q(conn, sql, *args):
+    try:
+        return conn.execute(sql, args).fetchone()
+    except Exception:
+        return None
+
+
+def format_tokens(n):
+    if n >= 1_000:
+        k, r = n // 1_000, (n % 1_000) // 100
+        return f"{k}.{r}K" if r else f"{k}K"
+    return str(n)
+
+
+def main():
+    buf = sys.stdin.read()
+    data = json.loads(buf) if buf.strip() else {}
+
+    db_path = Path.home() / ".life/life.db"
+    try:
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    except Exception:
+        print("life ?", end="")
+        return
+
+    habits_done = (q(conn, "SELECT COUNT(*) FROM habit_checks WHERE check_date = date('now')") or [0])[0]
+    habits_total = (q(conn, "SELECT COUNT(*) FROM habits WHERE archived_at IS NULL AND deleted_at IS NULL AND cadence='daily'") or [0])[0]
+    tasks_done = (q(conn, "SELECT COUNT(*) FROM tasks WHERE date(completed_at) = date('now') AND deleted_at IS NULL") or [0])[0]
+
+    conn.close()
+
+    # context window — match brr-statusline token calc
+    usage = data.get("context_window", {}).get("current_usage", {})
+    if isinstance(usage, dict):
+        used = usage.get("input_tokens", 0) + usage.get("cache_creation_input_tokens", 0) + usage.get("cache_read_input_tokens", 0)
+    else:
+        used = usage or 0
+    total = data.get("context_window", {}).get("context_window_size", 200_000)
+    pct = (used * 100) // total if total else 0
+
+    dim = "\x1b[2m"
+    reset = "\x1b[0m"
+    red = "\x1b[31m"
+    yellow = "\x1b[33m"
+    cyan = "\x1b[36m"
+    green = "\x1b[32m"
+
+    # habits: green all done, yellow partial, red none
+    if habits_done == 0:
+        h_color = red
+    elif habits_done >= habits_total:
+        h_color = green
+    else:
+        h_color = yellow
+
+    # tasks done today: cyan if any, dim if none
+    t_color = cyan if tasks_done > 0 else dim
+
+    parts = []
+
+    if used > 0:
+        ctx_color = cyan if pct < 50 else (yellow if pct < 80 else red)
+        parts.append(f"{dim}ctx{reset} {ctx_color}{format_tokens(used)}{reset}")
+
+    parts.append(f"{dim}done{reset} {h_color}{habits_done}{reset}/{t_color}{tasks_done}{reset}")
+
+    print("  ".join(parts), end="")
+
+
+if __name__ == "__main__":
+    main()
