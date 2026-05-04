@@ -9,6 +9,7 @@ from typing import Any
 
 from fncli import cli
 
+from life.core.config import auto_sessions_enabled, set_auto_sessions
 from life.core.errors import LifeError
 from life.core.models import Task
 from life.feedback import build_feedback_snapshot, render_feedback_snapshot
@@ -312,6 +313,27 @@ def off() -> None:
     _STEWARD_DIR.mkdir(parents=True, exist_ok=True)
     _OFF_SENTINEL.touch()
     print("[steward] off signal set — will stop after current spawn")
+
+
+@cli("life steward auto", name="on")
+def auto_enable() -> None:
+    """enable morning/nightly auto sessions"""
+    set_auto_sessions(True)
+    print("[steward] auto sessions enabled")
+
+
+@cli("life steward auto", name="off")
+def auto_disable() -> None:
+    """disable morning/nightly auto sessions"""
+    set_auto_sessions(False)
+    print("[steward] auto sessions disabled")
+
+
+@cli("life steward auto", name="status")
+def auto_status() -> None:
+    """show whether auto sessions are enabled"""
+    state = "on" if auto_sessions_enabled() else "off"
+    print(f"[steward] auto sessions: {state}")
 
 
 @cli("life steward", flags={"watch": ["-w", "--watch"]})

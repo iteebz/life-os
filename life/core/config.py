@@ -72,3 +72,13 @@ def get_profile() -> str:
 def set_profile(profile: str) -> None:
     """Set current profile"""
     _config.set("profile", profile)
+
+
+def auto_sessions_enabled() -> bool:
+    """Whether daemon should fire morning/nightly auto sessions."""
+    val = _config.get("auto_sessions", True)
+    return bool(val)
+
+
+def set_auto_sessions(enabled: bool) -> None:
+    _config.set("auto_sessions", enabled)

@@ -9,7 +9,7 @@ import time
 from datetime import datetime
 
 from life.comms.messages.telegram import get_history
-from life.core.config import get_user_name
+from life.core.config import auto_sessions_enabled, get_user_name
 from life.daemon.session import get_user_chat_id, load_memory, run_session
 from life.daemon.shared import log
 from life.daemon.spawn import fetch_wake_context
@@ -79,7 +79,7 @@ def morning_thread(stop: threading.Event, claimed_chat: threading.Event) -> None
 
         if now.hour == MORNING_HOUR and morning_triggered != today_str:
             morning_triggered = today_str
-            if not claimed_chat.is_set():
+            if not claimed_chat.is_set() and auto_sessions_enabled():
                 opener = _build_opener()
                 run_session(
                     chat_id,
@@ -92,7 +92,7 @@ def morning_thread(stop: threading.Event, claimed_chat: threading.Event) -> None
 
         if now.hour == NIGHTLY_HOUR and nightly_triggered != today_str:
             nightly_triggered = today_str
-            if not claimed_chat.is_set() and _user_active_today(chat_id):
+            if not claimed_chat.is_set() and auto_sessions_enabled() and _user_active_today(chat_id):
                 log("[nightly] user was active today — triggering")
                 opener = _build_nightly_opener()
                 run_session(
