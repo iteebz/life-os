@@ -1,5 +1,4 @@
 import dataclasses
-import random
 from collections.abc import Sequence
 from datetime import date, datetime, timedelta
 
@@ -69,8 +68,8 @@ def _get_direct_tags(task: Task, pending: list[Task]) -> list[str]:
 
 def _build_tag_colors(items: Sequence[Task | Habit]) -> dict[str, str]:
     tags = sorted({tag for item in items for tag in item.tags})
-    pool = random.sample([code for code, _ in POOL], len(POOL))
-    return {tag: pool[i % len(pool)] for i, tag in enumerate(tags)}
+    pool = [code for code, _ in POOL]
+    return {tag: pool[hash(tag) % len(pool)] for tag in tags}
 
 
 def _get_trend(current: int, previous: int) -> str:
