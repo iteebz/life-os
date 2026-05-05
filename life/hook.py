@@ -91,7 +91,11 @@ def _habit_status(state: dict[str, str], parts: list[str]) -> None:
     for h in habits:
         if h.cadence != "daily":
             continue
+        is_vice = "vice" in (h.tags or [])
         checks_today = [c for c in h.checks if c.date() == today_date]
+        if is_vice:
+            # vice: checked = used (bad), unchecked = clean (good) — exclude from count
+            continue
         if checks_today:
             done.append(h.content)
         else:
