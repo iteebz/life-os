@@ -202,7 +202,7 @@ def _row_habit(habit: Habit, checked_ids: set[str], ctx: RenderCtx, indent: str 
         p2_end = p1_start - timedelta(days=1)
         count_p1 = _weeks_hit(p1_start, ctx.today)
         count_p2 = _weeks_hit(p2_start, p2_end)
-        cadence_label = f" {gray('(weekly)')}"
+        cadence_label = ""
     else:
         p1_start = ctx.today - timedelta(days=6)
         p2_start = ctx.today - timedelta(days=13)
