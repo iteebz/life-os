@@ -386,7 +386,10 @@ def _render_habit_matrix(habits: list[Habit]) -> str:
 
         for h in sorted(daily, key=_habit_sort_key):
             check_dates = {dt.date() for dt in h.checks}
-            indicators = ["●" if d in check_dates else "○" for d in dates]
+            is_vice = "vice" in (h.tags or [])
+            indicators = [
+                ("○" if d in check_dates else "●") if is_vice else ("●" if d in check_dates else "○") for d in dates
+            ]
             cells = "   ".join(indicators)
             lines.append(f"{h.content.lower():<15} {cells}   {muted}[{h.id[:8]}]{reset}")
 
