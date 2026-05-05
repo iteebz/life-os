@@ -340,7 +340,6 @@ def _section_habits(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) 
     if not visible:
         return []
 
-    # Weekly habits count as "done" if checked any day this week
     week_start = ctx.today - timedelta(days=ctx.today.weekday())
 
     def _is_done(h: Habit) -> bool:
@@ -350,19 +349,31 @@ def _section_habits(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) 
             return any(week_start <= dt.date() <= ctx.today for dt in h.checks)
         return False
 
-    done_count = sum(1 for h in visible if _is_done(h))
-    remaining = [h for h in visible if not _is_done(h)]
+    daily = [h for h in visible if h.cadence != "weekly"]
+    weekly = [h for h in visible if h.cadence == "weekly"]
 
+    done_count = sum(1 for h in visible if _is_done(h))
     lines = [f"\n{theme.bold}{theme.purple}HABITS ({done_count}/{len(visible)}){_R}"]
-    if not remaining:
-        lines.append(f"  {gray('all done.')}")
-        return lines
 
     def _habit_sort_key(h: Habit) -> tuple[int, str]:
         return (1 if h.scheduled_time else 0, h.scheduled_time or h.content.lower())
 
-    for habit in sorted(remaining, key=_habit_sort_key):
-        lines.extend(_row_habit(habit, checked_ids, ctx))
+    daily_remaining = [h for h in daily if not _is_done(h)]
+    if daily_remaining:
+        for habit in sorted(daily_remaining, key=_habit_sort_key):
+            lines.extend(_row_habit(habit, checked_ids, ctx))
+    elif daily:
+        lines.append(f"  {gray('daily: all done.')}")
+
+    weekly_remaining = [h for h in weekly if not _is_done(h)]
+    if weekly:
+        lines.append(f"\n{theme.bold}{theme.purple}WEEKLY{_R}")
+        if weekly_remaining:
+            for habit in sorted(weekly_remaining, key=_habit_sort_key):
+                lines.extend(_row_habit(habit, checked_ids, ctx))
+        else:
+            lines.append(f"  {gray('all done.')}")
+
     return lines
 
 
