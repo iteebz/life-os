@@ -25,6 +25,8 @@ dependencies = [
     "telethon>=1.36.0",
     "python-dateutil>=2.9.0.post0",
     "rich>=15.0.0",
+    "fastapi>=0.136.1",
+    "uvicorn[standard]>=0.46.0",
 ]
 
 [dependency-groups]
