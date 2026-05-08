@@ -60,7 +60,8 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None, ima
         return "notified"
 
     # 2. Resumable session?
-    current = current_session()
+    tg_chat_id_str = str(chat_id) if chat_id is not None else None
+    current = current_session(chat_id=tg_chat_id_str) if channel == "telegram" else current_session()
     if current and current.claude_session_id and channel == "telegram" and chat_id is not None:
         log(f"[inbound] resuming session {current.id} ({current.claude_session_id[:8]})")
         touch_session(current.id)
@@ -83,6 +84,7 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None, ima
             summary=f"(tg) {sender}",
             source="tg",
             name=f"tg {sender}",
+            chat_id=tg_chat_id_str,
         )
         response = spawn_claude(prompt, image_path=image_path)
         tg.send(chat_id, response)

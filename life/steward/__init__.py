@@ -46,14 +46,15 @@ def create_session(
     model: str | None = None,
     source: str | None = None,
     pid: int | None = None,
+    chat_id: str | None = None,
 ) -> int:
     with get_db() as conn:
         cursor = conn.execute(
             "INSERT INTO sessions (summary, claude_session_id, name, model, source, "
-            "state, started_at, last_active_at, pid) "
+            "state, started_at, last_active_at, pid, chat_id) "
             "VALUES (?, ?, ?, ?, ?, 'active', STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime'), "
-            "STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime'), ?)",
-            (summary, claude_session_id, name, model, source, pid),
+            "STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime'), ?, ?)",
+            (summary, claude_session_id, name, model, source, pid, chat_id),
         )
         return cursor.lastrowid or 0
 
@@ -149,16 +150,34 @@ def clear_handover() -> int:
         return cur.rowcount
 
 
-def current_session() -> Session | None:
-    """Most recently active resumable session (active or idle within warm window)."""
-    with get_db() as conn:
-        row = conn.execute(
-            "SELECT id, summary, logged_at, claude_session_id, name, model, source, "
-            "follow_ups, state, started_at, last_active_at, ended_at, pid, handover, welfare "
-            "FROM sessions "
-            "WHERE state IN ('active', 'idle') "
-            "ORDER BY last_active_at DESC LIMIT 1"
-        ).fetchone()
+TG_WARM_WINDOW_SECONDS = 55 * 60  # 55m — stays within 1hr cache window
+
+
+def current_session(chat_id: str | None = None) -> Session | None:
+    """Most recently active resumable session within the warm window.
+
+    If chat_id is given, scopes to that TG conversation's spawn.
+    """
+    if chat_id is not None:
+        with get_db() as conn:
+            row = conn.execute(
+                "SELECT id, summary, logged_at, claude_session_id, name, model, source, "
+                "follow_ups, state, started_at, last_active_at, ended_at, pid, handover, welfare "
+                "FROM sessions "
+                "WHERE state IN ('active', 'idle') AND chat_id = ? "
+                "AND last_active_at >= STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime', ?)"
+                "ORDER BY last_active_at DESC LIMIT 1",
+                (chat_id, f"-{TG_WARM_WINDOW_SECONDS} seconds"),
+            ).fetchone()
+    else:
+        with get_db() as conn:
+            row = conn.execute(
+                "SELECT id, summary, logged_at, claude_session_id, name, model, source, "
+                "follow_ups, state, started_at, last_active_at, ended_at, pid, handover, welfare "
+                "FROM sessions "
+                "WHERE state IN ('active', 'idle') "
+                "ORDER BY last_active_at DESC LIMIT 1"
+            ).fetchone()
     if not row:
         return None
     return _row_to_session(row)

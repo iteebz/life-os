@@ -111,7 +111,7 @@ def _telegram_thread(stop: threading.Event, interval: int, claimed_chat: threadi
                 log(f"[telegram] [{sender}] {body[:80]}")
 
                 # rate-limit fresh spawns only — resumes and hookable sessions are free
-                will_resume = hookable_session() or current_session()
+                will_resume = hookable_session() or current_session(chat_id=str(chat_id))
                 if not will_resume:
                     now = time.time()
                     cutoff = now - 3600
