@@ -277,6 +277,8 @@ def _surface_session_meta(session_id: str) -> None:
             nudge = "\n80k chars: wrap soon, no new threads."
         elif chars >= 70_000:
             nudge = "\n70k chars: close open topics, avoid new ones."
+        elif chars >= 60_000:
+            nudge = "\n60k chars: start wrapping up."
         elif chars >= 50_000:
             nudge = "\n50k chars: halfway — wrap up side threads."
         elif age >= WRAP_THRESHOLD_SECONDS:
