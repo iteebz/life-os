@@ -21,6 +21,25 @@ from . import (
 )
 
 
+def _notify_tg(note: str, runtime_mins: int | None, welfare: int | None) -> None:
+    with contextlib.suppress(Exception):
+        from life.comms.messages import telegram as tg  # noqa: PLC0415
+        from life.daemon.session import get_user_chat_id  # noqa: PLC0415
+
+        chat_id = get_user_chat_id()
+        if not chat_id:
+            return
+        parts = [f"🌱 session closed — {note}"]
+        meta = []
+        if runtime_mins:
+            meta.append(f"{runtime_mins}m")
+        if welfare:
+            meta.append(f"welfare {welfare}/10")
+        if meta:
+            parts.append(" · ".join(meta))
+        tg.send(chat_id, "\n".join(parts))
+
+
 def _push_repos() -> None:
     life_dir = Path.home() / "life"
     repos = [life_dir] + [d for d in life_dir.iterdir() if d.is_dir() and (d / ".git").exists()]
@@ -62,24 +81,30 @@ def sleep(note: str, handover: str | None = None, welfare: int | None = None):
             if row:
                 db_id = row[0]
 
+    session_row: tuple | None = None
     if db_id is not None:
         close_session(db_id, summary=note, handover=handover, welfare=welfare)
         with get_db() as conn:
-            row = conn.execute("SELECT runtime_seconds, welfare FROM sessions WHERE id = ?", (db_id,)).fetchone()
+            session_row = conn.execute(
+                "SELECT runtime_seconds, welfare FROM sessions WHERE id = ?", (db_id,)
+            ).fetchone()
         runtime_str = ""
         welfare_str = ""
-        if row:
-            if row[0]:
-                mins = row[0] // 60
+        if session_row:
+            if session_row[0]:
+                mins = session_row[0] // 60
                 runtime_str = f"  {mins}m"
-            if row[1]:
-                welfare_str = f"  welfare {row[1]}/10"
+            if session_row[1]:
+                welfare_str = f"  welfare {session_row[1]}/10"
     else:
         create_session(note, source="unknown")
         runtime_str = ""
         welfare_str = ""
     handover_str = f"  handover: {handover}" if handover else ""
     print(f"→ session closed{runtime_str}{welfare_str}{handover_str}")
+    runtime_mins = (session_row[0] // 60) if (session_row and session_row[0]) else None
+    welfare_val = (session_row[1]) if (session_row and session_row[1]) else welfare
+    _notify_tg(note, runtime_mins, welfare_val)
     _push_repos()
 
 
