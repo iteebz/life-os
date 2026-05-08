@@ -386,6 +386,10 @@ def cmd_hook_tool() -> None:
 
     sys.stdin.read()  # consume stdin (tool-call JSON) — ambient context only for now
 
+    session_id = os.environ.get("STEWARD_SESSION_ID", "unknown")
+    with contextlib.suppress(Exception):
+        _surface_session_meta(session_id)
+
     state = _load_state()
     parts: list[str] = []
 
