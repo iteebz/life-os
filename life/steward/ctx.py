@@ -24,16 +24,16 @@ def ctx() -> None:
     with contextlib.suppress(Exception):
         with get_db() as conn:
             row = conn.execute(
-                "SELECT id, logged_at FROM sessions WHERE claude_session_id = ?",
+                "SELECT logged_at FROM sessions WHERE claude_session_id = ?",
                 (session_id,),
             ).fetchone()
             if not row:
                 print(f"no session record for {session_id[:8]}")
                 return
-            db_id, logged_at = row
+            (logged_at,) = row
             char_row = conn.execute(
                 "SELECT COALESCE(SUM(LENGTH(body)), 0) FROM messages WHERE channel = 'chat' AND peer = ?",
-                (str(db_id),),
+                (session_id,),
             ).fetchone()
             chars = char_row[0] if char_row else 0
 

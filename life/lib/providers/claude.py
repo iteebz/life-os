@@ -35,7 +35,8 @@ SPAWN_SETTINGS: dict[str, object] = {
     "feedbackSurveyRate": 0,
     "spinnerTipsEnabled": False,
     "hooks": {
-        "PreToolUse": [{"matcher": "", "hooks": [{"type": "command", "command": "steward-hook tool"}]}],
+        "PreToolUse": [{"matcher": "", "hooks": [{"type": "command", "command": "life hook tool"}]}],
+        "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "life hook prompt"}]}],
     },
 }
 
