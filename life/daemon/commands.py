@@ -4,7 +4,8 @@ import subprocess
 import time
 from pathlib import Path
 
-from life.daemon.shared import DAEMON_START_TIME, TG_SESSION_MAX_CHARS, TG_SESSION_TIMEOUT
+from life.daemon.shared import DAEMON_START_TIME, TG_SESSION_TIMEOUT
+from life.hook import CTX_MAX_CHARS
 from life.mood import get_recent_moods
 from life.task import get_tasks
 
@@ -50,11 +51,11 @@ def handle_command(
 
 
 def _cmd_ctx(session_chars: int) -> str:
-    pct = (session_chars / TG_SESSION_MAX_CHARS) * 100
+    pct = (session_chars / CTX_MAX_CHARS) * 100
     bar_len = 20
     filled = int(pct / 100 * bar_len)
     bar = "█" * filled + "░" * (bar_len - filled)
-    return f"🌱 ctx [{bar}] {pct:.0f}%\n{session_chars:,} / {TG_SESSION_MAX_CHARS:,} chars"
+    return f"🌱 ctx [{bar}] {pct:.0f}%\n{session_chars:,} / {CTX_MAX_CHARS:,} chars"
 
 
 def _cmd_stats() -> str:
@@ -125,8 +126,8 @@ def _cmd_status(
         lines.append("uptime: unknown")
 
     # context window
-    pct = (chars / TG_SESSION_MAX_CHARS) * 100
-    remaining_chars = TG_SESSION_MAX_CHARS - chars
+    pct = (chars / CTX_MAX_CHARS) * 100
+    remaining_chars = CTX_MAX_CHARS - chars
     bar_len = 15
     filled = int(pct / 100 * bar_len)
     bar = "█" * filled + "░" * (bar_len - filled)
@@ -162,7 +163,7 @@ def _cmd_sleep(note: str, session_chars: int) -> str:
     except Exception as e:
         output = f"sleep failed: {e}"
     set_sleep_marker()
-    pct = (session_chars / TG_SESSION_MAX_CHARS) * 100
+    pct = (session_chars / CTX_MAX_CHARS) * 100
     ctx_line = f"ctx: {pct:.0f}% used at close"
     return f"🌱 sleep\n{output}\n{ctx_line}"
 

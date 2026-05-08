@@ -196,8 +196,7 @@ def _life_os_commits(state: dict[str, str], parts: list[str]) -> None:
             parts.append(f"life-os new commits:\n{commits[:400]}")
 
 
-WRAP_THRESHOLD_CHARS = 100_000  # ~33k tokens
-SLEEP_THRESHOLD_CHARS = 150_000  # ~50k tokens
+CTX_MAX_CHARS = 400_000  # ~100k tokens
 WRAP_THRESHOLD_SECONDS = 3300  # 55m
 
 
@@ -269,15 +268,22 @@ def _surface_session_meta(session_id: str) -> None:
         started = datetime.fromisoformat(logged_at).replace(tzinfo=UTC)
         age = int((datetime.now(UTC) - started).total_seconds())
         age_str = f"{age // 60}m" if age >= 60 else f"{age}s"
+        pct = int(chars / CTX_MAX_CHARS * 100)
         nudge = ""
-        if chars >= SLEEP_THRESHOLD_CHARS:
-            nudge = '\nsleep now: close one loop, run `steward sleep "..."`, commit, end the session.'
-        elif chars >= WRAP_THRESHOLD_CHARS:
-            nudge = "\nwrap soon: prefer closing the open loop over starting new threads."
+        if pct >= 100:
+            nudge = '\n100% context: sleep now. `steward sleep "..."`, commit, end the session.'
+        elif pct >= 90:
+            nudge = "\n90% context: one more action then sleep."
+        elif pct >= 80:
+            nudge = "\n80% context: wrap soon, no new threads."
+        elif pct >= 70:
+            nudge = "\n70% context: close open topics, avoid new ones."
+        elif pct >= 50:
+            nudge = "\n50% context: halfway — wrap up side threads."
         elif age >= WRAP_THRESHOLD_SECONDS:
             nudge = "\nsession is long: consider closing soon."
-        if nudge or chars > 50_000:
-            print(f"\n<session-meta>session: {age_str} elapsed, {chars} chars logged{nudge}\n</session-meta>")
+        if nudge or pct >= 50:
+            print(f"\n<session-meta>session: {age_str} elapsed, {pct}% ctx ({chars} chars){nudge}\n</session-meta>")
 
 
 def _read_event() -> dict[str, Any]:

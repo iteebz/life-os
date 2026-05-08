@@ -1,6 +1,7 @@
 import contextlib
 import threading
 import time
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -146,7 +147,8 @@ def _download_photo(msg: dict[str, Any], token: str) -> str | None:
         resp.raise_for_status()
         _PHOTO_DIR.mkdir(parents=True, exist_ok=True)
         ext = Path(file_path).suffix or ".jpg"
-        local = _PHOTO_DIR / f"tg-{msg['message_id']}{ext}"
+        short = uuid.uuid4().hex[:8]
+        local = _PHOTO_DIR / f"{short}{ext}"
         local.write_bytes(resp.content)
         return str(local)
     except Exception:
