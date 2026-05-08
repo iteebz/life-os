@@ -24,12 +24,12 @@ def ctx() -> None:
         # Try lookup by DB row ID (numeric) first
         if session_id.isdigit():
             row = conn.execute(
-                "SELECT started_at, chat_id, claude_session_id FROM sessions WHERE id = ?",
+                "SELECT started_at, chat_id, provider_session_id FROM sessions WHERE id = ?",
                 (int(session_id),),
             ).fetchone()
         else:
             row = conn.execute(
-                "SELECT started_at, chat_id, claude_session_id FROM sessions WHERE claude_session_id = ?",
+                "SELECT started_at, chat_id, provider_session_id FROM sessions WHERE provider_session_id = ?",
                 (session_id,),
             ).fetchone()
 
@@ -37,12 +37,13 @@ def ctx() -> None:
             print(f"no session record for {session_id}")
             return
 
-        started_at, chat_id, claude_session_id = row
+        started_at, chat_id, provider_session_id = row
 
-        # Prefer direct session_id join; fall back to legacy peer-based queries
         db_id: int | None = int(session_id) if session_id.isdigit() else None
-        if db_id is None and claude_session_id:
-            row2 = conn.execute("SELECT id FROM sessions WHERE claude_session_id = ?", (claude_session_id,)).fetchone()
+        if db_id is None and provider_session_id:
+            row2 = conn.execute(
+                "SELECT id FROM sessions WHERE provider_session_id = ?", (provider_session_id,)
+            ).fetchone()
             db_id = row2[0] if row2 else None
 
         if db_id is not None:
@@ -60,10 +61,10 @@ def ctx() -> None:
                 "WHERE channel = 'telegram' AND peer = ? AND timestamp > ?",
                 (str(chat_id), int(started_ts)),
             ).fetchone()
-        elif claude_session_id:
+        elif provider_session_id:
             char_row = conn.execute(
                 "SELECT COALESCE(SUM(LENGTH(body)), 0) FROM messages WHERE channel = 'chat' AND peer = ?",
-                (claude_session_id,),
+                (provider_session_id,),
             ).fetchone()
         else:
             char_row = None

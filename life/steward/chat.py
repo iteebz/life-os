@@ -157,19 +157,19 @@ def _launch(
     return rc
 
 
-def _lookup_session_id(claude_session_id: str) -> int | None:
+def _lookup_session_id(provider_session_id: str) -> int | None:
     from life.lib.store import get_db  # noqa: PLC0415
 
     with get_db() as conn:
         row = conn.execute(
-            "SELECT id FROM sessions WHERE claude_session_id = ? ORDER BY id DESC LIMIT 1",
-            (claude_session_id,),
+            "SELECT id FROM sessions WHERE provider_session_id = ? ORDER BY id DESC LIMIT 1",
+            (provider_session_id,),
         ).fetchone()
     return row[0] if row else None
 
 
-def _persist_followup(claude_session_id: str, followups: list[datetime]) -> None:
-    db_id = _lookup_session_id(claude_session_id)
+def _persist_followup(provider_session_id: str, followups: list[datetime]) -> None:
+    db_id = _lookup_session_id(provider_session_id)
     if db_id is not None:
         update_session_followups(db_id, [ts.isoformat() for ts in followups])
 
@@ -214,22 +214,22 @@ def chat(
 def resume(ref: str, model: str | None = None):
     """Resume a session by DB id or session UUID prefix"""
     sessions = get_sessions(limit=20)
-    resumable = [s for s in sessions if s.claude_session_id]
+    resumable = [s for s in sessions if s.provider_session_id]
 
     target = None
     for s in resumable:
         if str(s.id) == ref:
             target = s
             break
-        if s.claude_session_id and s.claude_session_id.startswith(ref):
+        if s.provider_session_id and s.provider_session_id.startswith(ref):
             target = s
             break
 
-    if not target or not target.claude_session_id:
+    if not target or not target.provider_session_id:
         print(f"no session matching '{ref}'")
         return 1
 
     m = model or target.model or DEFAULT_MODEL
     source = os.environ.get("STEWARD_SOURCE", "cli")
-    print(f"resuming {target.id} → {target.claude_session_id[:8]}  model={m}  source={source}")
-    return _launch(m, target.claude_session_id, name=target.name, resume=True, source=source, db_session_id=target.id)
+    print(f"resuming {target.id} → {target.provider_session_id[:8]}  model={m}  source={source}")
+    return _launch(m, target.provider_session_id, name=target.name, resume=True, source=source, db_session_id=target.id)

@@ -16,13 +16,13 @@ _RESUME_WINDOW_SECONDS = 3600
 
 def _smart_resume() -> int:
     sessions = get_sessions(limit=5)
-    resumable = [s for s in sessions if s.claude_session_id and s.state in ("active", "idle")]
+    resumable = [s for s in sessions if s.provider_session_id and s.state in ("active", "idle")]
 
     if resumable:
         target = resumable[0]
         last_touch = target.last_active_at or target.started_at or target.logged_at
         if (datetime.now() - last_touch).total_seconds() < _RESUME_WINDOW_SECONDS:
-            sid = target.claude_session_id
+            sid = target.provider_session_id
             assert sid is not None  # noqa: S101 — guaranteed by resumable filter
             m = target.model or DEFAULT_MODEL
             source = os.environ.get("STEWARD_SOURCE", "cli")

@@ -200,15 +200,15 @@ CTX_MAX_CHARS = 100_000
 WRAP_THRESHOLD_SECONDS = 3300  # 55m
 
 
-def _db_session_id(claude_session_id: str) -> int | None:
-    """Resolve claude_session_id or numeric string to DB sessions.id."""
-    if claude_session_id.isdigit():
-        return int(claude_session_id)
+def _db_session_id(provider_session_id: str) -> int | None:
+    """Resolve provider_session_id or numeric string to DB sessions.id."""
+    if provider_session_id.isdigit():
+        return int(provider_session_id)
     with contextlib.suppress(Exception):
         with get_db() as conn:
             row = conn.execute(
-                "SELECT id FROM sessions WHERE claude_session_id = ? ORDER BY id DESC LIMIT 1",
-                (claude_session_id,),
+                "SELECT id FROM sessions WHERE provider_session_id = ? ORDER BY id DESC LIMIT 1",
+                (provider_session_id,),
             ).fetchone()
             return row[0] if row else None
     return None
@@ -235,9 +235,9 @@ def _log_turn(direction: str, body: str, session_id: str) -> None:
         )
 
 
-def _ensure_session_row(claude_session_id: str) -> None:
+def _ensure_session_row(provider_session_id: str) -> None:
     """Lazy-create session row on first human prompt. No conversation = no row."""
-    if claude_session_id == "unknown" or os.environ.get("STEWARD_DB_SESSION_ID"):
+    if provider_session_id == "unknown" or os.environ.get("STEWARD_DB_SESSION_ID"):
         return
 
     # tg daemon pre-creates a session row and passes its numeric ID as STEWARD_SESSION_ID.
@@ -249,21 +249,21 @@ def _ensure_session_row(claude_session_id: str) -> None:
             with contextlib.suppress(Exception):
                 with get_db() as conn:
                     conn.execute(
-                        "UPDATE sessions SET claude_session_id = ?, state = 'active', "
+                        "UPDATE sessions SET provider_session_id = ?, state = 'active', "
                         "last_active_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime') "
-                        "WHERE id = ? AND claude_session_id IS NULL",
+                        "WHERE id = ? AND provider_session_id IS NULL",
                         (actual_uuid, int(steward_sid)),
                     )
         return
 
-    name = os.environ.get("STEWARD_SESSION_NAME") or claude_session_id[:8]
+    name = os.environ.get("STEWARD_SESSION_NAME") or provider_session_id[:8]
     model = os.environ.get("STEWARD_SESSION_MODEL")
     source = os.environ.get("STEWARD_SESSION_SOURCE", "cli")
     with contextlib.suppress(Exception):
         with get_db() as conn:
             row = conn.execute(
-                "SELECT id FROM sessions WHERE claude_session_id = ?",
-                (claude_session_id,),
+                "SELECT id FROM sessions WHERE provider_session_id = ?",
+                (provider_session_id,),
             ).fetchone()
             if row:
                 conn.execute(
@@ -274,12 +274,12 @@ def _ensure_session_row(claude_session_id: str) -> None:
                 )
                 return
             conn.execute(
-                "INSERT INTO sessions (summary, claude_session_id, name, model, source, "
+                "INSERT INTO sessions (summary, provider_session_id, name, model, source, "
                 "state, started_at, last_active_at, pid) VALUES "
                 "(?, ?, ?, ?, ?, 'active', "
                 "STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime'), "
                 "STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime'), ?)",
-                (f"(active) {name}", claude_session_id, name, model, source, os.getppid()),
+                (f"(active) {name}", provider_session_id, name, model, source, os.getppid()),
             )
 
 
@@ -287,7 +287,7 @@ def _surface_session_meta(session_id: str) -> None:
     with contextlib.suppress(Exception):
         with get_db() as conn:
             row = conn.execute(
-                "SELECT logged_at FROM sessions WHERE claude_session_id = ?",
+                "SELECT logged_at FROM sessions WHERE provider_session_id = ?",
                 (session_id,),
             ).fetchone()
             if not row:
@@ -359,7 +359,7 @@ def _auto_sleep_summary(session_id: str) -> str:
     with contextlib.suppress(Exception):
         with get_db() as conn:
             row = conn.execute(
-                "SELECT id FROM sessions WHERE claude_session_id = ? ORDER BY id DESC LIMIT 1",
+                "SELECT id FROM sessions WHERE provider_session_id = ? ORDER BY id DESC LIMIT 1",
                 (session_id,),
             ).fetchone()
             if not row:
@@ -399,7 +399,7 @@ def cmd_hook_session_end() -> None:
     with contextlib.suppress(Exception):
         with get_db() as conn:
             row = conn.execute(
-                "SELECT id, state FROM sessions WHERE claude_session_id = ? ORDER BY id DESC LIMIT 1",
+                "SELECT id, state FROM sessions WHERE provider_session_id = ? ORDER BY id DESC LIMIT 1",
                 (session_id,),
             ).fetchone()
             if row and row[1] != "closed":

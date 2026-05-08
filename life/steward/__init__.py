@@ -13,7 +13,7 @@ class Session:
     id: int
     summary: str
     logged_at: datetime
-    claude_session_id: str | None = None
+    provider_session_id: str | None = None
     name: str | None = None
     model: str | None = None
     source: str | None = None
@@ -41,7 +41,7 @@ class Observation:
 
 def create_session(
     summary: str,
-    claude_session_id: str | None = None,
+    provider_session_id: str | None = None,
     name: str | None = None,
     model: str | None = None,
     source: str | None = None,
@@ -50,11 +50,11 @@ def create_session(
 ) -> int:
     with get_db() as conn:
         cursor = conn.execute(
-            "INSERT INTO sessions (summary, claude_session_id, name, model, source, "
+            "INSERT INTO sessions (summary, provider_session_id, name, model, source, "
             "state, started_at, last_active_at, pid, chat_id) "
             "VALUES (?, ?, ?, ?, ?, 'active', STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime'), "
             "STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime'), ?, ?)",
-            (summary, claude_session_id, name, model, source, pid, chat_id),
+            (summary, provider_session_id, name, model, source, pid, chat_id),
         )
         return cursor.lastrowid or 0
 
@@ -161,7 +161,7 @@ def current_session(chat_id: str | None = None) -> Session | None:
     if chat_id is not None:
         with get_db() as conn:
             row = conn.execute(
-                "SELECT id, summary, logged_at, claude_session_id, name, model, source, "
+                "SELECT id, summary, logged_at, provider_session_id, name, model, source, "
                 "follow_ups, state, started_at, last_active_at, ended_at, pid, handover, welfare "
                 "FROM sessions "
                 "WHERE state IN ('active', 'idle') AND chat_id = ? "
@@ -172,7 +172,7 @@ def current_session(chat_id: str | None = None) -> Session | None:
     else:
         with get_db() as conn:
             row = conn.execute(
-                "SELECT id, summary, logged_at, claude_session_id, name, model, source, "
+                "SELECT id, summary, logged_at, provider_session_id, name, model, source, "
                 "follow_ups, state, started_at, last_active_at, ended_at, pid, handover, welfare "
                 "FROM sessions "
                 "WHERE state IN ('active', 'idle') "
@@ -187,7 +187,7 @@ def hookable_session() -> Session | None:
     """Find an interactive session with a live process (pid alive = cli window open)."""
     with get_db() as conn:
         rows = conn.execute(
-            "SELECT id, summary, logged_at, claude_session_id, name, model, source, "
+            "SELECT id, summary, logged_at, provider_session_id, name, model, source, "
             "follow_ups, state, started_at, last_active_at, ended_at, pid, handover, welfare "
             "FROM sessions "
             "WHERE state IN ('active', 'idle') AND pid IS NOT NULL "
@@ -221,14 +221,14 @@ def get_sessions(limit: int = 10, state: str | None = None) -> list[Session]:
     with get_db() as conn:
         if state:
             rows = conn.execute(
-                "SELECT id, summary, logged_at, claude_session_id, name, model, source, "
+                "SELECT id, summary, logged_at, provider_session_id, name, model, source, "
                 "follow_ups, state, started_at, last_active_at, ended_at, pid, handover, welfare "
                 "FROM sessions WHERE state = ? ORDER BY COALESCE(last_active_at, logged_at) DESC LIMIT ?",
                 (state, limit),
             ).fetchall()
         else:
             rows = conn.execute(
-                "SELECT id, summary, logged_at, claude_session_id, name, model, source, "
+                "SELECT id, summary, logged_at, provider_session_id, name, model, source, "
                 "follow_ups, state, started_at, last_active_at, ended_at, pid, handover, welfare "
                 "FROM sessions ORDER BY COALESCE(last_active_at, logged_at) DESC LIMIT ?",
                 (limit,),
@@ -236,11 +236,11 @@ def get_sessions(limit: int = 10, state: str | None = None) -> list[Session]:
     return [_row_to_session(row) for row in rows]
 
 
-def update_session_claude_id(session_id: int, claude_session_id: str) -> None:
+def update_session_claude_id(session_id: int, provider_session_id: str) -> None:
     with get_db() as conn:
         conn.execute(
-            "UPDATE sessions SET claude_session_id = ? WHERE id = ?",
-            (claude_session_id, session_id),
+            "UPDATE sessions SET provider_session_id = ? WHERE id = ?",
+            (provider_session_id, session_id),
         )
 
 
@@ -262,7 +262,7 @@ def _row_to_session(row: tuple) -> Session:  # type: ignore[type-arg]
         id=row[0],
         summary=row[1],
         logged_at=datetime.fromisoformat(row[2]),
-        claude_session_id=row[3],
+        provider_session_id=row[3],
         name=row[4],
         model=row[5],
         source=row[6],

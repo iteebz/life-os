@@ -45,7 +45,7 @@ def _wake_to_sleep(session: Session) -> None:
     marker = _wake_marker(session.id)
     if marker.exists():
         return
-    if not session.claude_session_id:
+    if not session.provider_session_id:
         return
     marker.parent.mkdir(parents=True, exist_ok=True)
     marker.write_text("")
@@ -61,7 +61,7 @@ def _wake_to_sleep(session: Session) -> None:
     )
     try:
         subprocess.Popen(
-            [claude, "-p", "--resume", session.claude_session_id, "--dangerously-skip-permissions", "--bare", prompt],
+            [claude, "-p", "--resume", session.provider_session_id, "--dangerously-skip-permissions", "--bare", prompt],
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,

@@ -56,7 +56,7 @@ def sleep(note: str, handover: str | None = None, welfare: int | None = None):
         with contextlib.suppress(Exception):
             with get_db() as conn:
                 row = conn.execute(
-                    "SELECT id FROM sessions WHERE claude_session_id = ? ORDER BY id DESC LIMIT 1",
+                    "SELECT id FROM sessions WHERE provider_session_id = ? ORDER BY id DESC LIMIT 1",
                     (session_id_env,),
                 ).fetchone()
             if row:
