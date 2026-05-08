@@ -9,7 +9,7 @@ from fncli import cli
 from life.lib.store import get_db
 from life.store.migrations import init
 
-CTX_MAX_CHARS = 400_000
+CTX_MAX_CHARS = 100_000
 
 
 @cli("life steward")

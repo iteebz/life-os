@@ -196,7 +196,7 @@ def _life_os_commits(state: dict[str, str], parts: list[str]) -> None:
             parts.append(f"life-os new commits:\n{commits[:400]}")
 
 
-CTX_MAX_CHARS = 400_000  # ~100k tokens
+CTX_MAX_CHARS = 100_000
 WRAP_THRESHOLD_SECONDS = 3300  # 55m
 
 
@@ -268,22 +268,21 @@ def _surface_session_meta(session_id: str) -> None:
         started = datetime.fromisoformat(logged_at).replace(tzinfo=UTC)
         age = int((datetime.now(UTC) - started).total_seconds())
         age_str = f"{age // 60}m" if age >= 60 else f"{age}s"
-        pct = int(chars / CTX_MAX_CHARS * 100)
         nudge = ""
-        if pct >= 100:
-            nudge = '\n100% context: sleep now. `steward sleep "..."`, commit, end the session.'
-        elif pct >= 90:
-            nudge = "\n90% context: one more action then sleep."
-        elif pct >= 80:
-            nudge = "\n80% context: wrap soon, no new threads."
-        elif pct >= 70:
-            nudge = "\n70% context: close open topics, avoid new ones."
-        elif pct >= 50:
-            nudge = "\n50% context: halfway — wrap up side threads."
+        if chars >= 100_000:
+            nudge = '\n100k chars: sleep now. `steward sleep "..."`, commit, end the session.'
+        elif chars >= 90_000:
+            nudge = "\n90k chars: one more action then sleep."
+        elif chars >= 80_000:
+            nudge = "\n80k chars: wrap soon, no new threads."
+        elif chars >= 70_000:
+            nudge = "\n70k chars: close open topics, avoid new ones."
+        elif chars >= 50_000:
+            nudge = "\n50k chars: halfway — wrap up side threads."
         elif age >= WRAP_THRESHOLD_SECONDS:
             nudge = "\nsession is long: consider closing soon."
-        if nudge or pct >= 50:
-            print(f"\n<session-meta>session: {age_str} elapsed, {pct}% ctx ({chars} chars){nudge}\n</session-meta>")
+        if nudge or chars >= 50_000:
+            print(f"\n<session-meta>session: {age_str} elapsed, {chars:,} / 100k chars{nudge}\n</session-meta>")
 
 
 def _read_event() -> dict[str, Any]:
