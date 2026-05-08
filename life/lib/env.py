@@ -65,10 +65,11 @@ _SAFE_KEYS = frozenset(
         # life-os needs these
         "LIFE_DB",
         "LIFE_DIR",
+        "STEWARD_SESSION_ID",
     }
 )
 
-# Keys that must never leak into spawns.
+# Keys that must never leak into sessions.
 _BLOCKED_KEYS = frozenset(
     {
         "ANTHROPIC_API_KEY",
