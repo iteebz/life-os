@@ -16,9 +16,9 @@ CTX_MAX_CHARS = 100_000
 def ctx() -> None:
     """Show current session context window usage."""
     init()
-    session_id = os.environ.get("CLAUDE_SESSION_ID") or os.environ.get("STEWARD_SESSION_ID")
+    session_id = os.environ.get("STEWARD_SESSION_ID") or os.environ.get("CLAUDE_SESSION_ID")
     if not session_id:
-        print("no session ID found (CLAUDE_SESSION_ID not set)")
+        print("no session ID found (STEWARD_SESSION_ID not set)")
         return
 
     with contextlib.suppress(Exception):

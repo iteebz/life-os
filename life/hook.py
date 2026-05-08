@@ -27,13 +27,13 @@ from life.store.migrations import init
 from life.task import get_tasks
 
 # Hook state file — throttle map persisted per session.
-# Keyed by CLAUDE_SESSION_ID or PID fallback.
+# Keyed by STEWARD_SESSION_ID (falls back to CLAUDE_SESSION_ID or PID).
 _STATE: dict[str, str] = {}
 _STATE_PATH: Path | None = None
 
 
 def _state_path() -> Path:
-    key = os.environ.get("CLAUDE_SESSION_ID") or os.environ.get("STEWARD_SESSION_ID") or str(os.getppid())
+    key = os.environ.get("STEWARD_SESSION_ID") or os.environ.get("CLAUDE_SESSION_ID") or str(os.getppid())
     return Path(os.environ.get("TMPDIR", "/tmp")) / f".life_hook_{key}"
 
 
