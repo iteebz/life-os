@@ -3,6 +3,7 @@
 import json
 import shutil
 import subprocess
+import uuid
 from pathlib import Path
 
 from life.ctx.assemble import build_wake
@@ -36,6 +37,7 @@ def spawn_claude(
     timeout: int = 600,
     image_path: str | None = None,
     resume_session_id: str | None = None,
+    steward_session_id: str | None = None,
 ) -> str:
     try:
         claude = _claude_bin()
@@ -57,6 +59,7 @@ def spawn_claude(
         prompt = f"[image attached at {image_path} — use Read tool to view it]\n\n{prompt}"
 
     env = build_claude_env("auto")
+    env["STEWARD_SESSION_ID"] = steward_session_id or resume_session_id or str(uuid.uuid4())
 
     try:
         result = subprocess.run(

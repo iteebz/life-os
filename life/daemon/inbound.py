@@ -8,6 +8,7 @@ Routing:
 
 import contextlib
 import time
+import uuid
 
 from life.comms import events
 from life.comms.messages import telegram as tg
@@ -65,7 +66,12 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None, ima
     if current and current.claude_session_id and channel == "telegram" and chat_id is not None:
         log(f"[inbound] resuming session {current.id} ({current.claude_session_id[:8]})")
         touch_session(current.id)
-        response = spawn_claude(body, resume_session_id=current.claude_session_id, image_path=image_path)
+        response = spawn_claude(
+            body,
+            resume_session_id=current.claude_session_id,
+            image_path=image_path,
+            steward_session_id=current.claude_session_id,
+        )
         tg.send(chat_id, response)
         set_session_idle(current.id)
         _emit("resumed", session_id=current.id)
@@ -80,13 +86,15 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None, ima
             context = fetch_wake_context()
             prompt = build_tg_boot_prompt(body, sender, context)
 
+        session_id = str(uuid.uuid4())
         db_sid = create_session(
             summary=f"(tg) {sender}",
             source="tg",
             name=f"tg {sender}",
             chat_id=tg_chat_id_str,
+            claude_session_id=session_id,
         )
-        response = spawn_claude(prompt, image_path=image_path)
+        response = spawn_claude(prompt, image_path=image_path, steward_session_id=session_id)
         tg.send(chat_id, response)
         set_session_idle(db_sid)
         log(f"[inbound] new session {db_sid}, responded ({len(response)} chars)")
