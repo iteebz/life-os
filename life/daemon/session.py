@@ -13,7 +13,7 @@ from life.daemon.shared import TG_SESSION_TIMEOUT, log
 from life.lib.clock import is_quiet_now
 from life.lib.resolve import resolve_people_field
 from life.lib.store import get_db
-from life.steward import close_session, create_session
+from life.steward import close_session, create_session, set_session_pid
 
 
 def load_memory() -> str:
@@ -126,7 +126,7 @@ def run_session(
     """
     log(f"[{label}] starting session")
     claimed_chat.set()
-    db_session_id = create_session(f"(active) {label}", name=label, source="daemon")
+    db_session_id = create_session(f"(active) {label}", name=label, source="tg")
 
     history: list[dict[str, str]] = []
     if load_db_history:
@@ -134,7 +134,9 @@ def run_session(
         if history:
             log(f"[{label}] loaded {len(history)} messages from DB")
 
-    response = run_claude(opener, steward_session_id=str(db_session_id))
+    response = run_claude(
+        opener, steward_session_id=str(db_session_id), on_pid=lambda pid: set_session_pid(db_session_id, pid)
+    )
     tg.send(chat_id, response)
     log(f"[{label}] opener sent ({len(response)} chars)")
 
@@ -173,7 +175,12 @@ def run_session(
             history.append({"role": "user", "text": body})
             prompt = build_reply_prompt(history, body, tone=tone)
             image = msg.get("image_path")
-            reply = run_claude(prompt, image_path=image, steward_session_id=str(db_session_id))
+            reply = run_claude(
+                prompt,
+                image_path=image,
+                steward_session_id=str(db_session_id),
+                on_pid=lambda pid: set_session_pid(db_session_id, pid),
+            )
             history.append({"role": "assistant", "text": reply})
 
             tg.send(chat_id, reply)

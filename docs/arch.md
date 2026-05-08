@@ -13,8 +13,15 @@ daemon      persistent process, launchd KeepAlive, spawns claude
 ~/life/     workspace root. LIFE.md is physics. steward/ is knowledge.
 ```
 
-single agent, three surfaces: chat (claude code interactive), auto (daemon), tg (telegram async).
-same identity, same memory, different density.
+single agent, two session modes, three surfaces:
+
+- **auto**: daemon-spawned autonomous run. no human present. no hookability needed.
+- **chat**: human present. two delivery modes:
+  - *interactive*: CLI window. PID registered on spawn → hookable mid-flight.
+  - *telegram*: daemon-spawned. PID registered on spawn → hookable while active, resumable when idle.
+
+same identity, same memory, different density. source field reflects this: `auto`, `tg`, `cli`.
+no code branches on source for lifecycle — it's telemetry and tone calibration only.
 
 ## structural mirror: spacebrr
 

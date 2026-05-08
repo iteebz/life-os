@@ -42,9 +42,11 @@ reply after sleep = fresh session, no exceptions.
 
 when a message arrives (tg, daemon timer, etc):
 
-1. is there a hookable session? (pid alive = cli window open) → write inbox, hook surfaces it
-2. else: find resumable session (`state IN ('active','idle')`, ordered by last_active_at) → resume
+1. is there a hookable session? (pid alive) → write inbox, hook surfaces it. covers both CLI windows and active tg turns.
+2. else: find resumable session (`state IN ('active','idle')`, ordered by last_active_at) → resume. only fires when no live process exists.
 3. else: spawn fresh session
+
+tg sessions register their PID on spawn, so an active tg turn is hookable like a CLI window. the resume path is genuinely idle-only, not a workaround for missing PIDs.
 
 "current steward" = most recently active session. if multiple sessions exist in
 parallel (power-user: two cli windows), most recent wins for tg routing.

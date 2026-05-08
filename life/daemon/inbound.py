@@ -17,7 +17,14 @@ from life.daemon.session import build_reply_prompt, build_tg_boot_prompt, load_h
 from life.daemon.shared import log
 from life.lib.clock import is_quiet_now
 from life.lib.store import get_db
-from life.steward import create_session, current_session, hookable_session, set_session_idle, touch_session
+from life.steward import (
+    create_session,
+    current_session,
+    hookable_session,
+    set_session_idle,
+    set_session_pid,
+    touch_session,
+)
 
 
 def handle(channel: str, sender: str, body: str, chat_id: int | None = None, image_path: str | None = None) -> str:
@@ -59,7 +66,7 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None, ima
         _emit("notified", session_id=hooked.id)
         return "notified"
 
-    # 2. Resumable session?
+    # 2. Resumable session? (no live process — if one were alive, hookable_session caught it above)
     tg_chat_id_str = str(chat_id) if chat_id is not None else None
     current = current_session(chat_id=tg_chat_id_str) if channel == "telegram" else current_session()
     if current and current.provider_session_id and channel == "telegram" and chat_id is not None:
@@ -70,6 +77,7 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None, ima
             resume_session_id=current.provider_session_id,
             image_path=image_path,
             steward_session_id=str(current.id),
+            on_pid=lambda pid: set_session_pid(current.id, pid),
         )
         tg.send(chat_id, response)
         set_session_idle(current.id)
@@ -91,7 +99,12 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None, ima
             name=f"tg {sender}",
             chat_id=tg_chat_id_str,
         )
-        response = run_claude(prompt, image_path=image_path, steward_session_id=str(db_sid))
+        response = run_claude(
+            prompt,
+            image_path=image_path,
+            steward_session_id=str(db_sid),
+            on_pid=lambda pid: set_session_pid(db_sid, pid),
+        )
         tg.send(chat_id, response)
         set_session_idle(db_sid)
         log(f"[inbound] new session {db_sid}, responded ({len(response)} chars)")
@@ -154,11 +167,11 @@ def catch_up(chat_id: int) -> str:
 
     sid = create_session(
         summary=f"(catch-up) {len(rows)} msgs",
-        source="daemon",
+        source="tg",
         name="catch-up",
     )
     log(f"[catch-up] {len(rows)} unread message(s), session {sid}")
-    response = run_claude(prompt, steward_session_id=str(sid))
+    response = run_claude(prompt, steward_session_id=str(sid), on_pid=lambda pid: set_session_pid(sid, pid))
     tg.send(chat_id, response)
     set_session_idle(sid)
 

@@ -4,9 +4,11 @@ import json
 import shutil
 import subprocess
 import uuid
+from collections.abc import Callable
 from pathlib import Path
 
 from life.ctx.assemble import build_wake
+from life.lib.env import Mode
 from life.lib.providers.claude import SPAWN_SETTINGS
 from life.lib.providers.claude import build_env as build_claude_env
 
@@ -38,7 +40,15 @@ def run_claude(
     image_path: str | None = None,
     resume_session_id: str | None = None,
     steward_session_id: str | None = None,
+    on_pid: Callable[[int], None] | None = None,
+    mode: Mode = "tg",
 ) -> str:
+    """Spawn claude and return its output.
+
+    on_pid: optional callback called with the process PID immediately after spawn,
+    before waiting. Used by the daemon to register the session as hookable.
+    mode: steward mode injected into env — 'tg' for telegram sessions, 'auto' for autonomous.
+    """
     try:
         claude = _claude_bin()
     except FileNotFoundError as e:
@@ -58,26 +68,32 @@ def run_claude(
     if image_path:
         prompt = f"[image attached at {image_path} — use Read tool to view it]\n\n{prompt}"
 
-    env = build_claude_env("auto")
+    env = build_claude_env(mode)
     env["STEWARD_SESSION_ID"] = steward_session_id or resume_session_id or str(uuid.uuid4())
 
     try:
-        result = subprocess.run(
+        proc = subprocess.Popen(
             cmd,
-            input=prompt,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             cwd=Path.home() / "life",
             env=env,
-            capture_output=True,
             text=True,
-            timeout=timeout,
         )
-        output = result.stdout.strip()
-        if not output and result.stderr:
-            return f"[steward error: {result.stderr[:200]}]"
+        if on_pid is not None:
+            on_pid(proc.pid)
+        try:
+            stdout, stderr = proc.communicate(input=prompt, timeout=timeout)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.communicate()
+            return f"[steward: timed out ({timeout}s)]"
+        output = stdout.strip()
+        if not output and stderr:
+            return f"[steward error: {stderr[:200]}]"
         if len(output) > MAX_RESPONSE_LEN:
             output = output[:MAX_RESPONSE_LEN] + "\n\n[truncated]"
         return output or "[steward: no response]"
-    except subprocess.TimeoutExpired:
-        return f"[steward: timed out ({timeout}s)]"
     except Exception as e:
         return f"[steward error: {e}]"

@@ -204,7 +204,7 @@ def messages_since_last_auto_session() -> int:
     """Return count of inbound human messages (any session) since the last auto session started."""
     with get_db() as conn:
         row = conn.execute(
-            "SELECT started_at FROM sessions WHERE source = 'daemon' "
+            "SELECT started_at FROM sessions WHERE source = 'auto' "
             "ORDER BY COALESCE(started_at, logged_at) DESC LIMIT 1"
         ).fetchone()
         if not row or not row[0]:
