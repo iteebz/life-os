@@ -1,4 +1,4 @@
-"""life hook — context injection for steward spawns.
+"""life hook — context injection for steward sessions.
 
 Mirrors space hook: fires on PreToolUse, injects ambient life context
 so steward stays oriented mid-flight without polling.
@@ -223,6 +223,23 @@ def _ensure_session_row(claude_session_id: str) -> None:
     """Lazy-create session row on first human prompt. No conversation = no row."""
     if claude_session_id == "unknown" or os.environ.get("STEWARD_DB_SESSION_ID"):
         return
+
+    # tg daemon pre-creates a session row and passes its numeric ID as STEWARD_SESSION_ID.
+    # The actual claude UUID arrives at hook time via CLAUDE_SESSION_ID — wire it in.
+    steward_sid = os.environ.get("STEWARD_SESSION_ID", "")
+    if steward_sid.isdigit():
+        actual_uuid = os.environ.get("CLAUDE_SESSION_ID")
+        if actual_uuid:
+            with contextlib.suppress(Exception):
+                with get_db() as conn:
+                    conn.execute(
+                        "UPDATE sessions SET claude_session_id = ?, state = 'active', "
+                        "last_active_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime') "
+                        "WHERE id = ? AND claude_session_id IS NULL",
+                        (actual_uuid, int(steward_sid)),
+                    )
+        return
+
     name = os.environ.get("STEWARD_SESSION_NAME") or claude_session_id[:8]
     model = os.environ.get("STEWARD_SESSION_MODEL")
     source = os.environ.get("STEWARD_SESSION_SOURCE", "cli")
