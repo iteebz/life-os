@@ -21,7 +21,7 @@ from life.daemon.reap import sweep as reap_sweep
 from life.daemon.session import get_user_chat_id
 from life.daemon.shared import (
     DAEMON_DIR,
-    MAX_TG_SPAWNS_PER_HOUR,
+    MAX_TG_SESSIONS_PER_HOUR,
     PEOPLE_DIR,
     log,
 )
@@ -54,7 +54,7 @@ def _telegram_thread(stop: threading.Event, interval: int, claimed_chat: threadi
         log("[telegram] no people with telegram chat_id — thread disabled")
         return
 
-    spawn_times: list[float] = []
+    session_times: list[float] = []
 
     log(f"[telegram] started, {len(allowed)} allowed chat(s), polling every {interval}s")
 
@@ -115,12 +115,12 @@ def _telegram_thread(stop: threading.Event, interval: int, claimed_chat: threadi
                 if not will_resume:
                     now = time.time()
                     cutoff = now - 3600
-                    spawn_times[:] = [t for t in spawn_times if t > cutoff]
-                    if len(spawn_times) >= MAX_TG_SPAWNS_PER_HOUR:
+                    session_times[:] = [t for t in session_times if t > cutoff]
+                    if len(session_times) >= MAX_TG_SESSIONS_PER_HOUR:
                         tg.send(chat_id, "🌱 rate limited — try again in a bit")
-                        log("[telegram] rate limited, skipping spawn")
+                        log("[telegram] rate limited, skipping session")
                         continue
-                    spawn_times.append(now)
+                    session_times.append(now)
 
                 action = handle_inbound("telegram", sender, body, chat_id=chat_id, image_path=image_path)
                 if action in ("responded", "resumed"):

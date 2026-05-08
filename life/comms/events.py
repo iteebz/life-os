@@ -80,6 +80,7 @@ def record_message(
     success: int | None = None,
     error: str | None = None,
     sent_by: str = "steward",
+    session_id: int | None = None,
 ) -> int:
     """Record an inbound or outbound message. Returns event id.
 
@@ -110,8 +111,8 @@ def record_message(
     )
     with get_db() as conn:
         cursor = conn.execute(
-            "INSERT INTO events (ts, kind, peer_id, channel, payload) VALUES (?, ?, ?, ?, ?)",
-            (timestamp, kind, peer_id, channel, payload),
+            "INSERT INTO events (ts, kind, peer_id, channel, session_id, payload) VALUES (?, ?, ?, ?, ?, ?)",
+            (timestamp, kind, peer_id, channel, session_id, payload),
         )
         return cursor.lastrowid
 

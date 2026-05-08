@@ -1,4 +1,4 @@
-"""Claude provider — env flags and settings for steward spawns."""
+"""Claude provider — env flags and settings for steward sessions."""
 
 from life.lib.env import Mode, build_base_env
 

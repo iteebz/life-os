@@ -3,19 +3,18 @@
 Routing:
 1. Hookable session (cli with live pid)? → message already in db, hook drains.
 2. Resumable session (active/idle within warm window)? → resume turn.
-3. Neither? → spawn fresh session.
+3. Neither? → start fresh session.
 """
 
 import contextlib
 import time
-import uuid
 
 from life.comms import events
 from life.comms.messages import telegram as tg
 from life.comms.peers import resolve_or_create
+from life.daemon.claude import fetch_wake_context, run_claude
 from life.daemon.session import build_reply_prompt, build_tg_boot_prompt, load_history_from_db
 from life.daemon.shared import log
-from life.daemon.spawn import fetch_wake_context, spawn_claude
 from life.lib.clock import is_quiet_now
 from life.lib.store import get_db
 from life.steward import create_session, current_session, hookable_session, set_session_idle, touch_session
@@ -66,11 +65,11 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None, ima
     if current and current.claude_session_id and channel == "telegram" and chat_id is not None:
         log(f"[inbound] resuming session {current.id} ({current.claude_session_id[:8]})")
         touch_session(current.id)
-        response = spawn_claude(
+        response = run_claude(
             body,
             resume_session_id=current.claude_session_id,
             image_path=image_path,
-            steward_session_id=current.claude_session_id,
+            steward_session_id=str(current.id),
         )
         tg.send(chat_id, response)
         set_session_idle(current.id)
@@ -86,15 +85,13 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None, ima
             context = fetch_wake_context()
             prompt = build_tg_boot_prompt(body, sender, context)
 
-        session_id = str(uuid.uuid4())
         db_sid = create_session(
             summary=f"(tg) {sender}",
             source="tg",
             name=f"tg {sender}",
             chat_id=tg_chat_id_str,
-            claude_session_id=session_id,
         )
-        response = spawn_claude(prompt, image_path=image_path, steward_session_id=session_id)
+        response = run_claude(prompt, image_path=image_path, steward_session_id=str(db_sid))
         tg.send(chat_id, response)
         set_session_idle(db_sid)
         log(f"[inbound] new session {db_sid}, responded ({len(response)} chars)")
@@ -161,7 +158,7 @@ def catch_up(chat_id: int) -> str:
         name="catch-up",
     )
     log(f"[catch-up] {len(rows)} unread message(s), session {sid}")
-    response = spawn_claude(prompt)
+    response = run_claude(prompt, steward_session_id=str(sid))
     tg.send(chat_id, response)
     set_session_idle(sid)
 

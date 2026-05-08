@@ -13,9 +13,9 @@ from datetime import datetime
 
 from life.comms.messages.telegram import get_history
 from life.core.config import auto_sessions_enabled, get_user_name
+from life.daemon.claude import fetch_wake_context
 from life.daemon.session import get_user_chat_id, load_memory, run_session
 from life.daemon.shared import log
-from life.daemon.spawn import fetch_wake_context
 
 MORNING_HOUR = 8
 NIGHTLY_HOUR = 20

@@ -20,7 +20,7 @@ from life.loop import load_loop_state, require_real_world_closure, save_loop_sta
 from life.steward._stream import StreamParser, ansi_strip, format_entry
 from life.task import get_all_tasks, get_tasks
 
-from . import close_session, create_session, messages_since_last_auto_spawn
+from . import close_session, create_session, messages_since_last_auto_session
 
 _STEWARD_DIR = Path.home() / ".life" / "steward"
 _OFF_SENTINEL = _STEWARD_DIR / "off"
@@ -223,7 +223,7 @@ def run_autonomous() -> None:
     required_task = _select_required_real_world_task(tasks_before) if gate_required else None
 
     prompt = _steward_prompt()
-    msg_count = messages_since_last_auto_spawn()
+    msg_count = messages_since_last_auto_session()
     if msg_count == 0:
         prompt += (
             "\n\nSILENCE WINDOW: No human messages since last auto spawn. "
@@ -357,7 +357,7 @@ def tail(watch: bool = False) -> None:
     """replay last steward spawn; -w to follow live"""
     path = _latest_spawn_file()
     if not path:
-        print("no steward spawns found")
+        print("no steward sessions found")
         return
 
     parser = StreamParser(identity="steward")

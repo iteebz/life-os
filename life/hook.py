@@ -200,12 +200,27 @@ CTX_MAX_CHARS = 100_000
 WRAP_THRESHOLD_SECONDS = 3300  # 55m
 
 
+def _db_session_id(claude_session_id: str) -> int | None:
+    """Resolve claude_session_id or numeric string to DB sessions.id."""
+    if claude_session_id.isdigit():
+        return int(claude_session_id)
+    with contextlib.suppress(Exception):
+        with get_db() as conn:
+            row = conn.execute(
+                "SELECT id FROM sessions WHERE claude_session_id = ? ORDER BY id DESC LIMIT 1",
+                (claude_session_id,),
+            ).fetchone()
+            return row[0] if row else None
+    return None
+
+
 def _log_turn(direction: str, body: str, session_id: str) -> None:
     if len(body) > 10000:
         body = body[:10000] + f"\n... [{len(body) - 10000} chars truncated]"
     ts = int(time.time())
     msg_id = f"chat-{session_id[:8]}-{ts}-{direction}"
     peer_name = get_user_name() if direction == "in" else "steward"
+    db_sid = _db_session_id(session_id)
     with contextlib.suppress(Exception):
         events.record_message(
             channel="chat",
@@ -216,6 +231,7 @@ def _log_turn(direction: str, body: str, session_id: str) -> None:
             raw_id=msg_id,
             peer_name=peer_name,
             sent_by=peer_name,
+            session_id=db_sid,
         )
 
 

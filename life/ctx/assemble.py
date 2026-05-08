@@ -1,6 +1,6 @@
 """Assemble sections into prompt strings.
 
-build_wake() — full wake snapshot, used by `steward wake` CLI and daemon spawns.
+build_wake() — full wake snapshot, used by `steward wake` CLI and daemon sessions.
 build_chat_prompt() — wake + constitution for chat --append-system-prompt.
 """
 

@@ -156,7 +156,7 @@ TG_WARM_WINDOW_SECONDS = 55 * 60  # 55m — stays within 1hr cache window
 def current_session(chat_id: str | None = None) -> Session | None:
     """Most recently active resumable session within the warm window.
 
-    If chat_id is given, scopes to that TG conversation's spawn.
+    If chat_id is given, scopes to that TG conversation's session.
     """
     if chat_id is not None:
         with get_db() as conn:
@@ -200,8 +200,8 @@ def hookable_session() -> Session | None:
     return None
 
 
-def messages_since_last_auto_spawn() -> int:
-    """Return count of inbound human messages (any session) since the last auto spawn started."""
+def messages_since_last_auto_session() -> int:
+    """Return count of inbound human messages (any session) since the last auto session started."""
     with get_db() as conn:
         row = conn.execute(
             "SELECT started_at FROM sessions WHERE source = 'daemon' "

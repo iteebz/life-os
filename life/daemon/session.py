@@ -7,9 +7,9 @@ from pathlib import Path
 from life.comms.events import mark_read_for_session
 from life.comms.messages import telegram as tg
 from life.core.config import get_user_name
+from life.daemon.claude import run_claude
 from life.daemon.commands import handle_command
 from life.daemon.shared import TG_SESSION_TIMEOUT, log
-from life.daemon.spawn import spawn_claude
 from life.lib.clock import is_quiet_now
 from life.lib.resolve import resolve_people_field
 from life.lib.store import get_db
@@ -134,7 +134,7 @@ def run_session(
         if history:
             log(f"[{label}] loaded {len(history)} messages from DB")
 
-    response = spawn_claude(opener)
+    response = run_claude(opener, steward_session_id=str(db_session_id))
     tg.send(chat_id, response)
     log(f"[{label}] opener sent ({len(response)} chars)")
 
@@ -173,7 +173,7 @@ def run_session(
             history.append({"role": "user", "text": body})
             prompt = build_reply_prompt(history, body, tone=tone)
             image = msg.get("image_path")
-            reply = spawn_claude(prompt, image_path=image)
+            reply = run_claude(prompt, image_path=image, steward_session_id=str(db_session_id))
             history.append({"role": "assistant", "text": reply})
 
             tg.send(chat_id, reply)
