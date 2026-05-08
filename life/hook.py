@@ -235,25 +235,27 @@ def _log_turn(direction: str, body: str, session_id: str) -> None:
         )
 
 
-def _ensure_session_row(provider_session_id: str, claude_uuid: str | None = None) -> None:
-    """Lazy-create session row on first human prompt. No conversation = no row."""
+def _ensure_session_row(provider_session_id: str) -> None:
+    """Lazy-create session row on first human prompt. No conversation = no row.
+
+    `provider_session_id` is the upstream provider's UUID (e.g. claude's session_id
+    from the hook event payload). In cli mode the launcher sets STEWARD_SESSION_ID
+    to that same UUID. In tg mode STEWARD_SESSION_ID is the numeric db id and we
+    backfill the row's provider_session_id with the UUID from the event.
+    """
     if provider_session_id == "unknown" or os.environ.get("STEWARD_DB_SESSION_ID"):
         return
 
-    # tg daemon pre-creates a session row and passes its numeric ID as STEWARD_SESSION_ID.
-    # The actual claude UUID arrives at hook time via the event payload — wire it in.
     steward_sid = os.environ.get("STEWARD_SESSION_ID", "")
     if steward_sid.isdigit():
-        actual_uuid = claude_uuid
-        if actual_uuid:
-            with contextlib.suppress(Exception):
-                with get_db() as conn:
-                    conn.execute(
-                        "UPDATE sessions SET provider_session_id = ?, state = 'active', "
-                        "last_active_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime') "
-                        "WHERE id = ? AND provider_session_id IS NULL",
-                        (actual_uuid, int(steward_sid)),
-                    )
+        with contextlib.suppress(Exception):
+            with get_db() as conn:
+                conn.execute(
+                    "UPDATE sessions SET provider_session_id = ?, state = 'active', "
+                    "last_active_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime') "
+                    "WHERE id = ? AND provider_session_id IS NULL",
+                    (provider_session_id, int(steward_sid)),
+                )
         return
 
     name = os.environ.get("STEWARD_SESSION_NAME") or provider_session_id[:8]
@@ -334,13 +336,13 @@ def cmd_hook_prompt() -> None:
     body = (data.get("prompt") or "").strip()
     if not body:
         return
-    session_id = os.environ.get("STEWARD_SESSION_ID", "unknown")
-    _ensure_session_row(session_id, claude_uuid=data.get("session_id"))
-    _log_turn("in", body, session_id)
+    provider_sid = data.get("session_id") or os.environ.get("STEWARD_SESSION_ID", "unknown")
+    _ensure_session_row(provider_sid)
+    _log_turn("in", body, provider_sid)
     rows = events.drain_inbox()
     if rows:
         print("\n[new messages received while you were working]\n" + "\n".join(_render_inbox(rows)))
-    _surface_session_meta(session_id)
+    _surface_session_meta(provider_sid)
 
 
 def cmd_hook_stop() -> None:
@@ -350,8 +352,8 @@ def cmd_hook_stop() -> None:
     body = (data.get("response") or data.get("stopReason") or "").strip()
     if not body:
         return
-    session_id = os.environ.get("STEWARD_SESSION_ID", "unknown")
-    _log_turn("out", body, session_id)
+    provider_sid = data.get("session_id") or os.environ.get("STEWARD_SESSION_ID", "unknown")
+    _log_turn("out", body, provider_sid)
 
 
 def _auto_sleep_summary(session_id: str) -> str:
