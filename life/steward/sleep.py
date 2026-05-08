@@ -86,7 +86,7 @@ def sleep(note: str, handover: str | None = None, welfare: int | None = None):
         close_session(db_id, summary=note, handover=handover, welfare=welfare)
         with get_db() as conn:
             session_row = conn.execute(
-                "SELECT runtime_seconds, welfare FROM sessions WHERE id = ?", (db_id,)
+                "SELECT runtime_seconds, welfare, source FROM sessions WHERE id = ?", (db_id,)
             ).fetchone()
         runtime_str = ""
         welfare_str = ""
@@ -102,9 +102,11 @@ def sleep(note: str, handover: str | None = None, welfare: int | None = None):
         welfare_str = ""
     handover_str = f"  handover: {handover}" if handover else ""
     print(f"→ session closed{runtime_str}{welfare_str}{handover_str}")
-    runtime_mins = (session_row[0] // 60) if (session_row and session_row[0]) else None
-    welfare_val = (session_row[1]) if (session_row and session_row[1]) else welfare
-    _notify_tg(note, runtime_mins, welfare_val)
+    source = session_row[2] if session_row else None
+    if source in ("tg", "auto", "daemon"):
+        runtime_mins = (session_row[0] // 60) if (session_row and session_row[0]) else None
+        welfare_val = (session_row[1]) if (session_row and session_row[1]) else welfare
+        _notify_tg(note, runtime_mins, welfare_val)
     _push_repos()
 
 
