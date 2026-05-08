@@ -33,7 +33,7 @@ def fetch_wake_context() -> str:
 
 def spawn_claude(
     prompt: str,
-    timeout: int = 300,
+    timeout: int = 600,
     image_path: str | None = None,
     resume_session_id: str | None = None,
 ) -> str:

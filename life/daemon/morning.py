@@ -1,7 +1,10 @@
 """Morning + nightly steward sessions via Telegram.
 
-Morning: fires once at 8am unconditionally.
+Morning: fires once at 8am IF auto is on and user responded to the previous check-in.
 Nightly: fires once at 8pm ONLY if user was active today (sent a telegram message).
+
+Engagement gate: if the user didn't respond to the last check-in, morning skips until
+they send a message first. Resets on any inbound telegram message.
 """
 
 import threading
@@ -63,6 +66,13 @@ def _user_active_today(chat_id: int) -> bool:
     return any(m["direction"] == "in" for m in msgs)
 
 
+def _user_responded_since(chat_id: int, since_ts: float) -> bool:
+    """Check if user sent any message after a given timestamp."""
+    hours_back = max(1, int((time.time() - since_ts) / 3600) + 1)
+    msgs = get_history(chat_id=chat_id, limit=20, hours=hours_back)
+    return any(m["direction"] == "in" and m.get("timestamp", 0) > since_ts for m in msgs)
+
+
 def morning_thread(stop: threading.Event, claimed_chat: threading.Event) -> None:
     chat_id = get_user_chat_id()
     if not chat_id:
@@ -72,6 +82,7 @@ def morning_thread(stop: threading.Event, claimed_chat: threading.Event) -> None
     log(f"[morning] thread started, morning={MORNING_HOUR}:00 nightly={NIGHTLY_HOUR}:00")
     morning_triggered: str | None = None
     nightly_triggered: str | None = None
+    last_checkin_ts: float | None = None  # when we last sent an unprompted check-in
 
     while not stop.is_set():
         now = datetime.now()
@@ -80,21 +91,30 @@ def morning_thread(stop: threading.Event, claimed_chat: threading.Event) -> None
         if now.hour == MORNING_HOUR and morning_triggered != today_str:
             morning_triggered = today_str
             if not claimed_chat.is_set() and auto_sessions_enabled():
-                opener = _build_opener()
-                run_session(
-                    chat_id,
-                    opener,
-                    stop,
-                    claimed_chat,
-                    label="morning",
-                    tone="Soft morning tone.",
-                )
+                # skip if last check-in went unanswered
+                if last_checkin_ts and not _user_responded_since(chat_id, last_checkin_ts):
+                    log("[morning] last check-in unanswered — skipping until user engages")
+                else:
+                    opener = _build_opener()
+                    last_checkin_ts = time.time()
+                    run_session(
+                        chat_id,
+                        opener,
+                        stop,
+                        claimed_chat,
+                        label="morning",
+                        tone="Soft morning tone.",
+                    )
+                    # reset gate if user engaged during this session
+                    if _user_responded_since(chat_id, last_checkin_ts):
+                        last_checkin_ts = None
 
         if now.hour == NIGHTLY_HOUR and nightly_triggered != today_str:
             nightly_triggered = today_str
             if not claimed_chat.is_set() and auto_sessions_enabled() and _user_active_today(chat_id):
                 log("[nightly] user was active today — triggering")
                 opener = _build_nightly_opener()
+                last_checkin_ts = time.time()
                 run_session(
                     chat_id,
                     opener,
@@ -103,6 +123,8 @@ def morning_thread(stop: threading.Event, claimed_chat: threading.Event) -> None
                     label="nightly",
                     tone="Warm wind-down tone.",
                 )
+                if _user_responded_since(chat_id, last_checkin_ts):
+                    last_checkin_ts = None
             elif not _user_active_today(chat_id):
                 log("[nightly] user off-grid today — skipping")
 
