@@ -26,6 +26,7 @@ from life.daemon.shared import (
     log,
 )
 from life.lib.clock import is_quiet_now
+from life.steward import current_session, hookable_session
 from life.steward.auto import run_autonomous
 
 
@@ -99,14 +100,6 @@ def _telegram_thread(stop: threading.Event, interval: int, claimed_chat: threadi
                 if not remaining:
                     continue
 
-                now = time.time()
-                cutoff = now - 3600
-                spawn_times[:] = [t for t in spawn_times if t > cutoff]
-                if len(spawn_times) >= MAX_TG_SPAWNS_PER_HOUR:
-                    tg.send(chat_id, "🌱 rate limited — try again in a bit")
-                    log("[telegram] rate limited, skipping spawn")
-                    continue
-
                 sender = remaining[-1].get("from_name", "unknown")
                 if len(remaining) == 1:
                     body = remaining[0]["body"]
@@ -116,7 +109,19 @@ def _telegram_thread(stop: threading.Event, interval: int, claimed_chat: threadi
 
                 image_path = remaining[-1].get("image_path")
                 log(f"[telegram] [{sender}] {body[:80]}")
-                spawn_times.append(now)
+
+                # rate-limit fresh spawns only — resumes and hookable sessions are free
+                will_resume = hookable_session() or current_session()
+                if not will_resume:
+                    now = time.time()
+                    cutoff = now - 3600
+                    spawn_times[:] = [t for t in spawn_times if t > cutoff]
+                    if len(spawn_times) >= MAX_TG_SPAWNS_PER_HOUR:
+                        tg.send(chat_id, "🌱 rate limited — try again in a bit")
+                        log("[telegram] rate limited, skipping spawn")
+                        continue
+                    spawn_times.append(now)
+
                 action = handle_inbound("telegram", sender, body, chat_id=chat_id, image_path=image_path)
                 if action in ("responded", "resumed"):
                     mark_read_for_session(chat_id)
