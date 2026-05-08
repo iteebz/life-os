@@ -27,13 +27,13 @@ from life.store.migrations import init
 from life.task import get_tasks
 
 # Hook state file — throttle map persisted per session.
-# Keyed by STEWARD_SESSION_ID (falls back to CLAUDE_SESSION_ID or PID).
+# Keyed by STEWARD_SESSION_ID (falls back to PID).
 _STATE: dict[str, str] = {}
 _STATE_PATH: Path | None = None
 
 
 def _state_path() -> Path:
-    key = os.environ.get("STEWARD_SESSION_ID") or os.environ.get("CLAUDE_SESSION_ID") or str(os.getppid())
+    key = os.environ.get("STEWARD_SESSION_ID") or str(os.getppid())
     return Path(os.environ.get("TMPDIR", "/tmp")) / f".life_hook_{key}"
 
 
@@ -235,16 +235,16 @@ def _log_turn(direction: str, body: str, session_id: str) -> None:
         )
 
 
-def _ensure_session_row(provider_session_id: str) -> None:
+def _ensure_session_row(provider_session_id: str, claude_uuid: str | None = None) -> None:
     """Lazy-create session row on first human prompt. No conversation = no row."""
     if provider_session_id == "unknown" or os.environ.get("STEWARD_DB_SESSION_ID"):
         return
 
     # tg daemon pre-creates a session row and passes its numeric ID as STEWARD_SESSION_ID.
-    # The actual claude UUID arrives at hook time via CLAUDE_SESSION_ID — wire it in.
+    # The actual claude UUID arrives at hook time via the event payload — wire it in.
     steward_sid = os.environ.get("STEWARD_SESSION_ID", "")
     if steward_sid.isdigit():
-        actual_uuid = os.environ.get("CLAUDE_SESSION_ID")
+        actual_uuid = claude_uuid
         if actual_uuid:
             with contextlib.suppress(Exception):
                 with get_db() as conn:
@@ -335,7 +335,7 @@ def cmd_hook_prompt() -> None:
     if not body:
         return
     session_id = os.environ.get("STEWARD_SESSION_ID", "unknown")
-    _ensure_session_row(session_id)
+    _ensure_session_row(session_id, claude_uuid=data.get("session_id"))
     _log_turn("in", body, session_id)
     rows = events.drain_inbox()
     if rows:

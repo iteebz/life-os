@@ -1,7 +1,7 @@
 """life steward ctx — show current session context window usage."""
 
 import os
-from datetime import UTC, datetime
+from datetime import datetime
 
 from fncli import cli
 
@@ -15,7 +15,7 @@ CTX_MAX_CHARS = 100_000
 def ctx() -> None:
     """Show current session context window usage."""
     init()
-    session_id = os.environ.get("STEWARD_SESSION_ID") or os.environ.get("CLAUDE_SESSION_ID")
+    session_id = os.environ.get("STEWARD_SESSION_ID")
     if not session_id:
         print("no session ID (STEWARD_SESSION_ID not set)")
         return
@@ -72,8 +72,8 @@ def ctx() -> None:
         chars = char_row[0] if char_row else 0
 
     try:
-        started = datetime.fromisoformat(started_at).replace(tzinfo=UTC)
-        age = int((datetime.now(UTC) - started).total_seconds())
+        started = datetime.fromisoformat(started_at)
+        age = int((datetime.now() - started).total_seconds())
         age_str = f"{age // 60}m" if age >= 60 else f"{age}s"
     except Exception:
         age_str = "?"
