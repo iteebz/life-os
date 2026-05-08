@@ -7,6 +7,7 @@ runtime code reads them here.
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import Literal
 
 # The three steward spawn modes:
@@ -79,6 +80,16 @@ _BLOCKED_KEYS = frozenset(
 )
 
 
+_API_KEY_FILE = Path.home() / ".life" / "api_key"
+
+
+def _read_api_key() -> str | None:
+    """Read API key from file — no keychain, no password prompts, works over SSH."""
+    if _API_KEY_FILE.exists():
+        return _API_KEY_FILE.read_text().strip() or None
+    return None
+
+
 def build_base_env(spawn_mode: Mode) -> dict[str, str]:
     """Build a clean env dict for a steward spawn. Whitelist-only.
 
@@ -92,5 +103,8 @@ def build_base_env(spawn_mode: Mode) -> dict[str, str]:
             environ[key] = val
 
     environ["STEWARD_MODE"] = spawn_mode
+
+    if api_key := _read_api_key():
+        environ["ANTHROPIC_API_KEY"] = api_key
 
     return environ

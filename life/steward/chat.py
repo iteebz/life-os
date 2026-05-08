@@ -87,17 +87,7 @@ def _build_system_prompt(source: str, raw: bool) -> str:
     return "\n\n".join(parts)
 
 
-def _unlock_keychain() -> None:
-    if os.environ.get("KEYCHAIN_UNLOCKED"):
-        return
-    if not (os.environ.get("SSH_CONNECTION") or os.environ.get("SSH_TTY") or os.environ.get("SSH_CLIENT")):
-        os.environ["KEYCHAIN_UNLOCKED"] = "true"
-        return
-    home = Path.home()
-    keychain = home / "Library" / "Keychains" / "login.keychain-db"
-    if keychain.exists():
-        subprocess.run(["security", "unlock-keychain", str(keychain)])
-        os.environ["KEYCHAIN_UNLOCKED"] = "true"
+_API_KEY_FILE = Path.home() / ".life" / "api_key"
 
 
 def _launch(
@@ -145,7 +135,6 @@ def _launch(
     else:
         cmd.extend(["--session-id", session_id])
 
-    _unlock_keychain()
     env = build_env("chat")
     env["STEWARD_SESSION_ID"] = session_id
     if db_session_id is not None:
@@ -183,6 +172,15 @@ def _persist_followup(claude_session_id: str, followups: list[datetime]) -> None
     db_id = _lookup_session_id(claude_session_id)
     if db_id is not None:
         update_session_followups(db_id, [ts.isoformat() for ts in followups])
+
+
+@cli("life steward", flags={"key": []})
+def set_key(key: str):
+    """Store API key in ~/.life/api_key (no keychain, works over SSH)"""
+    _API_KEY_FILE.parent.mkdir(parents=True, exist_ok=True)
+    _API_KEY_FILE.write_text(key.strip() + "\n")
+    _API_KEY_FILE.chmod(0o600)
+    print(f"key stored → {_API_KEY_FILE}")
 
 
 @cli(
