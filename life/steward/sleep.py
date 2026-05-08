@@ -16,7 +16,6 @@ from . import (
     add_observation,
     clear_handover,
     close_session,
-    create_session,
     get_observations,
 )
 
@@ -97,7 +96,6 @@ def sleep(note: str, handover: str | None = None, welfare: int | None = None):
             if session_row[1]:
                 welfare_str = f"  welfare {session_row[1]}/10"
     else:
-        create_session(note, source="unknown")
         runtime_str = ""
         welfare_str = ""
     handover_str = f"  handover: {handover}" if handover else ""

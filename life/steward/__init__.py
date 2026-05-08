@@ -49,6 +49,11 @@ def create_session(
     chat_id: str | None = None,
 ) -> int:
     with get_db() as conn:
+        conn.execute(
+            "UPDATE sessions SET state = 'closed', "
+            "ended_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime') "
+            "WHERE state IN ('active', 'idle')"
+        )
         cursor = conn.execute(
             "INSERT INTO sessions (summary, provider_session_id, name, model, source, "
             "state, started_at, last_active_at, pid, chat_id) "
