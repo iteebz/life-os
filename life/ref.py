@@ -17,6 +17,9 @@ def _resolve_and_print(ref: str) -> bool:
     if prefix in ("i", "imp"):
         return _try_imp(fragment)
 
+    if prefix in ("t", "task"):
+        return _try_task(fragment)
+
     # default: task first, then obs, then imp, then session
     if _try_task(ref):
         return True
@@ -25,6 +28,19 @@ def _resolve_and_print(ref: str) -> bool:
     if _try_imp(fragment):
         return True
     return fragment.isdigit() and _try_session(fragment)
+
+
+def _print_notes(entity_type: str, entity_id: str) -> None:
+    from life.note import get_notes  # noqa: PLC0415
+
+    notes = get_notes(entity_type, entity_id)
+    # also try 8-char prefix — life note stores whatever the user typed
+    if not notes and len(entity_id) > 8:
+        notes = get_notes(entity_type, entity_id[:8])
+    if notes:
+        print("  notes:")
+        for n in notes:
+            print(f"    · {n.body}")
 
 
 def _try_task(ref: str) -> bool:
@@ -47,6 +63,7 @@ def _try_task(ref: str) -> bool:
         subtasks = get_subtasks(t.id)
         mutations = get_mutations(t.id)
         print(render_task_detail(t, subtasks, mutations))
+    _print_notes("task", t.id)
     return True
 
 
@@ -63,6 +80,7 @@ def _try_obs(fragment: str) -> bool:
     print(f"  {obs.body}")
     if obs.about_date:
         print(f"  about: {obs.about_date}")
+    _print_notes("observation", obs.id)
     return True
 
 
@@ -77,6 +95,7 @@ def _try_imp(fragment: str) -> bool:
     date_str = imp.logged_at.strftime("%Y-%m-%d")
     print(f"{status} imp/{imp.id[:8]}  {date_str}")
     print(f"  {imp.body}")
+    _print_notes("improvement", imp.id)
     return True
 
 

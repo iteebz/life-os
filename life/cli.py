@@ -84,6 +84,14 @@ def main():
     # life steward --opus → life steward chat --opus
     if len(user_args) >= 2 and user_args[0] == "steward" and user_args[1] in _STEWARD_CHAT_FLAGS:
         user_args = ["steward", "chat", *user_args[1:]]
+    # life t/abc123, life o/abc, life i/abc, life s/201 → resolve ref directly
+    if len(user_args) == 1 and "/" in user_args[0] and not user_args[0].startswith("-"):
+        from .ref import _resolve_and_print  # noqa: PLC0415
+
+        if not _resolve_and_print(user_args[0]):
+            sys.stderr.write(f"nothing found: '{user_args[0]}'\n")
+            sys.exit(1)
+        return
     if user_args[0] == "hook":
         from .hook import main as hook_main  # noqa: PLC0415
 
