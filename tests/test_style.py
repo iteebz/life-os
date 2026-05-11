@@ -1,6 +1,7 @@
 """Style ratchet: enforces import conventions across the codebase."""
 
 import ast
+import re
 from pathlib import Path
 
 LIFE_ROOT = Path(__file__).parent.parent / "life"
@@ -61,25 +62,21 @@ def test_no_underscore_prefix_import_aliases():
     assert not failures, "underscore-prefix import aliases found:\n" + "\n".join(failures)
 
 
+# ─ (U+2500), ━ (U+2501), ═ (U+2550) box-drawing chars plus ASCII hyphens
+_sep_pattern = re.compile(r"#[^\n]*[─━═\-]{4,}")
+
+
 def test_no_separator_comments():
     """No filler separator comments like `# ──────` or `# ----`.
 
     These eat context without adding signal. Use blank lines or just
     nothing — the code structure speaks for itself.
     """
-    import re
-
-    # ─ (U+2500), ━ (U+2501), ═ (U+2550) box-drawing chars plus ASCII hyphens
-    SEP_PATTERN = re.compile(r"#[^\n]*[─━═\-]{4,}")
-
     failures = []
     for path in sorted(LIFE_ROOT.rglob("*.py")):
-        try:
-            lines = path.read_text().splitlines()
-        except Exception:
-            continue
+        lines = path.read_text().splitlines()
         for lineno, line in enumerate(lines, 1):
-            if SEP_PATTERN.search(line):
+            if _sep_pattern.search(line):
                 failures.append(f"  {path.relative_to(LIFE_ROOT.parent)}:{lineno}  {line.strip()}")
 
     assert not failures, "separator comments found (delete them):\n" + "\n".join(failures)
