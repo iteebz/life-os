@@ -356,3 +356,16 @@ def render_xmit() -> str:
         return f"XMIT (new messages):\n{out}"
     except Exception:
         return ""
+
+
+def render_today() -> str:
+    try:
+        result = subprocess.run(["life"], capture_output=True, text=True, timeout=10)
+        out = result.stdout.strip()
+        if not out:
+            return ""
+        ansi_escape = re.compile(r"\x1b\[[0-9;]*m")
+        clean = ansi_escape.sub("", out)
+        return f"TODAY:\n{clean}"
+    except Exception:
+        return ""

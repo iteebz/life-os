@@ -21,6 +21,7 @@ CONSTITUTION = [
 # Order = priority. Identity-ish first, ambient state last.
 WAKE_ORDER = [
     sections.render_header,
+    sections.render_today,
     sections.render_milestones,
     sections.render_handover,
     sections.render_steward_tasks,
