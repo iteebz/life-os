@@ -35,9 +35,6 @@ __all__ = [
 ]
 
 
-# ── domain ───────────────────────────────────────────────────────────────────
-
-
 _HABIT_COLS = "id, content, created, archived_at, parent_id, private, cadence, scheduled_time"
 
 
@@ -340,9 +337,6 @@ def check_habit_cmd(habit: Habit, check_time: str | None = None) -> None:
             today_checks = [c for c in updated.checks if c.date() == today_date]
             time_str = max(today_checks).strftime("%H:%M") if today_checks else ""
             render_done_row(habit.content.lower(), time_str, habit.tags, habit.id, is_habit=True)
-
-
-# ── cli ──────────────────────────────────────────────────────────────────────
 
 
 @cli("life")

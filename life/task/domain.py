@@ -38,8 +38,6 @@ __all__ = [
 ]
 
 
-# ── domain ───────────────────────────────────────────────────────────────────
-
 _TASK_COLS = (
     "id, content, focus, scheduled_date, created, completed_at, "
     "parent_id, scheduled_time, blocked_by, notes, steward, source, is_deadline"

@@ -25,9 +25,6 @@ _R = theme.reset
 _GREY = theme.muted
 
 
-# ── primitives ────────────────────────────────────────────────────────────────
-
-
 def _primary_tag(task: Task) -> str | None:
     tags = task.tags or []
     non_aux = [t for t in tags if t not in AUX_TAGS]
@@ -92,9 +89,6 @@ def _get_trend(current: int, previous: int) -> str:
     return "↗" if current > previous else "↘" if current < previous else "→"
 
 
-# ── render context ────────────────────────────────────────────────────────────
-
-
 @dataclasses.dataclass
 class RenderCtx:
     today: date
@@ -126,9 +120,6 @@ class RenderCtx:
             id_to_content={t.id: t.content for t in pending},
             subtask_ids={t.id for t in pending if t.parent_id},
         )
-
-
-# ── row renderers ─────────────────────────────────────────────────────────────
 
 
 def _row_subtask(sub: Task, ctx: RenderCtx, indent: str = "  └ ") -> str:
@@ -187,44 +178,65 @@ def _row_task(
     return rows
 
 
-def _row_habit(habit: Habit, checked_ids: set[str], ctx: RenderCtx, indent: str = "  ") -> list[str]:
-    tags_str = _fmt_tags(habit.tags, ctx.tag_colors)
-    id_str = f" {dim('[' + habit.id[:8] + ']')}"
-
+def _habit_counts(habit: Habit, today: date) -> tuple[int, int]:
+    """Return (count_p1, count_p2) for trend calculation."""
     if habit.cadence == "weekly":
-        # Trend: last 4 weeks vs prior 4 weeks
+
         def _weeks_hit(start: date, end: date) -> int:
             dates = {dt.date() for dt in habit.checks if start <= dt.date() <= end}
             return len({d.isocalendar()[1] for d in dates})
 
-        p1_start = ctx.today - timedelta(weeks=4)
-        p2_start = ctx.today - timedelta(weeks=8)
+        p1_start = today - timedelta(weeks=4)
+        p2_start = today - timedelta(weeks=8)
         p2_end = p1_start - timedelta(days=1)
-        count_p1 = _weeks_hit(p1_start, ctx.today)
-        count_p2 = _weeks_hit(p2_start, p2_end)
-        cadence_label = ""
-    else:
-        p1_start = ctx.today - timedelta(days=6)
-        p2_start = ctx.today - timedelta(days=13)
-        p2_end = p1_start - timedelta(days=1)
-        count_p1 = sum(1 for dt in habit.checks if p1_start <= dt.date() <= ctx.today)
-        count_p2 = sum(1 for dt in habit.checks if p2_start <= dt.date() <= p2_end)
-        cadence_label = ""
+        return _weeks_hit(p1_start, today), _weeks_hit(p2_start, p2_end)
+    p1_start = today - timedelta(days=6)
+    p2_start = today - timedelta(days=13)
+    p2_end = p1_start - timedelta(days=1)
+    return (
+        sum(1 for dt in habit.checks if p1_start <= dt.date() <= today),
+        sum(1 for dt in habit.checks if p2_start <= dt.date() <= p2_end),
+    )
 
+
+def _row_habit(habit: Habit, checked_ids: set[str], ctx: RenderCtx, indent: str = "  ") -> list[str]:
+    tags_str = _fmt_tags(habit.tags, ctx.tag_colors)
+    id_str = f" {dim('[' + habit.id[:8] + ']')}"
+    count_p1, count_p2 = _habit_counts(habit, ctx.today)
     trend = "↗" if count_p1 > count_p2 else "↘" if count_p1 < count_p2 else "→"
     time_str = f" {gray(habit.scheduled_time)}" if habit.scheduled_time else ""
     if habit.id in checked_ids:
-        label = f"{gray(habit.content.lower())}{cadence_label}{tags_str}"
+        label = f"{gray(habit.content.lower())}{tags_str}"
         lines = [f"{indent}{purple('●')} {gray(trend)} {label}{time_str}{id_str}"]
     else:
-        label = f"{habit.content.lower()}{cadence_label}{tags_str}"
+        label = f"{habit.content.lower()}{tags_str}"
         lines = [f"{indent}{purple('○')} {gray(trend)} {label}{time_str}{id_str}"]
     for sub in get_subhabits(habit.id):
         lines.extend(_row_habit(sub, checked_ids, ctx, indent="   └ "))
     return lines
 
 
-# ── sections ──────────────────────────────────────────────────────────────────
+def _row_vice(habit: Habit, checked_ids: set[str], ctx: RenderCtx) -> list[str]:
+    """Render a vice row — inverted: checked (used) is bad, clean is good."""
+    id_str = f" {dim('[' + habit.id[:8] + ']')}"
+    count_p1, count_p2 = _habit_counts(habit, ctx.today)
+    # For vices, ↗ (more use) is bad (red), ↘ (less use) is good (green)
+    if count_p1 > count_p2:
+        trend_str = red("↗")
+    elif count_p1 < count_p2:
+        trend_str = green("↘")
+    else:
+        trend_str = gray("→")
+    time_str = f" {gray(habit.scheduled_time)}" if habit.scheduled_time else ""
+    if habit.id in checked_ids:
+        # Used today — bad
+        label = f"{red(habit.content.lower())}"
+        lines = [f"  {red('●')} {trend_str} {label}{time_str}{id_str}"]
+    else:
+        # Clean today — good
+        label = f"{gray(habit.content.lower())}"
+        lines = [f"  {green('○')} {trend_str} {label}{time_str}{id_str}"]
+    return lines
 
 
 def _section_header(
@@ -336,7 +348,7 @@ def _section_schedule(
 
 
 def _section_habits(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) -> list[str]:
-    visible = [h for h in habits if not h.private and not h.parent_id]
+    visible = [h for h in habits if not h.private and not h.parent_id and "vice" not in (h.tags or [])]
     if not visible:
         return []
 
@@ -377,6 +389,18 @@ def _section_habits(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) 
     return lines
 
 
+def _section_vices(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) -> list[str]:
+    vices = [h for h in habits if not h.private and not h.parent_id and "vice" in (h.tags or [])]
+    if not vices:
+        return []
+
+    clean_count = sum(1 for h in vices if h.id not in checked_ids)
+    lines = [f"\n{theme.bold}{theme.red}VICES ({clean_count}/{len(vices)} clean){_R}"]
+    for vice in sorted(vices, key=lambda h: h.content.lower()):
+        lines.extend(_row_vice(vice, checked_ids, ctx))
+    return lines
+
+
 def _section_backlog(
     tasks: list[Task],
     ctx: RenderCtx,
@@ -401,9 +425,6 @@ def _section_backlog(
         for task in groups[tag]:
             lines.extend(_row_task(task, ctx, completed_subs, tags_override=task.tags))
     return lines
-
-
-# ── views ─────────────────────────────────────────────────────────────────────
 
 
 def render_dashboard(
@@ -451,6 +472,7 @@ def render_dashboard(
     checked_ids = {i.id for i in today_habit_items}
     all_habits = list(set(habits + today_habit_items))
     lines += _section_habits(all_habits, checked_ids, ctx)
+    lines += _section_vices(all_habits, checked_ids, ctx)
 
     for offset in range(1, 15):
         day = ctx.today + timedelta(days=offset)

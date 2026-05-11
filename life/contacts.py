@@ -120,9 +120,6 @@ def _render_contacts() -> str:
     return "\n".join(lines)
 
 
-# ── cli ──────────────────────────────────────────────────────────────────────
-
-
 @cli("life")
 def contacts() -> None:
     """List tracked contacts with staleness"""
