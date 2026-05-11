@@ -61,6 +61,7 @@ def _push_repos() -> None:
             print(f"  {name}: {msg}")
 
 
+@cli("life", flags={"note": [], "handover": ["-h", "--handover"], "welfare": ["-w", "--welfare"]})
 @cli("life steward", flags={"note": [], "handover": ["-h", "--handover"], "welfare": ["-w", "--welfare"]})
 def sleep(note: str, handover: str | None = None, welfare: int | None = None):
     """Close the session — note recaps, --handover points the next steward at the next physical action"""
