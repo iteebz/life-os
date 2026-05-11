@@ -317,7 +317,7 @@ def task(
     done: bool = False,
 ) -> None:
     """List tasks, or create one: `life task "name" -t tag`"""
-    if not ref:
+    if not ref or (len(ref) == 1 and ref[0] in ("list", "ls", "all")):
         tasks = get_tasks()
         if not tasks:
             print("no tasks")
