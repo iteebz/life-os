@@ -63,7 +63,10 @@ def get_day_breakdown(date_str: str) -> tuple[int, int, int, int]:
     """Get breakdown stats for a given date (YYYY-MM-DD)."""
     with get_db() as conn:
         habits_done = conn.execute(
-            "SELECT COUNT(DISTINCT habit_id) FROM habit_checks WHERE DATE(check_date) = DATE(?)",
+            """SELECT COUNT(DISTINCT hc.habit_id) FROM habit_checks hc
+               JOIN habits h ON h.id = hc.habit_id
+               WHERE DATE(hc.check_date) = DATE(?)
+               AND h.id NOT IN (SELECT habit_id FROM tags WHERE tag = 'vice')""",
             (date_str,),
         ).fetchone()[0]
 

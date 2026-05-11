@@ -436,7 +436,7 @@ def render_dashboard(
     ctx = RenderCtx.build(items, today_items)
 
     habits = [i for i in items if isinstance(i, Habit)]
-    total_habits = len({h.id for h in habits})
+    total_habits = len({h.id for h in habits if "vice" not in (h.tags or [])})
 
     upcoming_by_date: dict[date, list[dict[str, object]]] = {}
     for ev in upcoming_dates(within_days=14):
