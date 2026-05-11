@@ -8,6 +8,7 @@ from fncli import cli
 from life.store.migrations import init
 
 
+@cli("life")
 @cli("life steward")
 def wake():
     """Load life state and emit sitrep for interactive session start"""

@@ -109,6 +109,7 @@ def sleep(note: str, handover: str | None = None, welfare: int | None = None):
     _push_repos()
 
 
+@cli("life", flags={"text": [], "done": ["-d", "--done"]})
 @cli("life steward", flags={"text": [], "done": ["-d", "--done"]})
 def handover(text: str | None = None, done: bool = False):
     """Show, set, or mark-done the handover pointer for the next session"""
@@ -128,6 +129,7 @@ def handover(text: str | None = None, done: bool = False):
     print(current or "(no handover)")
 
 
+@cli("life", flags={"body": [], "tag": ["-t", "--tag"], "about": ["-a", "--about"]})
 @cli("life steward", flags={"body": [], "tag": ["-t", "--tag"], "about": ["-a", "--about"]})
 def observe(
     body: str | None = None,

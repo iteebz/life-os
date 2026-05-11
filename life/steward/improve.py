@@ -24,6 +24,7 @@ def _print_improvements(items: list[Improvement], show_done: bool = False) -> No
             print(f"  {label}  {rel:<12}  {i.body}")
 
 
+@cli("life", flags={"body": []})
 @cli("life steward", flags={"body": []})
 def improve(
     body: str | None = None,
@@ -61,6 +62,7 @@ def close(id: str) -> None:
         raise NotFoundError(f"no open improvement matching '{id}'")
 
 
+@cli("life")
 @cli("life steward")
 def improvements(done: bool = False) -> None:
     """Show outstanding (or completed) improvements"""

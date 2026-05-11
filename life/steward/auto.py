@@ -300,6 +300,7 @@ def run_autonomous() -> None:
         raise LifeError("steward gate failed: no real-world task was closed")
 
 
+@cli("life")
 @cli("life steward")
 def on(
     cycles: int = 1,
@@ -323,6 +324,7 @@ def on(
                 time.sleep(every)
 
 
+@cli("life")
 @cli("life steward")
 def off() -> None:
     """signal steward to stop after current spawn"""
@@ -352,6 +354,7 @@ def auto_status() -> None:
     print(f"[steward] auto sessions: {state}")
 
 
+@cli("life", flags={"watch": ["-w", "--watch"]})
 @cli("life steward", flags={"watch": ["-w", "--watch"]})
 def tail(watch: bool = False) -> None:
     """replay last steward spawn; -w to follow live"""

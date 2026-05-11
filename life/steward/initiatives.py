@@ -27,6 +27,7 @@ def _parse(path: Path) -> tuple[str, str]:
     return title, status
 
 
+@cli("life")
 @cli("life steward")
 def initiatives() -> None:
     """List initiatives from steward/initiatives/"""

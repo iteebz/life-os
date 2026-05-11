@@ -74,6 +74,7 @@ def _commits_for_day(since: datetime, until: datetime) -> list[tuple[str, str, s
     ]
 
 
+@cli("life", flags={"date": ["-d", "--date"]})
 @cli("life steward", flags={"date": ["-d", "--date"]})
 def notes(date: str | None = None) -> None:
     """Daily timeline — sessions, observations, and commits"""

@@ -111,6 +111,7 @@ def dashboard() -> None:
     print(render_dashboard(items, today_breakdown, today_items=today_items))
 
 
+@cli("life", flags={"as_json": ["-j", "--json"]})
 @cli("life steward", flags={"as_json": ["-j", "--json"]})
 def status(as_json: bool = False) -> None:
     """System health check"""

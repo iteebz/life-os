@@ -11,6 +11,7 @@ from life.store.migrations import init
 CTX_MAX_CHARS = 100_000
 
 
+@cli("life")
 @cli("life steward")
 def ctx() -> None:
     """Show current session context window usage."""
