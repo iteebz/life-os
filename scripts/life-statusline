@@ -32,8 +32,17 @@ def main():
         print("life ?", end="")
         return
 
-    habits_done = (q(conn, "SELECT COUNT(*) FROM habit_checks WHERE check_date = date('now')") or [0])[0]
-    habits_total = (q(conn, "SELECT COUNT(*) FROM habits WHERE archived_at IS NULL AND deleted_at IS NULL AND cadence='daily'") or [0])[0]
+    habits_done = (q(conn, """
+        SELECT COUNT(*) FROM habit_checks hc
+        JOIN habits h ON h.id = hc.habit_id
+        WHERE hc.check_date = date('now')
+        AND h.id NOT IN (SELECT habit_id FROM tags WHERE tag = 'vice')
+    """) or [0])[0]
+    habits_total = (q(conn, """
+        SELECT COUNT(*) FROM habits
+        WHERE archived_at IS NULL AND deleted_at IS NULL AND cadence='daily'
+        AND id NOT IN (SELECT habit_id FROM tags WHERE tag = 'vice')
+    """) or [0])[0]
     tasks_done = (q(conn, "SELECT COUNT(*) FROM tasks WHERE date(completed_at) = date('now') AND deleted_at IS NULL") or [0])[0]
 
     conn.close()
