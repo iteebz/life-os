@@ -9,6 +9,7 @@ Entry point: life hook tool (reads claude tool-call JSON from stdin).
 import contextlib
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -388,6 +389,45 @@ def _auto_sleep_summary(session_id: str) -> str:
     return "auto-closed (summary failed)"
 
 
+def cmd_hook_post_tool() -> None:
+    """PostToolUse — detect life done/habit completions, broadcast to inbox once per session."""
+    init()
+    data = _read_event()
+    tool = data.get("tool_name", "")
+    if tool != "Bash":
+        return
+    cmd = (data.get("tool_input") or {}).get("command", "")
+    is_done = bool(re.search(r"\blife done\b", cmd))
+    is_habit = bool(re.search(r"\blife habit\b.*\b(done|check)\b", cmd))
+    if not is_done and not is_habit:
+        return
+
+    state = _load_state()
+    session_id = os.environ.get("STEWARD_SESSION_ID", "unknown")
+    flag = f"win_broadcast_{session_id[:8]}"
+    if state.get(flag):
+        return
+    state[flag] = "1"
+    _save_state(state)
+
+    output = (data.get("tool_response") or {}).get("output", "").strip()
+    kind = "task" if is_done else "habit"
+    msg = f"win ({kind}): {cmd.strip()}"
+    if output:
+        msg += f" → {output[:80]}"
+    with contextlib.suppress(Exception):
+        events.record_message(
+            channel="steward",
+            address="broadcast",
+            direction="out",
+            body=msg,
+            timestamp=int(time.time()),
+            raw_id=f"win-{session_id[:8]}-{int(time.time())}",
+            peer_name="steward",
+            sent_by="steward",
+        )
+
+
 def cmd_hook_session_end() -> None:
     """SessionEnd — auto-sleep: close session record and push repos."""
     init()
@@ -496,6 +536,7 @@ def main() -> None:
 
     dispatch = {
         "tool": cmd_hook_tool,
+        "post-tool": cmd_hook_post_tool,
         "prompt": cmd_hook_prompt,
         "stop": cmd_hook_stop,
         "session-end": cmd_hook_session_end,

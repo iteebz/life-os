@@ -66,6 +66,7 @@ def _build_hook_settings_json() -> str:
             },
             "hooks": {
                 "PreToolUse": [{"matcher": "", "hooks": [{"type": "command", "command": f"{runner} tool"}]}],
+                "PostToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": f"{runner} post-tool"}]}],
                 "UserPromptSubmit": [{"matcher": "", "hooks": [{"type": "command", "command": f"{runner} prompt"}]}],
                 "Stop": [{"matcher": "", "hooks": [{"type": "command", "command": f"{runner} stop"}]}],
                 "SessionEnd": [{"matcher": "", "hooks": [{"type": "command", "command": f"{runner} session-end"}]}],
