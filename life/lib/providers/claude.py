@@ -1,5 +1,7 @@
 """Claude provider — env flags and settings for steward sessions."""
 
+from pathlib import Path
+
 from life.lib.env import Mode, build_base_env
 
 # Claude Code overrides — parity with spacebrr SPAWN_ENV_FLAGS.
@@ -46,4 +48,9 @@ def build_env(spawn_mode: Mode) -> dict[str, str]:
     """Build a complete process env for a Claude steward spawn."""
     env = build_base_env(spawn_mode)
     env.update(_CLAUDE_FLAGS)
+    hooks_dir = Path.home() / ".life" / "hooks"
+    if hooks_dir.is_dir():
+        env["GIT_CONFIG_COUNT"] = "1"
+        env["GIT_CONFIG_KEY_0"] = "core.hooksPath"
+        env["GIT_CONFIG_VALUE_0"] = str(hooks_dir)
     return env

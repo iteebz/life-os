@@ -487,17 +487,80 @@ def cmd_hook_tool() -> None:
         print(json.dumps(output), end="")
 
 
+_VALID_TYPES = {
+    "feat",
+    "fix",
+    "refactor",
+    "test",
+    "docs",
+    "style",
+    "chore",
+    "ops",
+    "copy",
+    "revert",
+    "release",
+    "perf",
+    "sec",
+    "memory",
+    "brr",
+    "ctx",
+}
+
+
+def _commit_fail(subject: str, reason: str) -> None:
+    print(f"BLOCKED — {reason}\n  got: {subject}\n  format: type(scope): verb object", file=sys.stderr)
+    sys.exit(1)
+
+
 def cmd_hook_commit() -> None:
-    """commit-msg — enforce 72-char subject line limit."""
+    """commit-msg — enforce conventional commit format and subject line rules."""
     args = [a for a in sys.argv[1:] if a not in ("hook", "commit")]
     if not args:
         print("usage: life hook commit <msg-file>", file=sys.stderr)
         sys.exit(1)
     msg_file = Path(args[0])
-    subject = msg_file.read_text().splitlines()[0] if msg_file.exists() else ""
+    if not msg_file.exists():
+        sys.exit(0)
+    subject = msg_file.read_text().splitlines()[0]
+
+    # Allow merge/fixup commits
+    if subject.startswith(("Merge ", "fixup!", "squash!")):
+        sys.exit(0)
+
+    # type(scope): subject or type: subject
+    tag_pat = "|".join(_VALID_TYPES)
+    if not re.match(rf"^({tag_pat})(\([a-z][a-z0-9_-]*\))?: .+", subject):
+        _commit_fail(subject, "must be type(scope): verb object with a valid type")
+
+    # No multi-scope
+    if re.match(rf"^({tag_pat})\([^)]*,[^)]*\):", subject):
+        _commit_fail(subject, "multiple scopes — split into one commit per scope")
+
+    msg_body = subject.split(": ", 1)[1] if ": " in subject else subject
+
+    if msg_body.endswith("."):
+        _commit_fail(subject, "no trailing period")
+    if "," in msg_body:
+        _commit_fail(subject, "no commas — split into atomic commits")
+    if "+" in msg_body:
+        _commit_fail(subject, "no + — split into atomic commits")
+    if " - " in subject:
+        _commit_fail(subject, "' - ' is an em-dash proxy — rewrite without it")
+    if ": " in msg_body:
+        _commit_fail(subject, "no colon-space in message body")
+
+    # Auto-sanitize em/en dashes
+    em_dash = "\u2014"
+    en_dash = "\u2013"
+    if em_dash in subject or en_dash in subject:
+        cleaned = subject.replace(em_dash, "-").replace(en_dash, "-")
+        lines = msg_file.read_text().splitlines(keepends=True)
+        lines[0] = cleaned + "\n"
+        msg_file.write_text("".join(lines))
+        subject = cleaned
+
     if len(subject) > 72:
-        print(f"BLOCKED — commit subject is {len(subject)} chars (max 72): {subject}", file=sys.stderr)
-        sys.exit(1)
+        _commit_fail(subject, f"subject is {len(subject)} chars (max 72)")
 
 
 def cmd_hook_pre_commit() -> None:
