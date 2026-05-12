@@ -395,7 +395,7 @@ def _section_vices(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) -
         return []
 
     clean_count = sum(1 for h in vices if h.id not in checked_ids)
-    lines = [f"\n{theme.bold}{theme.red}VICES ({clean_count}/{len(vices)} clean){_R}"]
+    lines = [f"\n{theme.bold}{theme.red}VICES ({clean_count}/{len(vices)}){_R}"]
     clean = sorted([h for h in vices if h.id not in checked_ids], key=lambda h: h.content.lower())
     used = sorted([h for h in vices if h.id in checked_ids], key=lambda h: h.content.lower())
     for vice in clean + used:
