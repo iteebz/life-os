@@ -62,6 +62,14 @@ _SAFE_KEYS = frozenset(
         "USER",
         "TMPDIR",
         "XDG_RUNTIME_DIR",
+        # terminal capability vars — without these, Claude Code probes via escape
+        # sequences and the terminal's response leaks a phantom keystroke ('p').
+        "COLORTERM",
+        "TERM_PROGRAM",
+        "TERM_PROGRAM_VERSION",
+        "LC_CTYPE",
+        "LC_ALL",
+        "ITERM_SESSION_ID",
         # life-os needs these
         "LIFE_DB",
         "LIFE_DIR",
