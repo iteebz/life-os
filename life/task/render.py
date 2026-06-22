@@ -710,6 +710,15 @@ def render_timeline(
             rows = _row_habit(habit, checked_ids, ctx)
             timed.append((habit.scheduled_time, 1, rows, False))
             placed_habit_ids.add(habit.id)
+        elif "chore" in (habit.tags or []):
+            rows = _row_habit(habit, checked_ids, ctx)
+            if habit.id in checked_ids:
+                today_checks = [c for c in habit.checks if c.date() == ctx.today]
+                t_str = max(today_checks).strftime("%H:%M") if today_checks else now_time
+                timed.append((t_str, 2, rows, True))
+            else:
+                timed.append(("~~:~~", 2, rows, False))
+            placed_habit_ids.add(habit.id)
         else:
             floating_habits.append(habit)
 
