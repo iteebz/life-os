@@ -53,12 +53,14 @@ def render_milestones() -> str:
 
 def render_steward_tasks() -> str:
     tasks = [t for t in get_tasks(include_steward=True) if t.steward]
-    if not tasks:
+    improvements = get_improvements()
+    if not tasks and not improvements:
         return ""
     lines = ["── STEWARD ──"]
     for t in tasks:
         tag_str = f"  #{' #'.join(t.tags)}" if t.tags else ""
         lines.append(f"  → {t.content.lower()}{tag_str}")
+    lines.extend(f"  ✦ [{short('i', i.id)}] {i.body}" for i in improvements[:5])
     return "\n".join(lines)
 
 

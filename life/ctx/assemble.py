@@ -30,7 +30,6 @@ WAKE_ORDER = [
     sections.render_contracts,
     sections.render_observations,
     sections.render_dates,
-    sections.render_improvements,
     sections.render_skills,
     sections.render_mood,
     sections.render_commits,
