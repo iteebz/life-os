@@ -745,9 +745,6 @@ def render_timeline(
     # Weekly
     lines += _section_weekly(all_habits, checked_ids, ctx)
 
-    # Vices
-    lines += _section_vices(all_habits, checked_ids, ctx)
-
     return "\n".join(lines) + "\n"
 
 
