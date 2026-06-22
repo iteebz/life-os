@@ -354,7 +354,7 @@ def _section_schedule(
     return lines, scheduled_ids
 
 
-_HABIT_CATEGORY_TAGS = {"care", "connect", "admin", "input", "chore", "vice"}
+_HABIT_CATEGORY_TAGS = {"self", "love", "admin", "input", "chore", "vice"}
 
 
 def _habit_sort_key(h: Habit) -> tuple[int, str]:
@@ -517,10 +517,9 @@ def render_dashboard(
     today_habit_items = [i for i in (today_items or []) if isinstance(i, Habit)]
     checked_ids = {i.id for i in today_habit_items}
     all_habits = list(set(habits + today_habit_items))
-    lines += _tag_section(all_habits, checked_ids, ctx, "care", "CARE", theme.purple)
-    lines += _tag_section(all_habits, checked_ids, ctx, "connect", "CONNECT", theme.pink)
+    lines += _tag_section(all_habits, checked_ids, ctx, "self", "SELF", theme.purple)
+    lines += _tag_section(all_habits, checked_ids, ctx, "love", "LOVE", theme.pink)
     lines += _tag_section(all_habits, checked_ids, ctx, "admin", "ADMIN", theme.yellow)
-    lines += _tag_section(all_habits, checked_ids, ctx, "input", "INPUT", theme.green)
     lines += _tag_section(all_habits, checked_ids, ctx, "chore", "CHORES", theme.cyan)
     lines += _section_weekly(all_habits, checked_ids, ctx)
     lines += _section_untagged(all_habits, checked_ids, ctx)
