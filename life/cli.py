@@ -66,9 +66,7 @@ def main():
 
     user_args = sys.argv[1:]
     if not user_args or user_args == ["-v"] or user_args == ["--verbose"]:
-        from .dash import timeline  # noqa: PLC0415 — circular: cli→dash→habit→tag→resolve→task→tag
-
-        timeline()
+        fncli.dispatch(["life", "--help"])
         return
     if user_args == ["-w"]:
         _watch()

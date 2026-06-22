@@ -112,11 +112,20 @@ def dashboard() -> None:
 
 
 @cli("life")
-def timeline() -> None:
+def time() -> None:
     """Chronological view — timed habits + today's tasks with now-marker"""
     items = get_tasks() + get_habits()
     today_items = get_today_completed()
     print(render_timeline(items, today_items=today_items))
+
+
+@cli("life")
+def dash() -> None:
+    """Tag-grouped dashboard"""
+    items = get_tasks() + get_habits()
+    today_items = get_today_completed()
+    today_breakdown = get_today_breakdown()
+    print(render_dashboard(items, today_breakdown, today_items=today_items))
 
 
 @cli("life", flags={"as_json": ["-j", "--json"]})
