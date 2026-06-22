@@ -55,8 +55,10 @@ def render_steward_tasks() -> str:
     tasks = [t for t in get_tasks(include_steward=True) if t.steward]
     if not tasks:
         return ""
-    lines = ["STEWARD TASKS:"]
-    lines.extend(f"  · {t.content}" for t in tasks)
+    lines = ["── STEWARD ──"]
+    for t in tasks:
+        tag_str = f"  #{' #'.join(t.tags)}" if t.tags else ""
+        lines.append(f"  → {t.content.lower()}{tag_str}")
     return "\n".join(lines)
 
 
@@ -366,6 +368,6 @@ def render_today() -> str:
             return ""
         ansi_escape = re.compile(r"\x1b\[[0-9;]*m")
         clean = ansi_escape.sub("", out)
-        return f"TODAY:\n{clean}"
+        return f"── LIFE ──\n{clean}"
     except Exception:
         return ""
