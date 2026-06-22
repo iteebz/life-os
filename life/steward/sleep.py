@@ -129,16 +129,19 @@ def handover(text: str | None = None, done: bool = False):
     print(current or "(no handover)")
 
 
-@cli("life", flags={"body": [], "tag": ["-t", "--tag"], "about": ["-a", "--about"]})
-@cli("life steward", flags={"body": [], "tag": ["-t", "--tag"], "about": ["-a", "--about"]})
+@cli("life", flags={"body": [], "tag": ["-t", "--tag"], "about": ["-a", "--about"], "search": ["-s", "--search"]})
+@cli(
+    "life steward", flags={"body": [], "tag": ["-t", "--tag"], "about": ["-a", "--about"], "search": ["-s", "--search"]}
+)
 def observe(
     body: str | None = None,
     tag: str | None = None,
     about: str | None = None,
+    search: str | None = None,
 ):
     """Log a raw observation — things the human says that should persist as context"""
     if body is None:
-        observations = get_observations(limit=20, tag=tag)
+        observations = get_observations(limit=20, tag=tag, search=search)
         if not observations:
             print("no observations")
             return

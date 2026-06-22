@@ -303,24 +303,24 @@ def add_observation(body: str, tag: str | None = None, about_date: date | None =
     return obs_id
 
 
-def get_observations(limit: int = 20, tag: str | None = None) -> list[Observation]:
+def get_observations(limit: int = 20, tag: str | None = None, search: str | None = None) -> list[Observation]:
     with get_db() as conn:
+        conditions = ["deleted_at IS NULL"]
+        params: list = []
         if tag:
-            rows = conn.execute(
-                "SELECT id, body, tag, logged_at, about_date "
-                "FROM observations WHERE tag = ? "
-                "AND deleted_at IS NULL "
-                "ORDER BY logged_at DESC LIMIT ?",
-                (tag, limit),
-            ).fetchall()
-        else:
-            rows = conn.execute(
-                "SELECT id, body, tag, logged_at, about_date "
-                "FROM observations "
-                "WHERE deleted_at IS NULL "
-                "ORDER BY logged_at DESC LIMIT ?",
-                (limit,),
-            ).fetchall()
+            conditions.append("tag = ?")
+            params.append(tag)
+        if search:
+            conditions.append("body LIKE ?")
+            params.append(f"%{search}%")
+        where = " AND ".join(conditions)
+        params.append(limit)
+        query = (
+            "SELECT id, body, tag, logged_at, about_date FROM observations WHERE "  # noqa: S608
+            + where
+            + " ORDER BY logged_at DESC LIMIT ?"
+        )
+        rows = conn.execute(query, params).fetchall()
         return [
             Observation(
                 id=row[0],
