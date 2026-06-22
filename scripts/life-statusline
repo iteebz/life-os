@@ -97,8 +97,8 @@ def main():
     purple = "\x1b[38;5;141m"   # last — matches brr-statusline
     green = "\x1b[38;5;114m"    # tasks done — matches `life` dashboard
 
-    # habits: always yellow
-    h_color = yellow
+    # habits: purple to match dashboard
+    h_color = purple
     # tasks done today: green if any, dim if none
     t_color = green if tasks_done > 0 else dim
 
@@ -108,7 +108,7 @@ def main():
         ctx_color = cyan if pct < 50 else (yellow if pct < 80 else red)
         parts.append(f"{dim}ctx{reset} {ctx_color}{format_tokens(used)}{reset}")
 
-    parts.append(f"{dim}habits{reset} {h_color}{habits_done}{dim}/{habits_total}{reset}")
+    parts.append(f"{dim}habits{reset} {h_color}{habits_done}{reset}")
     parts.append(f"{dim}tasks{reset} {t_color}{tasks_scheduled_done}{dim}/{tasks_scheduled_total}{reset}")
 
     last = read_last_time(data.get("session_id", ""))
