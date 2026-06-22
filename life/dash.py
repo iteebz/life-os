@@ -14,7 +14,7 @@ from .lib.format import format_elapsed
 from .lib.store import get_db
 from .momentum import weekly_momentum
 from .task import fetch_tasks, get_all_tasks, get_completed_today, get_tasks, last_completion
-from .task.render import render_dashboard, render_day_summary, render_momentum
+from .task.render import render_dashboard, render_day_summary, render_momentum, render_timeline
 
 # --- dashboard queries (inlined from dashboard.py) ---
 
@@ -109,6 +109,14 @@ def dashboard() -> None:
     today_items = get_today_completed()
     today_breakdown = get_today_breakdown()
     print(render_dashboard(items, today_breakdown, today_items=today_items))
+
+
+@cli("life")
+def timeline() -> None:
+    """Chronological view — timed habits + today's tasks with now-marker"""
+    items = get_tasks() + get_habits()
+    today_items = get_today_completed()
+    print(render_timeline(items, today_items=today_items))
 
 
 @cli("life", flags={"as_json": ["-j", "--json"]})

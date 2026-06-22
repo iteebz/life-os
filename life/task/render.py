@@ -15,6 +15,7 @@ __all__ = [
     "render_day_summary",
     "render_momentum",
     "render_task_detail",
+    "render_timeline",
 ]
 
 _DEFAULT_TAG_ORDER = ["finance", "legal", "janice", "comms", "home", "income"]
@@ -644,6 +645,87 @@ def _block_task(
             reason = f" — {m.reason}" if m.reason else ""
             lines.append(f"{indent}    {m.mutated_at.strftime('%Y-%m-%d')}{reason}")
     return lines
+
+
+def render_timeline(
+    items: list[Task | Habit],
+    today_items: list[Task | Habit] | None = None,
+) -> str:
+    ctx = RenderCtx.build(items, today_items)
+    habits = [i for i in items if isinstance(i, Habit)]
+    today_habit_items = [i for i in (today_items or []) if isinstance(i, Habit)]
+    checked_ids = {i.id for i in today_habit_items}
+    all_habits = list({h.id: h for h in habits + today_habit_items}.values())
+
+    now_time = clock.now().strftime("%H:%M")
+    today_str = ctx.today.isoformat()
+    header = ctx.today.strftime("%a") + " · " + ctx.today.strftime("%-d %b %Y") + " · " + now_time
+    lines = [f"\n{bold(white('TIMELINE · ' + header))}\n"]
+
+    # Build timed entries: (hhmm_str, sort_priority, rendered_lines)
+    # priority: 0=task, 1=habit (tasks before habits at same time)
+    timed: list[tuple[str, int, list[str]]] = []
+
+    overdue = [
+        t for t in ctx.pending if t.scheduled_date and t.scheduled_date < ctx.today and t.id not in ctx.subtask_ids
+    ]
+
+    # Today's scheduled tasks
+    due_today = [
+        t
+        for t in ctx.pending
+        if t.scheduled_date and t.scheduled_date.isoformat() == today_str and t.id not in ctx.subtask_ids
+    ]
+    for task in due_today:
+        t_str = task.scheduled_time or "00:00"
+        rows = _row_task(task, ctx, {}, show_date=False, show_parent=True)
+        timed.append((t_str, 0, rows))
+        ctx.scheduled_ids.add(task.id)
+
+    # Timed habits
+    floating_habits: list[Habit] = []
+    for habit in all_habits:
+        if habit.private or habit.parent_id or habit.cadence == "weekly" or "vice" in (habit.tags or []):
+            continue
+        if habit.scheduled_time:
+            rows = _row_habit(habit, checked_ids, ctx)
+            timed.append((habit.scheduled_time, 1, rows))
+        else:
+            floating_habits.append(habit)
+
+    # Sort timed by time, then priority
+    timed.sort(key=lambda x: (x[0], x[1]))
+
+    # Emit with now-marker inserted once
+    now_inserted = False
+    for t_str, _, rows in timed:
+        if not now_inserted and t_str > now_time:
+            lines.append(f"  {gray('─')} {theme.coral}▸ {now_time}{gray(' ─────────────────────')}{_R}")
+            now_inserted = True
+        lines.extend(rows)
+
+    if not now_inserted:
+        lines.append(f"  {gray('─')} {theme.coral}▸ {now_time}{gray(' ─────────────────────')}{_R}")
+
+    # Overdue band above floating
+    if overdue:
+        lines.append(f"\n{bold(red('OVERDUE'))}")
+        for task in sorted(overdue, key=task_sort_key):
+            lines.extend(_row_task(task, ctx, {}))
+
+    # Floating habits (no time)
+    if floating_habits:
+        lines.append(f"\n{bold(purple('FLOATING'))}")
+        for habit in sorted(floating_habits, key=lambda h: (h.tags[0] if h.tags else "", h.content.lower())):
+            lines.extend(_row_habit(habit, checked_ids, ctx))
+
+    # Weekly
+    lines += _section_weekly(all_habits, checked_ids, ctx)
+
+    # Vices
+    lines += _section_vices(all_habits, checked_ids, ctx)
+
+    return "\n".join(lines) + "\n"
 
 
 def render_task_detail(
