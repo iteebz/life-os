@@ -662,9 +662,9 @@ def render_timeline(
     header = ctx.today.strftime("%a") + " · " + ctx.today.strftime("%-d %b %Y") + " · " + now_time
     lines = [f"\n{bold(white('TIMELINE · ' + header))}\n"]
 
-    # Build timed entries: (hhmm_str, sort_priority, rendered_lines)
+    # Build timed entries: (hhmm_str, sort_priority, rendered_lines, is_done)
     # priority: 0=task, 1=habit (tasks before habits at same time)
-    timed: list[tuple[str, int, list[str]]] = []
+    timed: list[tuple[str, int, list[str], bool]] = []
 
     overdue = [
         t for t in ctx.pending if t.scheduled_date and t.scheduled_date < ctx.today and t.id not in ctx.subtask_ids
@@ -679,17 +679,37 @@ def render_timeline(
     for task in due_today:
         t_str = task.scheduled_time or "00:00"
         rows = _row_task(task, ctx, {}, show_date=False, show_parent=True)
-        timed.append((t_str, 0, rows))
+        timed.append((t_str, 0, rows, False))
         ctx.scheduled_ids.add(task.id)
 
-    # Timed habits
+    # Completed tasks (not already in timed band)
+    completed_tasks = [i for i in (today_items or []) if isinstance(i, Task) and i.completed_at]
+    timed_task_ids = {task.id for task in due_today}
+    for task in completed_tasks:
+        if task.id in timed_task_ids:
+            continue
+        t_str = task.completed_at.strftime("%H:%M")  # type: ignore[union-attr]
+        tags_str = _fmt_tags(task.tags, ctx.tag_colors)
+        id_str = f" {dim('[' + task.id[:8] + ']')}"
+        row = f"  {dim(green('✓') + ' ' + gray(t_str) + ' ' + task.content.lower() + tags_str + id_str)}"
+        timed.append((t_str, 0, [row], True))
+
+    # Timed habits (checked go into timed band at check time; unchecked with time also go in)
     floating_habits: list[Habit] = []
+    placed_habit_ids: set[str] = set()
     for habit in all_habits:
         if habit.private or habit.parent_id or habit.cadence == "weekly" or "vice" in (habit.tags or []):
             continue
-        if habit.scheduled_time:
+        if habit.id in checked_ids:
+            today_checks = [c for c in habit.checks if c.date() == ctx.today]
+            t_str = max(today_checks).strftime("%H:%M") if today_checks else (habit.scheduled_time or now_time)
             rows = _row_habit(habit, checked_ids, ctx)
-            timed.append((habit.scheduled_time, 1, rows))
+            timed.append((t_str, 1, rows, True))
+            placed_habit_ids.add(habit.id)
+        elif habit.scheduled_time:
+            rows = _row_habit(habit, checked_ids, ctx)
+            timed.append((habit.scheduled_time, 1, rows, False))
+            placed_habit_ids.add(habit.id)
         else:
             floating_habits.append(habit)
 
@@ -698,11 +718,14 @@ def render_timeline(
 
     # Emit with now-marker inserted once
     now_inserted = False
-    for t_str, _, rows in timed:
+    for t_str, _, rows, is_done in timed:
         if not now_inserted and t_str > now_time:
             lines.append(f"  {gray('─')} {theme.coral}▸ {now_time}{gray(' ─────────────────────')}{_R}")
             now_inserted = True
-        lines.extend(rows)
+        if not is_done:
+            lines.extend(f"{theme.bold}{r}{_R}" for r in rows)
+        else:
+            lines.extend(rows)
 
     if not now_inserted:
         lines.append(f"  {gray('─')} {theme.coral}▸ {now_time}{gray(' ─────────────────────')}{_R}")
