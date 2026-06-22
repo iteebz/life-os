@@ -28,6 +28,18 @@ user_name: janice          # your name — steward uses this in prompts
 partner_tag: tyson         # tag for partner-facing tasks (optional)
 ```
 
+optionally create `~/.life/tags.toml` for tag colors and dashboard backlog grouping:
+
+```toml
+janice = "yellow"          # tag color override
+
+[groups]                   # backlog section order + labels
+finance = "FINANCE"
+sell = "SELL LIST"
+```
+
+see `docs/dashboard.md` for full layout docs.
+
 ## workspace
 
 life-os expects a workspace root at `~/life/`. this is where steward reads context:
