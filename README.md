@@ -3,38 +3,11 @@
 personal life assistant. single agent (steward), not a swarm.
 
 **new machine?** → [`docs/setup.md`](docs/setup.md)  
-**architecture?** → [`docs/arch.md`](docs/arch.md)  
 **collaborating?** → [`JANICE.md`](JANICE.md)
 
 ---
 
-Entry: `life/cli.py`. Domain: `life/task.py`, `life/habit.py`, etc. Infrastructure: `life/lib/`. Output via `echo()`, errors via `exit_error()` — `life/lib/errors.py`.
-
-Resolve refs at CLI boundary via `lib/resolve.py`. `resolve_task(ref)` / `resolve_item(ref)` — domain functions only receive IDs. Fuzzy match: UUID prefix → substring → fuzzy (0.8 cutoff). Fuzzy hits print `→ matched: <content>`.
-
-## Structure
-
-```
-life/
-  cli.py        — dispatch entry point
-  dash.py       — dashboard, status, ls, momentum, stats, view
-  task.py       — task CRUD + `life task` command
-  habit.py      — habit CRUD + `life habit` command
-  item.py       — done, rm, rename, focus (unified task/habit)
-  models.py     — Task, Habit, TaskMutation (no deps)
-  db.py         — SQLite + migrations
-  lib/          — shared infrastructure (no domain imports except resolve.py)
-    errors.py   — echo(), exit_error()
-    fuzzy.py    — UUID prefix → substring → fuzzy
-    resolve.py  — CLI boundary resolver
-    render.py   — dashboard + habit matrix
-    format.py   — format_task(), format_habit()
-    clock.py    — today(), now()
-```
-
-## Layer rule
-
-Higher imports lower, never upward. `lib/` is clean except `resolve.py` (intentional boundary layer).
+Live structure and conventions: see [`CLAUDE.md`](CLAUDE.md).
 
 ## Key primitives
 

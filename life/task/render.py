@@ -351,7 +351,11 @@ def _section_habits(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) 
     visible = [
         h
         for h in habits
-        if not h.private and not h.parent_id and "vice" not in (h.tags or []) and "chore" not in (h.tags or [])
+        if not h.private
+        and not h.parent_id
+        and "vice" not in (h.tags or [])
+        and "chore" not in (h.tags or [])
+        and "input" not in (h.tags or [])
     ]
     if not visible:
         return []
@@ -390,6 +394,33 @@ def _section_habits(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) 
         else:
             lines.append(f"  {gray('all done.')}")
 
+    return lines
+
+
+def _section_input(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) -> list[str]:
+    inputs = [
+        h
+        for h in habits
+        if not h.private and not h.parent_id and "input" in (h.tags or []) and "vice" not in (h.tags or [])
+    ]
+    if not inputs:
+        return []
+
+    def _is_done(h: Habit) -> bool:
+        return h.id in checked_ids
+
+    done_count = sum(1 for h in inputs if _is_done(h))
+    lines = [f"\n{theme.bold}{theme.green}INPUT ({done_count}/{len(inputs)}){_R}"]
+
+    def _sort_key(h: Habit) -> tuple[int, str]:
+        return (1 if h.scheduled_time else 0, h.scheduled_time or h.content.lower())
+
+    remaining = [h for h in inputs if not _is_done(h)]
+    if remaining:
+        for habit in sorted(remaining, key=_sort_key):
+            lines.extend(_row_habit(habit, checked_ids, ctx))
+    else:
+        lines.append(f"  {gray('all done.')}")
     return lines
 
 
@@ -505,6 +536,7 @@ def render_dashboard(
     checked_ids = {i.id for i in today_habit_items}
     all_habits = list(set(habits + today_habit_items))
     lines += _section_habits(all_habits, checked_ids, ctx)
+    lines += _section_input(all_habits, checked_ids, ctx)
     lines += _section_chores(all_habits, checked_ids, ctx)
     lines += _section_vices(all_habits, checked_ids, ctx)
 

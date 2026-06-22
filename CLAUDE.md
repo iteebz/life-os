@@ -4,7 +4,7 @@ steward's own tooling. python CLI + daemon + hooks.
 
 ## before acting
 
-read `docs/` first. `docs/arch.md` is the map.
+read `docs/` first.
 if you're proposing a change from a non-tyson instance, read `JANICE.md` — branch flow, what flows back, what stays local.
 
 docs/ is architectural design rationale — why things are shaped this way. not implementation
