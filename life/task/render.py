@@ -253,7 +253,7 @@ def _section_header(
     header = today.strftime("%a") + " · " + today.strftime("%-d %b %Y") + " · " + time_str
     lines = [f"\n{bold(white(header))}"]
     lines.append(f"{_GREY}tasks:{_R} {green(str(tasks_done))}")
-    lines.append(f"{_GREY}habits:{_R} {purple(str(habits_done))}{_GREY}/{total_habits}{_R}")
+    lines.append(f"{_GREY}habits:{_R} {purple(str(habits_done))}")
     if added:
         lines.append(f"{_GREY}added:{_R} {gold(str(added))}")
     if deleted:
