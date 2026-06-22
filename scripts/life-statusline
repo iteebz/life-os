@@ -35,7 +35,7 @@ def main():
     habits_done = (q(conn, """
         SELECT COUNT(*) FROM habit_checks hc
         JOIN habits h ON h.id = hc.habit_id
-        WHERE hc.check_date = date('now')
+        WHERE hc.check_date = date('now', 'localtime')
         AND h.id NOT IN (SELECT habit_id FROM tags WHERE tag = 'vice')
     """) or [0])[0]
     habits_total = (q(conn, """
@@ -43,18 +43,18 @@ def main():
         WHERE archived_at IS NULL AND deleted_at IS NULL AND cadence='daily'
         AND id NOT IN (SELECT habit_id FROM tags WHERE tag = 'vice')
     """) or [0])[0]
-    tasks_done = (q(conn, "SELECT COUNT(*) FROM tasks WHERE date(completed_at) = date('now') AND deleted_at IS NULL") or [0])[0]
+    tasks_done = (q(conn, "SELECT COUNT(*) FROM tasks WHERE date(completed_at) = date('now', 'localtime') AND deleted_at IS NULL") or [0])[0]
     tasks_scheduled_done = (q(conn, """
         SELECT COUNT(*) FROM tasks
-        WHERE scheduled_date = date('now')
-        AND date(completed_at) = date('now')
+        WHERE scheduled_date <= date('now', 'localtime')
+        AND date(completed_at) = date('now', 'localtime')
         AND deleted_at IS NULL
     """) or [0])[0]
     tasks_scheduled_total = (q(conn, """
         SELECT COUNT(*) FROM tasks
-        WHERE scheduled_date = date('now')
+        WHERE scheduled_date <= date('now', 'localtime')
         AND deleted_at IS NULL
-        AND (completed_at IS NULL OR date(completed_at) = date('now'))
+        AND (completed_at IS NULL OR date(completed_at) = date('now', 'localtime'))
     """) or [0])[0]
 
     conn.close()
