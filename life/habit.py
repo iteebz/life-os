@@ -70,13 +70,14 @@ def add_habit(
     parent_id: str | None = None,
     private: bool = False,
     cadence: str = "daily",
+    scheduled_time: str | None = None,
 ) -> str:
     habit_id = str(uuid.uuid4())
     with get_db() as conn:
         try:
             conn.execute(
-                "INSERT INTO habits (id, content, parent_id, private, cadence) VALUES (?, ?, ?, ?, ?)",
-                (habit_id, content, parent_id, int(private), cadence),
+                "INSERT INTO habits (id, content, parent_id, private, cadence, scheduled_time) VALUES (?, ?, ?, ?, ?, ?)",
+                (habit_id, content, parent_id, int(private), cadence, scheduled_time),
             )
         except StoreIntegrityError as e:
             raise ValueError(f"Failed to add habit: {e}") from e
@@ -420,9 +421,23 @@ def habits() -> None:
     print(_render_habit_matrix(get_habits()))
 
 
-@cli("life", flags={"ref": [], "tag": ["-t", "--tag"]})
-def habit(ref: list[str] | None = None, tag: list[str] | None = None, weekly: bool = False) -> None:
-    """List habits, or create one: `life habit "name" -t tag`"""
+def _parse_time(value: str) -> str:
+    """Validate HH:MM and normalize to zero-padded form."""
+    try:
+        parsed = datetime.strptime(value, "%H:%M")
+    except ValueError as e:
+        raise UsageError(f"invalid time: {value!r} — use HH:MM") from e
+    return parsed.strftime("%H:%M")
+
+
+@cli("life", flags={"ref": [], "tag": ["-t", "--tag"], "at": ["-a", "--at"]})
+def habit(
+    ref: list[str] | None = None,
+    tag: list[str] | None = None,
+    weekly: bool = False,
+    at: str | None = None,
+) -> None:
+    """List habits, or create one: `life habit "name" -t tag [-a HH:MM]`"""
     if not ref:
         print(_render_habit_matrix(get_habits()))
         return
@@ -432,6 +447,8 @@ def habit(ref: list[str] | None = None, tag: list[str] | None = None, weekly: bo
         return
     name = " ".join(ref)
     cadence = "weekly" if weekly else "daily"
-    habit_id = add_habit(name, tags=tag, cadence=cadence)
+    scheduled_time = _parse_time(at) if at else None
+    habit_id = add_habit(name, tags=tag, cadence=cadence, scheduled_time=scheduled_time)
     cadence_suffix = f" {ansi.dim('(weekly)')}" if weekly else ""
-    render_row(f"{name.lower()}{cadence_suffix}", tag, habit_id, symbol=ansi.purple("○"))
+    time_suffix = f" {ansi.dim(scheduled_time)}" if scheduled_time else ""
+    render_row(f"{name.lower()}{cadence_suffix}{time_suffix}", tag, habit_id, symbol=ansi.purple("○"))

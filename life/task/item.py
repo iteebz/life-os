@@ -152,12 +152,11 @@ def add(
 
 
 @cli("life")
-def rename(ref: list[str], to: str) -> None:
+def rename(ref: str, to: str) -> None:
     """Rename item"""
     if not to:
         raise ValidationError("'to' content cannot be empty")
-    item_ref = " ".join(ref) if ref else ""
-    task, habit = resolve_item(item_ref)
+    task, habit = resolve_item(ref)
     if not task and not habit:
         raise NotFoundError("item not found")
     if isinstance(task, Task):
