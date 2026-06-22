@@ -7,7 +7,7 @@ from life.habit import get_subhabits
 from life.lib import clock
 from life.lib.ansi import NAMED_COLORS, POOL, bold, dim, gold, gray, green, purple, red, theme, white
 from life.lib.dates import upcoming_dates
-from life.lib.tags import load_tag_overrides
+from life.lib.tags import load_tag_groups, load_tag_overrides
 from life.task import task_sort_key
 
 __all__ = [
@@ -17,7 +17,14 @@ __all__ = [
     "render_task_detail",
 ]
 
-TAG_ORDER = ["finance", "legal", "janice", "comms", "home", "income"]
+_DEFAULT_TAG_ORDER = ["finance", "legal", "janice", "comms", "home", "income"]
+
+
+def _get_tag_order() -> list[str]:
+    groups = load_tag_groups()
+    return [tag for tag, _ in groups] if groups else _DEFAULT_TAG_ORDER
+
+
 # Tags that act as auxiliary labels — never primary if another tag exists
 AUX_TAGS = {"comms"}
 
@@ -29,7 +36,7 @@ def _primary_tag(task: Task) -> str | None:
     tags = task.tags or []
     non_aux = [t for t in tags if t not in AUX_TAGS]
     candidates = non_aux or tags
-    for tag in TAG_ORDER:
+    for tag in _get_tag_order():
         if tag in candidates:
             return tag
     return sorted(candidates)[0] if candidates else None
@@ -449,14 +456,16 @@ def _section_backlog(
     for task in sorted(tasks, key=lambda t: t.content.lower()):
         groups.setdefault(_primary_tag(task) or "", []).append(task)
 
-    sections = [t for t in TAG_ORDER if t in groups]
-    sections += sorted(k for k in groups if k and k not in TAG_ORDER)
+    tag_order = _get_tag_order()
+    tag_labels = dict(load_tag_groups())
+    sections = [t for t in tag_order if t in groups]
+    sections += sorted(k for k in groups if k and k not in tag_order)
     if "" in groups:
         sections.append("")
 
     lines: list[str] = []
     for tag in sections:
-        label = tag.upper() if tag else "BACKLOG"
+        label = tag_labels.get(tag, tag.upper()) if tag else "BACKLOG"
         color = ctx.tag_colors.get(tag, theme.white) if tag else theme.white
         lines.append(f"\n{theme.bold}{color}{label} ({len(groups[tag])}){_R}")
         for task in groups[tag]:

@@ -6,13 +6,25 @@ _TAGS_PATH = Path.home() / ".life" / "tags.toml"
 
 
 @lru_cache(maxsize=1)
-def load_tag_overrides() -> dict[str, str]:
-    """Load tag → color-name overrides from ~/.life/tags.toml."""
+def _load_tags_toml() -> dict[str, object]:
     if not _TAGS_PATH.exists():
         return {}
     try:
         with _TAGS_PATH.open("rb") as f:
-            data = tomllib.load(f)
-        return {k: v for k, v in data.items() if isinstance(k, str) and isinstance(v, str)}
+            return tomllib.load(f)
     except Exception:
         return {}
+
+
+def load_tag_overrides() -> dict[str, str]:
+    data = _load_tags_toml()
+    return {k: v for k, v in data.items() if isinstance(v, str)}
+
+
+def load_tag_groups() -> list[tuple[str, str]]:
+    """Load ordered tag → label groups from [groups] in tags.toml."""
+    data = _load_tags_toml()
+    groups = data.get("groups")
+    if not isinstance(groups, dict):
+        return []
+    return [(k, v) for k, v in groups.items() if isinstance(k, str) and isinstance(v, str)]
