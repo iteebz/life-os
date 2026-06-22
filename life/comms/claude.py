@@ -16,7 +16,7 @@ def _extract_sender_from_context(context: str) -> str:
 def generate_reply(
     thread_context: str,
     instructions: str | None = None,
-    model: str = "claude-sonnet-4-20250514",
+    model: str = "claude-sonnet-4-6",
 ) -> tuple[str, str]:
     """Generate reply draft using headless Claude.
 
@@ -82,7 +82,7 @@ Thanks for the update. I'll review the proposal by Friday and get back to you wi
 def generate_signal_reply(
     conversation: list[dict[str, Any]],
     instructions: str | None = None,
-    model: str = "claude-sonnet-4-20250514",
+    model: str = "claude-sonnet-4-6",
 ) -> tuple[str, str]:
     """Generate Signal reply using headless Claude.
 
@@ -155,7 +155,7 @@ Yeah 3pm works for me, see you then!"""
 
 def summarize_thread(
     messages: list[dict[str, Any]],
-    model: str = "claude-haiku-4-5",
+    model: str = "claude-haiku-4-5-20251001",
 ) -> str:
     """Summarize an email thread. Returns summary string."""
     context_lines = []
