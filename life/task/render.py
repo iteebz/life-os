@@ -347,107 +347,80 @@ def _section_schedule(
     return lines, scheduled_ids
 
 
-def _section_habits(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) -> list[str]:
-    visible = [
+_HABIT_CATEGORY_TAGS = {"care", "connect", "admin", "input", "chore", "vice"}
+
+
+def _habit_sort_key(h: Habit) -> tuple[int, str]:
+    return (1 if h.scheduled_time else 0, h.scheduled_time or h.content.lower())
+
+
+def _tag_section(
+    habits: list[Habit],
+    checked_ids: set[str],
+    ctx: RenderCtx,
+    tag: str,
+    label: str,
+    color: str,
+) -> list[str]:
+    matching = [
         h
         for h in habits
         if not h.private
         and not h.parent_id
+        and tag in (h.tags or [])
         and "vice" not in (h.tags or [])
-        and "chore" not in (h.tags or [])
-        and "input" not in (h.tags or [])
+        and h.cadence != "weekly"
     ]
-    if not visible:
+    if not matching:
         return []
+    done_count = sum(1 for h in matching if h.id in checked_ids)
+    lines = [f"\n{theme.bold}{color}{label} ({done_count}/{len(matching)}){_R}"]
+    remaining = [h for h in matching if h.id not in checked_ids]
+    if remaining:
+        for habit in sorted(remaining, key=_habit_sort_key):
+            lines.extend(_row_habit(habit, checked_ids, ctx))
+    else:
+        lines.append(f"  {gray('all done.')}")
+    return lines
 
+
+def _section_weekly(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) -> list[str]:
+    weekly = [h for h in habits if not h.private and not h.parent_id and h.cadence == "weekly"]
+    if not weekly:
+        return []
     week_start = ctx.today - timedelta(days=ctx.today.weekday())
 
     def _is_done(h: Habit) -> bool:
         if h.id in checked_ids:
             return True
-        if h.cadence == "weekly":
-            return any(week_start <= dt.date() <= ctx.today for dt in h.checks)
-        return False
+        return any(week_start <= dt.date() <= ctx.today for dt in h.checks)
 
-    daily = [h for h in visible if h.cadence != "weekly"]
-    weekly = [h for h in visible if h.cadence == "weekly"]
-
-    done_count = sum(1 for h in visible if _is_done(h))
-    lines = [f"\n{theme.bold}{theme.purple}HABITS ({done_count}/{len(visible)}){_R}"]
-
-    def _habit_sort_key(h: Habit) -> tuple[int, str]:
-        return (1 if h.scheduled_time else 0, h.scheduled_time or h.content.lower())
-
-    daily_remaining = [h for h in daily if not _is_done(h)]
-    if daily_remaining:
-        for habit in sorted(daily_remaining, key=_habit_sort_key):
-            lines.extend(_row_habit(habit, checked_ids, ctx))
-    elif daily:
-        lines.append(f"  {gray('daily: all done.')}")
-
-    weekly_remaining = [h for h in weekly if not _is_done(h)]
-    if weekly:
-        lines.append(f"\n{theme.bold}{theme.purple}WEEKLY{_R}")
-        if weekly_remaining:
-            for habit in sorted(weekly_remaining, key=_habit_sort_key):
-                lines.extend(_row_habit(habit, checked_ids, ctx))
-        else:
-            lines.append(f"  {gray('all done.')}")
-
-    return lines
-
-
-def _section_input(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) -> list[str]:
-    inputs = [
-        h
-        for h in habits
-        if not h.private and not h.parent_id and "input" in (h.tags or []) and "vice" not in (h.tags or [])
-    ]
-    if not inputs:
-        return []
-
-    def _is_done(h: Habit) -> bool:
-        return h.id in checked_ids
-
-    done_count = sum(1 for h in inputs if _is_done(h))
-    lines = [f"\n{theme.bold}{theme.green}INPUT ({done_count}/{len(inputs)}){_R}"]
-
-    def _sort_key(h: Habit) -> tuple[int, str]:
-        return (1 if h.scheduled_time else 0, h.scheduled_time or h.content.lower())
-
-    remaining = [h for h in inputs if not _is_done(h)]
+    lines = [f"\n{theme.bold}{theme.purple}WEEKLY{_R}"]
+    remaining = [h for h in weekly if not _is_done(h)]
     if remaining:
-        for habit in sorted(remaining, key=_sort_key):
+        for habit in sorted(remaining, key=_habit_sort_key):
             lines.extend(_row_habit(habit, checked_ids, ctx))
     else:
         lines.append(f"  {gray('all done.')}")
     return lines
 
 
-def _section_chores(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) -> list[str]:
-    chores = [
+def _section_untagged(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) -> list[str]:
+    residual = [
         h
         for h in habits
-        if not h.private and not h.parent_id and "chore" in (h.tags or []) and "vice" not in (h.tags or [])
+        if not h.private
+        and not h.parent_id
+        and h.cadence != "weekly"
+        and not (set(h.tags or []) & _HABIT_CATEGORY_TAGS)
     ]
-    if not chores:
+    if not residual:
         return []
-
-    def _is_done(h: Habit) -> bool:
-        return h.id in checked_ids
-
-    done_count = sum(1 for h in chores if _is_done(h))
-    lines = [f"\n{theme.bold}{theme.cyan}CHORES ({done_count}/{len(chores)}){_R}"]
-
-    def _sort_key(h: Habit) -> tuple[int, str]:
-        return (1 if h.scheduled_time else 0, h.scheduled_time or h.content.lower())
-
-    remaining = [h for h in chores if not _is_done(h)]
-    if remaining:
-        for habit in sorted(remaining, key=_sort_key):
-            lines.extend(_row_habit(habit, checked_ids, ctx))
-    else:
-        lines.append(f"  {gray('all done.')}")
+    done_count = sum(1 for h in residual if h.id in checked_ids)
+    lines = [f"\n{theme.bold}{theme.purple}HABITS ({done_count}/{len(residual)}){_R}"]
+    remaining = [h for h in residual if h.id not in checked_ids]
+    for habit in sorted(remaining, key=_habit_sort_key):
+        lines.extend(_row_habit(habit, checked_ids, ctx))
     return lines
 
 
@@ -535,9 +508,13 @@ def render_dashboard(
     today_habit_items = [i for i in (today_items or []) if isinstance(i, Habit)]
     checked_ids = {i.id for i in today_habit_items}
     all_habits = list(set(habits + today_habit_items))
-    lines += _section_habits(all_habits, checked_ids, ctx)
-    lines += _section_input(all_habits, checked_ids, ctx)
-    lines += _section_chores(all_habits, checked_ids, ctx)
+    lines += _tag_section(all_habits, checked_ids, ctx, "care", "CARE", theme.purple)
+    lines += _tag_section(all_habits, checked_ids, ctx, "connect", "CONNECT", theme.pink)
+    lines += _tag_section(all_habits, checked_ids, ctx, "admin", "ADMIN", theme.yellow)
+    lines += _tag_section(all_habits, checked_ids, ctx, "input", "INPUT", theme.green)
+    lines += _tag_section(all_habits, checked_ids, ctx, "chore", "CHORES", theme.cyan)
+    lines += _section_weekly(all_habits, checked_ids, ctx)
+    lines += _section_untagged(all_habits, checked_ids, ctx)
     lines += _section_vices(all_habits, checked_ids, ctx)
 
     for offset in range(1, 15):

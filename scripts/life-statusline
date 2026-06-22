@@ -2,8 +2,11 @@
 """life-statusline: minimal claude code footer — ctx + done today."""
 
 import json
+import os
 import sqlite3
 import sys
+import time
+from datetime import datetime
 from pathlib import Path
 
 
