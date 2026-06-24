@@ -83,7 +83,7 @@ def test_parse_datetime_optional_none():
 
 def test_row_to_task_complete():
     # id, content, focus, scheduled_date, created, completed_at, parent_id,
-    # scheduled_time, blocked_by, notes, steward, source, is_deadline
+    # scheduled_time, blocked_by, notes, steward, source, is_deadline, is_urgent
     row = (
         "task-1",
         "Buy milk",
@@ -98,6 +98,7 @@ def test_row_to_task_complete():
         None,
         None,
         None,
+        0,
     )
     task = row_to_task(row)
     assert task.id == "task-1"
@@ -122,6 +123,7 @@ def test_row_to_task_no_focus():
         None,
         None,
         None,
+        0,
     )
     task = row_to_task(row)
     assert task.focus is False

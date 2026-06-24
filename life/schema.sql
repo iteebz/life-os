@@ -15,6 +15,7 @@ CREATE TABLE tasks (
     steward BOOLEAN NOT NULL DEFAULT 0,
     source TEXT CHECK (source IS NULL OR source IN ('tyson', 'steward', 'scheduled')),
     is_deadline INTEGER NOT NULL DEFAULT 0,
+    is_urgent INTEGER NOT NULL DEFAULT 0,
     deleted_at TEXT,
     cancel_reason TEXT,
     CHECK (length(content) > 0),

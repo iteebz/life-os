@@ -27,6 +27,7 @@ from .domain import (
     get_tasks,
     set_blocked_by,
     toggle_focus,
+    toggle_urgent,
     update_task,
 )
 
@@ -95,7 +96,19 @@ def focus(ref: list[str]) -> None:
         raise UsageError("Usage: life focus <item>")
     t = resolve_task(item_ref)
     toggle_focus(t.id)
-    symbol = ansi.bold("\u29bf") if not t.focus else "\u25a1"
+    symbol = ansi.bold("→") if not t.focus else "□"
+    print(format_status(symbol, t.content, t.id))
+
+
+@cli("life")
+def fire(ref: list[str]) -> None:
+    """Mark task urgent"""
+    item_ref = " ".join(ref) if ref else ""
+    if not item_ref:
+        raise UsageError("Usage: life fire <item>")
+    t = resolve_task(item_ref)
+    toggle_urgent(t.id)
+    symbol = "🔥" if not t.is_urgent else "□"
     print(format_status(symbol, t.content, t.id))
 
 

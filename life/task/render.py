@@ -170,8 +170,9 @@ def _row_task(
         content = f"{_GREY}{prefix}{task.content.lower()}{tags_str}{_R}"
         row = f"{indent}⊘ {content} {blocker_str}{id_str}"
     else:
-        fire = f"{theme.bold}🔥{_R} " if task.focus else ""
-        row = f"{indent}□ {fire}{prefix}{task.content.lower()}{tags_str}{id_str}{parent_str}"
+        focus_marker = f"{theme.bold}→{_R} " if task.focus else ""
+        fire_marker = f"{theme.bold}🔥{_R} " if task.is_urgent else ""
+        row = f"{indent}□ {focus_marker}{fire_marker}{prefix}{task.content.lower()}{tags_str}{id_str}{parent_str}"
 
     rows = [row]
     rows.extend(
@@ -651,9 +652,10 @@ def _block_task(
     indent: str = "",
 ) -> list[str]:
     tags_str = _fmt_tags(task.tags, ctx.tag_colors)
-    focus_str = f"{theme.bold}🔥{_R} " if task.focus else ""
+    focus_str = f"{theme.bold}→{_R} " if task.focus else ""
+    fire_str = f"{theme.bold}🔥{_R} " if task.is_urgent else ""
     status = gray("✓") if task.completed_at else "□"
-    lines = [f"{indent}{status} {focus_str}{dim('[' + task.id[:8] + ']')}  {task.content.lower()}{tags_str}"]
+    lines = [f"{indent}{status} {focus_str}{fire_str}{dim('[' + task.id[:8] + ']')}  {task.content.lower()}{tags_str}"]
 
     if task.scheduled_date:
         label = "deadline" if task.is_deadline else "scheduled"

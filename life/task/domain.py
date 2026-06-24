@@ -20,6 +20,7 @@ __all__ = [
     "check_task_cmd",
     "defer_task",
     "delete_task",
+    "fetch_tasks_focused",
     "find_task",
     "find_task_any",
     "find_task_exact",
@@ -33,6 +34,7 @@ __all__ = [
     "rename_task",
     "set_blocked_by",
     "toggle_focus",
+    "toggle_urgent",
     "uncheck_task",
     "update_task",
 ]
@@ -40,7 +42,7 @@ __all__ = [
 
 _TASK_COLS = (
     "id, content, focus, scheduled_date, created, completed_at, "
-    "parent_id, scheduled_time, blocked_by, notes, steward, source, is_deadline"
+    "parent_id, scheduled_time, blocked_by, notes, steward, source, is_deadline, is_urgent"
 )
 
 
@@ -55,9 +57,10 @@ def fetch_tasks(conn, where: str, params: tuple[object, ...] = ()) -> list[Task]
     return hydrate_tags(tasks, tags_map)
 
 
-def task_sort_key(task: Task) -> tuple[bool, bool, object, object]:
+def task_sort_key(task: Task) -> tuple[bool, bool, bool, object, object]:
     return (
         not task.focus,
+        not task.is_urgent,
         task.scheduled_date is None,
         task.scheduled_date,
         task.created,
@@ -174,6 +177,7 @@ def update_task(
     task_id: str,
     content: str | None = None,
     focus: bool | None = None,
+    is_urgent: bool | None = None,
     scheduled_date: str | None | Unset = UNSET,
     scheduled_time: str | None | Unset = UNSET,
     is_deadline: bool | Unset = UNSET,
@@ -185,6 +189,8 @@ def update_task(
         updates["content"] = content
     if focus is not None:
         updates["focus"] = focus
+    if is_urgent is not None:
+        updates["is_urgent"] = is_urgent
     if scheduled_date is not UNSET:
         updates["scheduled_date"] = scheduled_date
     if scheduled_time is not UNSET:
@@ -316,7 +322,37 @@ def toggle_focus(task_id: str) -> Task | None:
     task = get_task(task_id)
     if not task:
         return None
-    return update_task(task_id, focus=not task.focus)
+    setting = not task.focus
+    if setting:
+        # enforce max-1: clear any existing focused task and log it
+        currently_focused = fetch_tasks_focused()
+        with get_db() as conn:
+            for other in currently_focused:
+                if other.id != task_id:
+                    conn.execute("UPDATE tasks SET focus = 0 WHERE id = ?", (other.id,))
+                    conn.execute(
+                        "INSERT INTO mutations (task_id, field, old_value, new_value, reason) VALUES (?, 'focus', '1', '0', 'focus moved')",
+                        (other.id,),
+                    )
+        # log gaining focus
+        with get_db() as conn:
+            conn.execute(
+                "INSERT INTO mutations (task_id, field, old_value, new_value) VALUES (?, 'focus', '0', '1')",
+                (task_id,),
+            )
+    return update_task(task_id, focus=setting)
+
+
+def fetch_tasks_focused() -> list[Task]:
+    with get_db() as conn:
+        return fetch_tasks(conn, "focus = 1 AND completed_at IS NULL")
+
+
+def toggle_urgent(task_id: str) -> Task | None:
+    task = get_task(task_id)
+    if not task:
+        return None
+    return update_task(task_id, is_urgent=not task.is_urgent)
 
 
 def find_task(ref: str) -> Task | None:

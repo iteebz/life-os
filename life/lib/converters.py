@@ -48,7 +48,7 @@ def row_to_task(row: TaskRow) -> Task:
     Converts a raw database row from tasks table into a Task object.
     Expected row format: (id, content, focus, scheduled_date, created,
     completed, parent_id, scheduled_time, blocked_by, notes, steward,
-    source, is_deadline)
+    source, is_deadline, is_urgent)
     """
     return Task(
         id=cast(str, row[0]),
@@ -64,6 +64,7 @@ def row_to_task(row: TaskRow) -> Task:
         steward=bool(row[10]) if row[10] is not None else False,
         source=cast(str, row[11]) if row[11] is not None else None,
         is_deadline=bool(row[12]) if row[12] is not None else False,
+        is_urgent=bool(row[13]) if row[13] is not None else False,
     )
 
 

@@ -14,6 +14,7 @@ class Task:
     scheduled_time: str | None = None
     blocked_by: str | None = None
     is_deadline: bool = False
+    is_urgent: bool = False
     notes: str | None = None
     steward: bool = False
     source: str | None = None
