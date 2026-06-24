@@ -430,6 +430,17 @@ def _parse_time(value: str) -> str:
     return parsed.strftime("%H:%M")
 
 
+@cli("life", flags={"ref": [], "at": ["-a", "--at"]})
+def habit_set(ref: list[str], at: str | None = None) -> None:
+    """Set scheduled time on an existing habit: `life habit-set <ref> -a HH:MM`"""
+    name = " ".join(ref)
+    h = resolve_habit(name)
+    scheduled_time = _parse_time(at) if at else None
+    update_habit(h.id, scheduled_time=scheduled_time, clear_time=at is None)
+    time_str = scheduled_time or "cleared"
+    print(f"  {ansi.purple('○')} {h.content.lower()}  {ansi.dim(time_str)}")
+
+
 @cli("life", flags={"ref": [], "tag": ["-t", "--tag"], "at": ["-a", "--at"]})
 def habit(
     ref: list[str] | None = None,

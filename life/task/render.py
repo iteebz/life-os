@@ -364,6 +364,52 @@ def _habit_sort_key(h: Habit) -> tuple[int, str]:
     return (1 if h.scheduled_time else 0, h.scheduled_time or h.content.lower())
 
 
+def _row_daily_habit(habit: Habit, checked_ids: set[str], ctx: RenderCtx) -> list[str]:
+    """Render a daily habit with time at front."""
+    tags_str = _fmt_tags(habit.tags, ctx.tag_colors)
+    id_str = f" {dim('[' + habit.id[:8] + ']')}"
+    count_p1, count_p2 = _habit_counts(habit, ctx.today)
+    trend = "↗" if count_p1 > count_p2 else "↘" if count_p1 < count_p2 else "→"
+    time_str = f"{theme.gray}{fmt_time(habit.scheduled_time)}{_R} " if habit.scheduled_time else ""
+    if habit.id in checked_ids:
+        label = f"{gray(habit.content.lower())}{tags_str}"
+        lines = [f"  {purple('●')} {gray(trend)} {time_str}{label}{id_str}"]
+    else:
+        label = f"{habit.content.lower()}{tags_str}"
+        lines = [f"  {purple('○')} {gray(trend)} {time_str}{label}{id_str}"]
+    for sub in get_subhabits(habit.id):
+        lines.extend(_row_daily_habit(sub, checked_ids, ctx))
+    return lines
+
+
+def _section_daily(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) -> list[str]:
+    matching = [
+        h
+        for h in habits
+        if not h.private
+        and not h.parent_id
+        and "self" in (h.tags or [])
+        and "vice" not in (h.tags or [])
+        and h.cadence != "weekly"
+    ]
+    if not matching:
+        return []
+    done_count = sum(1 for h in matching if h.id in checked_ids)
+    lines = [f"\n{theme.bold}{theme.purple}DAILY ({done_count}/{len(matching)}){_R}"]
+    remaining = [h for h in matching if h.id not in checked_ids]
+    done = [h for h in matching if h.id in checked_ids]
+
+    def _daily_sort(h: Habit) -> tuple[int, str]:
+        return (0 if h.scheduled_time else 1, h.scheduled_time or h.content.lower())
+
+    if remaining or done:
+        for habit in sorted(remaining, key=_daily_sort) + sorted(done, key=_daily_sort):
+            lines.extend(_row_daily_habit(habit, checked_ids, ctx))
+    else:
+        lines.append(f"  {gray('all done.')}")
+    return lines
+
+
 def _tag_section(
     habits: list[Habit],
     checked_ids: set[str],
@@ -555,7 +601,7 @@ def render_dashboard(
     today_habit_items = [i for i in (today_items or []) if isinstance(i, Habit)]
     checked_ids = {i.id for i in today_habit_items}
     all_habits = list(set(habits + today_habit_items))
-    lines += _tag_section(all_habits, checked_ids, ctx, "self", "SELF", theme.purple)
+    lines += _section_daily(all_habits, checked_ids, ctx)
     lines += _tag_section(all_habits, checked_ids, ctx, "love", "LOVE", theme.pink)
     lines += _tag_section(all_habits, checked_ids, ctx, "admin", "LIFE", theme.yellow)
     lines += _tag_section(all_habits, checked_ids, ctx, "chore", "CHORES", theme.cyan)
