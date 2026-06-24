@@ -23,7 +23,7 @@ def test_observe_tag_filters_on_boot(tmp_life_dir):
 
 def test_steward_close_persists_session(tmp_life_dir):
     db_id = create_session("(active)", name="test", model="claude", source="chat")
-    close_session(db_id, summary="closed tax loop", welfare=None, handover=None)
+    close_session(db_id, summary="closed tax loop", welfare=None)
 
     result = invoke(["steward", "wake"])
     assert result.exit_code == 0

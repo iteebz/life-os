@@ -115,8 +115,6 @@ def _try_session(fragment: str) -> bool:
         print("  follow-ups:")
         for fu in target.follow_ups:
             print(f"    · {fu}")
-    if target.handover:
-        print(f"  handover: {target.handover}")
     if target.welfare is not None:
         print(f"  welfare: {target.welfare}/10")
     return True

@@ -3,6 +3,7 @@ import re
 import uuid
 from datetime import datetime
 
+from life.comms.events import record as emit_event
 from life.core.errors import ConflictError, StoreIntegrityError, ValidationError
 from life.core.models import Task, TaskMutation
 from life.core.types import UNSET, Unset
@@ -126,6 +127,19 @@ def add_task(
 
         for tag in all_tags:
             add_tag(task_id, None, tag, conn=conn)
+    emit_event(
+        "task.created",
+        payload={
+            "task_id": task_id,
+            "content": content,
+            "tags": all_tags,
+            "scheduled_date": scheduled_date,
+            "scheduled_time": scheduled_time,
+            "parent_id": parent_id,
+            "steward": steward,
+            "source": source,
+        },
+    )
     return task_id
 
 
@@ -289,6 +303,10 @@ def check_task(task_id: str, completed_at: str | None = None) -> tuple[Task | No
             (task_id,),
         )
     completed_task = get_task(task_id)
+    emit_event(
+        "task.done",
+        payload={"task_id": task_id, "content": task.content, "completed_at": completed},
+    )
     parent_completed = None
     if task.parent_id:
         siblings = get_subtasks(task.parent_id)
@@ -301,6 +319,15 @@ def check_task(task_id: str, completed_at: str | None = None) -> tuple[Task | No
                         (completed, task.parent_id),
                     )
                 parent_completed = get_task(task.parent_id)
+                emit_event(
+                    "task.done",
+                    payload={
+                        "task_id": task.parent_id,
+                        "content": parent.content,
+                        "completed_at": completed,
+                        "cascade": "parent",
+                    },
+                )
     return completed_task, parent_completed
 
 
@@ -310,11 +337,16 @@ def uncheck_task(task_id: str) -> Task | None:
         return task
     with get_db() as conn:
         conn.execute("UPDATE tasks SET completed_at = NULL WHERE id = ?", (task_id,))
+    emit_event("task.unchecked", payload={"task_id": task_id, "content": task.content})
     if task.parent_id:
         parent = get_task(task.parent_id)
         if parent and parent.completed_at:
             with get_db() as conn:
                 conn.execute("UPDATE tasks SET completed_at = NULL WHERE id = ?", (task.parent_id,))
+            emit_event(
+                "task.unchecked",
+                payload={"task_id": task.parent_id, "content": parent.content, "cascade": "parent"},
+            )
     return get_task(task_id)
 
 

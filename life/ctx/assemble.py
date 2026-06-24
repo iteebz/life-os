@@ -25,7 +25,6 @@ WAKE_ORDER = [
     sections.render_initiatives,
     sections.render_today,
     sections.render_milestones,
-    sections.render_handover,
     sections.render_feedback,
     sections.render_observatory,
     sections.render_last_session,
@@ -57,12 +56,7 @@ def build_wake() -> str:
 
 def build_chat_prompt() -> str:
     """Wake snapshot + constitution markdowns for system-prompt injection."""
-    from life.steward import latest_handover  # noqa: PLC0415
-
     parts: list[str] = []
-    handover = latest_handover()
-    if handover:
-        parts.append(f"<handover>\n{handover}\n(mark done with `steward handover --done`)\n</handover>")
     for tag, path in CONSTITUTION:
         if path.exists():
             text = path.read_text().strip()

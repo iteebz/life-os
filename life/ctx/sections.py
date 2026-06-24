@@ -25,7 +25,7 @@ from life.lib.format import format_elapsed
 from life.lib.ids import short
 from life.mood import get_recent_moods
 from life.skills import list_skills
-from life.steward import get_observations, get_sessions, latest_handover
+from life.steward import get_observations, get_sessions
 from life.steward.initiatives import initiative_index
 from life.task import get_all_tasks, get_tasks
 
@@ -90,13 +90,6 @@ def render_observatory() -> str:
         return result.stdout.strip()
     except Exception:
         return ""
-
-
-def render_handover() -> str:
-    text = latest_handover()
-    if not text:
-        return ""
-    return f"** HANDOVER ** {text}\n   (mark done with `steward handover --done`)"
 
 
 def render_last_session() -> str:

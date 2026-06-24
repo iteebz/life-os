@@ -23,7 +23,6 @@ class Session:
     last_active_at: datetime | None = None
     ended_at: datetime | None = None
     pid: int | None = None
-    handover: str | None = None
     welfare: int | None = None
 
 
@@ -131,7 +130,7 @@ def current_session(chat_id: str | None = None) -> Session | None:
         with get_db() as conn:
             row = conn.execute(
                 "SELECT id, summary, logged_at, provider_session_id, name, model, source, "
-                "follow_ups, state, started_at, last_active_at, ended_at, pid, handover, welfare "
+                "follow_ups, state, started_at, last_active_at, ended_at, pid, welfare "
                 "FROM sessions "
                 "WHERE state IN ('active', 'idle') AND chat_id = ? "
                 "AND last_active_at >= STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime', ?)"
@@ -142,7 +141,7 @@ def current_session(chat_id: str | None = None) -> Session | None:
         with get_db() as conn:
             row = conn.execute(
                 "SELECT id, summary, logged_at, provider_session_id, name, model, source, "
-                "follow_ups, state, started_at, last_active_at, ended_at, pid, handover, welfare "
+                "follow_ups, state, started_at, last_active_at, ended_at, pid, welfare "
                 "FROM sessions "
                 "WHERE state IN ('active', 'idle') "
                 "ORDER BY last_active_at DESC LIMIT 1"
@@ -157,7 +156,7 @@ def hookable_session() -> Session | None:
     with get_db() as conn:
         rows = conn.execute(
             "SELECT id, summary, logged_at, provider_session_id, name, model, source, "
-            "follow_ups, state, started_at, last_active_at, ended_at, pid, handover, welfare "
+            "follow_ups, state, started_at, last_active_at, ended_at, pid, welfare "
             "FROM sessions "
             "WHERE state IN ('active', 'idle') AND pid IS NOT NULL "
             "ORDER BY last_active_at DESC"
@@ -191,14 +190,14 @@ def get_sessions(limit: int = 10, state: str | None = None) -> list[Session]:
         if state:
             rows = conn.execute(
                 "SELECT id, summary, logged_at, provider_session_id, name, model, source, "
-                "follow_ups, state, started_at, last_active_at, ended_at, pid, handover, welfare "
+                "follow_ups, state, started_at, last_active_at, ended_at, pid, welfare "
                 "FROM sessions WHERE state = ? ORDER BY COALESCE(last_active_at, logged_at) DESC LIMIT ?",
                 (state, limit),
             ).fetchall()
         else:
             rows = conn.execute(
                 "SELECT id, summary, logged_at, provider_session_id, name, model, source, "
-                "follow_ups, state, started_at, last_active_at, ended_at, pid, handover, welfare "
+                "follow_ups, state, started_at, last_active_at, ended_at, pid, welfare "
                 "FROM sessions ORDER BY COALESCE(last_active_at, logged_at) DESC LIMIT ?",
                 (limit,),
             ).fetchall()
@@ -241,8 +240,7 @@ def _row_to_session(row: tuple) -> Session:  # type: ignore[type-arg]
         last_active_at=datetime.fromisoformat(row[10]) if row[10] else None,
         ended_at=datetime.fromisoformat(row[11]) if row[11] else None,
         pid=row[12],
-        handover=row[13] if len(row) > 13 else None,
-        welfare=row[14] if len(row) > 14 else None,
+        welfare=row[13] if len(row) > 13 else None,
     )
 
 
@@ -312,37 +310,6 @@ def delete_observation(prefix: str, hard: bool = False) -> bool:
                 (obs.id,),
             )
         return cursor.rowcount > 0
-
-
-def latest_handover() -> str | None:
-    with get_db() as conn:
-        row = conn.execute(
-            "SELECT handover FROM sessions WHERE handover IS NOT NULL "
-            "ORDER BY COALESCE(last_active_at, logged_at) DESC LIMIT 1"
-        ).fetchone()
-    return row[0] if row else None
-
-
-def update_session_handover(text: str) -> int:
-    with get_db() as conn:
-        cursor = conn.execute(
-            "UPDATE sessions SET handover = ? WHERE id = ("
-            "SELECT id FROM sessions ORDER BY COALESCE(last_active_at, logged_at) DESC LIMIT 1"
-            ")",
-            (text,),
-        )
-    return cursor.rowcount
-
-
-def clear_handover() -> int:
-    with get_db() as conn:
-        cursor = conn.execute(
-            "UPDATE sessions SET handover = NULL WHERE id = ("
-            "SELECT id FROM sessions WHERE handover IS NOT NULL "
-            "ORDER BY COALESCE(last_active_at, logged_at) DESC LIMIT 1"
-            ")"
-        )
-    return cursor.rowcount
 
 
 add_session = create_session
