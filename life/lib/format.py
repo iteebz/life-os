@@ -166,3 +166,22 @@ def format_status(symbol: str, content: str, item_id: str | None = None) -> str:
     if item_id:
         return f"{symbol} {content} {ansi.muted(f'[{item_id[:8]}]')}"
     return f"{symbol} {content}"
+
+
+def print_ok(msg: str) -> None:
+    """Success confirmation: green ✓ message."""
+    sys.stdout.write(f"{ansi.green('✓')} {msg}\n")
+    sys.stdout.flush()
+
+
+def print_info(msg: str) -> None:
+    """Info / action: muted arrow + message."""
+    r = ansi.theme.reset
+    sys.stdout.write(f"{ansi.theme.muted}→{r} {msg}\n")
+    sys.stdout.flush()
+
+
+def print_err(msg: str) -> None:
+    """Error: red ✗ message to stderr."""
+    sys.stderr.write(f"{ansi.red('✗')} {msg}\n")
+    sys.stderr.flush()

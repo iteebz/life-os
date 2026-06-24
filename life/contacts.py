@@ -7,6 +7,7 @@ from difflib import get_close_matches
 from fncli import UsageError, cli
 
 from life.lib import ansi, clock
+from life.lib.format import print_info, print_ok
 from life.lib.store import get_db
 
 _COLS = "id, name, cadence_days, last_contact_at, created_at"
@@ -130,7 +131,7 @@ def contacts() -> None:
 def add(name: str, every: int = 30) -> None:
     """Add a contact to track: `life contacts add "name" --every 30`"""
     add_contact(name, cadence_days=every)
-    print(f"→ {name} (every {every}d)")
+    print_info(f"{name} (every {every}d)")
 
 
 @cli("life contacts")
@@ -139,7 +140,7 @@ def log(name: str, date: str | None = None) -> None:
     contact = log_contact(name, date=date)
     if not contact:
         raise UsageError(f"no contact matching '{name}'")
-    print(f"✓ {contact.name} — logged")
+    print_ok(f"{contact.name} — logged")
 
 
 @cli("life contacts")
@@ -154,4 +155,4 @@ def rm(name: str) -> None:
             "UPDATE contacts SET deleted_at = ? WHERE id = ?",
             (now, contact.id),
         )
-    print(f"✗ {contact.name}")
+    print_ok(f"removed: {contact.name}")

@@ -2,6 +2,7 @@ from fncli import cli
 
 from .core.errors import ValidationError
 from .lib.dates import add_date, list_dates, remove_date
+from .lib.format import print_ok
 
 
 @cli("life dates", name="add")
@@ -11,14 +12,14 @@ def add(name: str, date: str, type_: str = "other"):
         add_date(name, date, type_)
     except ValueError as e:
         raise ValidationError(str(e)) from e
-    print(f"added: {name} on {date}")
+    print_ok(f"added: {name} on {date}")
 
 
 @cli("life dates", name="rm")
 def rm(name: str):
     """Remove a recurring date"""
     remove_date(name)
-    print(f"removed: {name}")
+    print_ok(f"removed: {name}")
 
 
 @cli("life dates", name="ls", default=True)

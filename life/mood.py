@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 from fncli import cli
 
 from life.core.errors import NotFoundError, ValidationError
-from life.lib.format import format_elapsed
+from life.lib.format import format_elapsed, print_info, print_ok
 from life.lib.store import get_db
 
 
@@ -67,7 +67,7 @@ def log(score: int, label: str | None = None):
     add_mood(score, label)
     bar = "█" * score + "░" * (5 - score)
     label_str = f"  {label}" if label else ""
-    print(f"→ {bar}  {score}/5{label_str}")
+    print_info(f"{bar}  {score}/5{label_str}")
 
 
 @cli("life mood", name="show")
@@ -93,4 +93,4 @@ def rm():
         raise NotFoundError("no mood entries to remove")
     bar = "█" * entry.score + "░" * (5 - entry.score)
     label_str = f"  {entry.label}" if entry.label else ""
-    print(f"✗ {bar}  {entry.score}/5{label_str}")
+    print_ok(f"removed  {bar}  {entry.score}/5{label_str}")

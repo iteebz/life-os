@@ -1,3 +1,4 @@
+from life.steward import close_session, create_session
 from life.task import add_task
 from tests.conftest import invoke
 
@@ -21,8 +22,8 @@ def test_observe_tag_filters_on_boot(tmp_life_dir):
 
 
 def test_steward_close_persists_session(tmp_life_dir):
-    result = invoke(["steward", "sleep", "closed tax loop, mood 3"])
-    assert result.exit_code == 0
+    db_id = create_session("(active)", name="test", model="claude", source="chat")
+    close_session(db_id, summary="closed tax loop", welfare=None, handover=None)
 
     result = invoke(["steward", "wake"])
     assert result.exit_code == 0

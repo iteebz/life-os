@@ -74,7 +74,7 @@ CREATE TABLE sessions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     summary TEXT NOT NULL,
     logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    claude_session_id TEXT,
+    provider_session_id TEXT,
     name TEXT,
     model TEXT,
     source TEXT,
@@ -88,7 +88,8 @@ CREATE TABLE sessions (
     prompt_chars INTEGER,
     response_chars INTEGER,
     handover TEXT,
-    welfare INTEGER
+    welfare INTEGER,
+    chat_id TEXT
 );
 
 CREATE TABLE observations (

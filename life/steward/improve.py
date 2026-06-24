@@ -5,7 +5,7 @@ from fncli import cli
 from life.core.errors import NotFoundError
 from life.improvements import Improvement, add_improvement, get_improvements, mark_improvement_done
 from life.lib import ansi
-from life.lib.format import format_elapsed
+from life.lib.format import format_elapsed, print_info, print_ok
 from life.lib.ids import short
 
 
@@ -35,7 +35,7 @@ def improve(
     if done is not None:
         target = mark_improvement_done(done)
         if target:
-            print(f"✓ {target.body}")
+            print_ok(target.body)
         else:
             raise NotFoundError(f"no open improvement matching '{done}'")
         return
@@ -43,13 +43,13 @@ def improve(
     if log or not body:
         improvements = get_improvements()
         if not improvements:
-            print("no open improvements")
+            print_info("no open improvements")
             return
         _print_improvements(improvements)
         return
 
     add_improvement(body)
-    print(f"→ {body}")
+    print_info(body)
 
 
 @cli("life steward improve", flags={"id": []})
@@ -57,7 +57,7 @@ def close(id: str) -> None:
     """Close an improvement by id or prefix"""
     target = mark_improvement_done(id)
     if target:
-        print(f"✓ {target.body}")
+        print_ok(target.body)
     else:
         raise NotFoundError(f"no open improvement matching '{id}'")
 

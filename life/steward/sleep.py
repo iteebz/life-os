@@ -8,7 +8,7 @@ from fncli import cli
 
 from life.lib import ansi
 from life.lib.dates import parse_due_date
-from life.lib.format import format_elapsed
+from life.lib.format import format_elapsed, print_info
 from life.lib.ids import short
 from life.lib.store import get_db
 
@@ -100,7 +100,7 @@ def sleep(note: str, handover: str | None = None, welfare: int | None = None):
         runtime_str = ""
         welfare_str = ""
     handover_str = f"  handover: {handover}" if handover else ""
-    print(f"→ session closed{runtime_str}{welfare_str}{handover_str}")
+    print_info(f"session closed{runtime_str}{welfare_str}{handover_str}")
     source = session_row[2] if session_row else None
     if source in ("tg", "auto", "daemon"):
         runtime_mins = (session_row[0] // 60) if (session_row and session_row[0]) else None
@@ -117,13 +117,13 @@ def handover(text: str | None = None, done: bool = False):
 
     if done or text == "done":
         n = clear_handover()
-        print("→ done" if n else "→ no handover to clear")
+        print_info("done" if n else "no handover to clear")
         return
     if text:
         from life.steward import update_session_handover  # noqa: PLC0415
 
         update_session_handover(text)
-        print(f"→ {text}")
+        print_info(text)
         return
     current = latest_handover()
     print(current or "(no handover)")
@@ -160,4 +160,4 @@ def observe(
     add_observation(body, tag=tag, about_date=about_date)
     suffix = f" #{tag}" if tag else ""
     about_str = f" (about {about_date})" if about_date else ""
-    print(f"→ {body}{suffix}{about_str}")
+    print_info(f"{body}{suffix}{about_str}")
