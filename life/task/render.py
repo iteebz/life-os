@@ -355,7 +355,7 @@ def _section_schedule(
     return lines, scheduled_ids
 
 
-_HABIT_CATEGORY_TAGS = {"self", "love", "admin", "input", "chore", "vice"}
+_HABIT_CATEGORY_TAGS = {"self", "love", "admin", "input", "chore", "vice", "hobby"}
 
 
 def _habit_sort_key(h: Habit) -> tuple[int, str]:
@@ -392,10 +392,38 @@ def _tag_section(
     return lines
 
 
-def _section_weekly(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) -> list[str]:
-    weekly = [h for h in habits if not h.private and not h.parent_id and h.cadence == "weekly"]
-    if not weekly:
+def _section_hobbies(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) -> list[str]:
+    week_start = ctx.today - timedelta(days=ctx.today.weekday())
+
+    def _is_done(h: Habit) -> bool:
+        if h.id in checked_ids:
+            return True
+        if h.cadence == "weekly":
+            return any(week_start <= dt.date() <= ctx.today for dt in h.checks)
+        return False
+
+    matching = [
+        h
+        for h in habits
+        if not h.private and not h.parent_id and "hobby" in (h.tags or []) and "vice" not in (h.tags or [])
+    ]
+    if not matching:
         return []
+    daily = [h for h in matching if h.cadence != "weekly"]
+    weekly = [h for h in matching if h.cadence == "weekly"]
+    done_count = sum(1 for h in daily if h.id in checked_ids) + sum(1 for h in weekly if _is_done(h))
+    total = len(matching)
+    lines = [f"\n{theme.bold}{theme.green}HOBBIES ({done_count}/{total}){_R}"]
+    remaining = [h for h in matching if not _is_done(h)]
+    if remaining:
+        for habit in sorted(remaining, key=_habit_sort_key):
+            lines.extend(_row_habit(habit, checked_ids, ctx))
+    else:
+        lines.append(f"  {gray('all done.')}")
+    return lines
+
+
+def _section_weekly(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) -> list[str]:
     week_start = ctx.today - timedelta(days=ctx.today.weekday())
 
     def _is_done(h: Habit) -> bool:
@@ -403,6 +431,13 @@ def _section_weekly(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) 
             return True
         return any(week_start <= dt.date() <= ctx.today for dt in h.checks)
 
+    weekly = [
+        h
+        for h in habits
+        if not h.private and not h.parent_id and h.cadence == "weekly" and "hobby" not in (h.tags or [])
+    ]
+    if not weekly:
+        return []
     lines = [f"\n{theme.bold}{theme.purple}WEEKLY{_R}"]
     remaining = [h for h in weekly if not _is_done(h)]
     if remaining:
@@ -522,6 +557,7 @@ def render_dashboard(
     lines += _tag_section(all_habits, checked_ids, ctx, "love", "LOVE", theme.pink)
     lines += _tag_section(all_habits, checked_ids, ctx, "admin", "LIFE", theme.yellow)
     lines += _tag_section(all_habits, checked_ids, ctx, "chore", "CHORES", theme.cyan)
+    lines += _section_hobbies(all_habits, checked_ids, ctx)
     lines += _section_weekly(all_habits, checked_ids, ctx)
     lines += _section_untagged(all_habits, checked_ids, ctx)
     lines += _section_vices(all_habits, checked_ids, ctx)
