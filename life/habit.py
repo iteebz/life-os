@@ -9,7 +9,7 @@ from life.core.errors import NotFoundError, StoreIntegrityError, ValidationError
 from life.core.models import Habit
 from life.lib import ansi, clock
 from life.lib.converters import row_to_habit
-from life.lib.format import render_done_row, render_row
+from life.lib.format import fmt_time, render_done_row, render_row
 from life.lib.fuzzy import find_in_pool, find_in_pool_exact
 from life.lib.store import get_db
 from life.tag import get_tags_for_habit, load_tags_for_habits
@@ -336,7 +336,7 @@ def check_habit_cmd(habit: Habit, check_time: str | None = None) -> None:
         checked_today = any(c.date() == today_date for c in updated.checks)
         if checked_today:
             today_checks = [c for c in updated.checks if c.date() == today_date]
-            time_str = max(today_checks).strftime("%H:%M") if today_checks else ""
+            time_str = fmt_time(max(today_checks)) if today_checks else ""
             render_done_row(habit.content.lower(), time_str, habit.tags, habit.id, is_habit=True)
 
 

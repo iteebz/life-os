@@ -7,6 +7,7 @@ from life.habit import get_subhabits
 from life.lib import clock
 from life.lib.ansi import NAMED_COLORS, POOL, bold, dim, gold, gray, green, purple, red, theme, white
 from life.lib.dates import upcoming_dates
+from life.lib.format import fmt_time
 from life.lib.tags import load_tag_groups, load_tag_overrides
 from life.task import task_sort_key
 
@@ -44,7 +45,7 @@ def _primary_tag(task: Task) -> str | None:
 
 
 def _fmt_time(t: str) -> str:
-    return f"{theme.gray}{t}{_R}"
+    return f"{theme.gray}{fmt_time(t)}{_R}"
 
 
 def _fmt_rel_date(due: date, today: date, time: str | None = None, is_deadline: bool = False) -> str:
@@ -213,7 +214,7 @@ def _row_habit(habit: Habit, checked_ids: set[str], ctx: RenderCtx, indent: str 
     id_str = f" {dim('[' + habit.id[:8] + ']')}"
     count_p1, count_p2 = _habit_counts(habit, ctx.today)
     trend = "↗" if count_p1 > count_p2 else "↘" if count_p1 < count_p2 else "→"
-    time_str = f" {gray(habit.scheduled_time)}" if habit.scheduled_time else ""
+    time_str = f" {gray(fmt_time(habit.scheduled_time))}" if habit.scheduled_time else ""
     if habit.id in checked_ids:
         label = f"{gray(habit.content.lower())}{tags_str}"
         lines = [f"{indent}{purple('●')} {gray(trend)} {label}{time_str}{id_str}"]
@@ -236,7 +237,7 @@ def _row_vice(habit: Habit, checked_ids: set[str], ctx: RenderCtx) -> list[str]:
         trend_str = green("↘")
     else:
         trend_str = gray("→")
-    time_str = f" {gray(habit.scheduled_time)}" if habit.scheduled_time else ""
+    time_str = f" {gray(fmt_time(habit.scheduled_time))}" if habit.scheduled_time else ""
     if habit.id in checked_ids:
         # Used today — bad
         label = f"{red(habit.content.lower())}"
@@ -251,7 +252,7 @@ def _row_vice(habit: Habit, checked_ids: set[str], ctx: RenderCtx) -> list[str]:
 def _section_header(
     today: date, tasks_done: int, habits_done: int, total_habits: int, added: int, deleted: int
 ) -> list[str]:
-    time_str = clock.now().strftime("%H:%M")
+    time_str = fmt_time(clock.now())
     header = today.strftime("%a") + " · " + today.strftime("%-d %b %Y") + " · " + time_str
     lines = [f"\n{bold(white(header))}"]
     lines.append(f"{_GREY}tasks:{_R} {green(str(tasks_done))}")
@@ -290,10 +291,10 @@ def _section_done(
         id_str = f" {dim('[' + item.id[:8] + ']')}"
         if isinstance(item, Habit):
             on_date = [c for c in item.checks if c.date() == target]
-            time_str = max(on_date).strftime("%H:%M") if on_date else ""
+            time_str = fmt_time(max(on_date)) if on_date else ""
             lines.append(f"  {purple('●')} {_GREY}{time_str}{_R} {content}{tags_str}{id_str}")
         elif item.completed_at:
-            time_str = item.completed_at.strftime("%H:%M")
+            time_str = fmt_time(item.completed_at)
             parent_str = ""
             if item.parent_id:
                 parent = next((t for t in ctx.pending if t.id == item.parent_id), None)
@@ -696,8 +697,9 @@ def render_timeline(
     all_habits = list({h.id: h for h in habits + today_habit_items}.values())
 
     now_time = clock.now().strftime("%H:%M")
+    now_display = fmt_time(clock.now())
     today_str = ctx.today.isoformat()
-    header = ctx.today.strftime("%a") + " · " + ctx.today.strftime("%-d %b %Y") + " · " + now_time
+    header = ctx.today.strftime("%a") + " · " + ctx.today.strftime("%-d %b %Y") + " · " + now_display
     lines = [f"\n{bold(white('TIMELINE · ' + header))}\n"]
 
     # Build timed entries: (hhmm_str, sort_priority, rendered_lines, is_done)
@@ -726,11 +728,12 @@ def render_timeline(
     for task in completed_tasks:
         if task.id in timed_task_ids:
             continue
-        t_str = task.completed_at.strftime("%H:%M")  # type: ignore[union-attr]
+        t_sort = task.completed_at.strftime("%H:%M")  # type: ignore[union-attr]
+        t_disp = fmt_time(task.completed_at)  # type: ignore[union-attr]
         tags_str = _fmt_tags(task.tags, ctx.tag_colors)
         id_str = f" {dim('[' + task.id[:8] + ']')}"
-        row = f"  {dim(green('✓') + ' ' + gray(t_str) + ' ' + task.content.lower() + tags_str + id_str)}"
-        timed.append((t_str, 0, [row], True))
+        row = f"  {dim(green('✓') + ' ' + gray(t_disp) + ' ' + task.content.lower() + tags_str + id_str)}"
+        timed.append((t_sort, 0, [row], True))
 
     # Timed habits (checked go into timed band at check time; unchecked with time also go in)
     floating_habits: list[Habit] = []
@@ -740,7 +743,9 @@ def render_timeline(
             continue
         if habit.id in checked_ids:
             today_checks = [c for c in habit.checks if c.date() == ctx.today]
-            t_str = max(today_checks).strftime("%H:%M") if today_checks else (habit.scheduled_time or now_time)
+            t_str = (
+                max(today_checks).strftime("%H:%M") if today_checks else (habit.scheduled_time or now_time)
+            )  # sort key
             rows = _row_habit(habit, checked_ids, ctx)
             timed.append((t_str, 1, rows, True))
             placed_habit_ids.add(habit.id)
@@ -752,7 +757,7 @@ def render_timeline(
             rows = _row_habit(habit, checked_ids, ctx)
             if habit.id in checked_ids:
                 today_checks = [c for c in habit.checks if c.date() == ctx.today]
-                t_str = max(today_checks).strftime("%H:%M") if today_checks else now_time
+                t_str = max(today_checks).strftime("%H:%M") if today_checks else now_time  # sort key
                 timed.append((t_str, 2, rows, True))
             else:
                 timed.append(("~~:~~", 2, rows, False))
@@ -767,7 +772,7 @@ def render_timeline(
     now_inserted = False
     for t_str, _, rows, is_done in timed:
         if not now_inserted and t_str > now_time:
-            lines.append(f"  {gray('─')} {theme.coral}▸ {now_time}{gray(' ─────────────────────')}{_R}")
+            lines.append(f"  {gray('─')} {theme.coral}▸ {now_display}{gray(' ─────────────────────')}{_R}")
             now_inserted = True
         if not is_done:
             lines.extend(f"{theme.bold}{r}{_R}" for r in rows)

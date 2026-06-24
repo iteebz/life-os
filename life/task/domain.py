@@ -8,7 +8,7 @@ from life.core.models import Task, TaskMutation
 from life.core.types import UNSET, Unset
 from life.lib import clock
 from life.lib.converters import row_to_task
-from life.lib.format import render_done_row
+from life.lib.format import fmt_time, render_done_row
 from life.lib.fuzzy import find_in_pool, find_in_pool_exact
 from life.lib.store import get_db
 from life.tag import add_tag, hydrate_tags, load_tags_for_tasks
@@ -405,8 +405,8 @@ def check_task_cmd(task: Task, completed_at: str | None = None) -> None:
         raise ConflictError(f"'{task.content}' is already done")
     completed_task, parent_completed = check_task(task.id, completed_at=completed_at)
     if completed_task and completed_task.completed_at:
-        time_str = completed_task.completed_at.strftime("%H:%M")
+        time_str = fmt_time(completed_task.completed_at)
         render_done_row(completed_task.content.lower(), time_str, completed_task.tags, completed_task.id)
     if parent_completed and parent_completed.completed_at:
-        time_str = parent_completed.completed_at.strftime("%H:%M")
+        time_str = fmt_time(parent_completed.completed_at)
         render_done_row(parent_completed.content.lower(), time_str, parent_completed.tags, parent_completed.id)
