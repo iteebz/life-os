@@ -8,9 +8,9 @@ from life.lib import frontmatter as fm
 _DIR = Path.home() / "life" / "steward" / "initiatives"
 
 
-def _parse(path: Path) -> tuple[str, str]:
+def _parse(path: Path) -> tuple[str, str | None]:
     text = path.read_text()
-    status = fm.field(text, "status") or "open"
+    status = fm.field(text, "status")
     title = fm.title(path)
     return title, status
 
@@ -28,12 +28,20 @@ def initiatives() -> None:
         return
     open_items = []
     closed_items = []
+    invalid = []
     for f in files:
         title, status = _parse(f)
-        if status in ("closed", "done"):
+        if status is None:
+            invalid.append((f.name, title))
+        elif status in ("closed", "done"):
             closed_items.append((title, status))
         else:
             open_items.append((title, status))
+    if invalid:
+        print(ansi.red(f"  missing status field ({len(invalid)})\n"))
+        for fname, title in invalid:
+            print(f"  {ansi.red('!')}  {fname}  —  {title}")
+        print()
     if open_items:
         print(ansi.muted(f"  open ({len(open_items)})\n"))
         for title, status in open_items:
@@ -42,3 +50,15 @@ def initiatives() -> None:
         print(ansi.muted(f"\n  closed ({len(closed_items)})\n"))
         for title, _ in closed_items:
             print(f"  {ansi.muted('[done]'):<24}  {ansi.muted(title)}")
+
+
+@cli("life steward initiatives")
+def new(name: str) -> None:
+    """Scaffold a new initiative file with required frontmatter"""
+    slug = name.lower().replace(" ", "-")
+    path = _DIR / f"{slug}.md"
+    if path.exists():
+        print(ansi.red(f"already exists: {path.name}"))
+        return
+    path.write_text(f"---\nstatus: idea\n---\n\n# {name}\n\n")
+    print(ansi.green(f"created: {path.name}"))
