@@ -71,6 +71,10 @@ def main():
     if user_args == ["-w"]:
         _watch()
         return
+    # natural-language aliases
+    aliases = {"tasks": "task", "habits": "habit"}
+    if user_args[0] in aliases:
+        user_args = [aliases[user_args[0]], *user_args[1:]]
     # life steward (bare) → new session
     if user_args == ["steward"]:
         from .steward.chat import chat  # noqa: PLC0415
