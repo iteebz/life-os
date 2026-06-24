@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 from fncli import cli
@@ -6,13 +7,28 @@ from life.lib import ansi
 from life.lib import frontmatter as fm
 
 _DIR = Path.home() / "life" / "steward" / "initiatives"
+_FM_RE = re.compile(r"^---\s*\n.*?\n---\s*\n", re.DOTALL)
 
 
-def _parse(path: Path) -> tuple[str, str | None]:
+def _first_paragraph(text: str) -> str | None:
+    body = _FM_RE.sub("", text, count=1)
+    para: list[str] = []
+    for line in body.splitlines():
+        if line.startswith("#"):
+            continue
+        if line.strip():
+            para.append(line.strip())
+        elif para:
+            break
+    return " ".join(para) if para else None
+
+
+def _parse(path: Path) -> tuple[str, str | None, str | None]:
     text = path.read_text()
     status = fm.field(text, "status")
     title = fm.title(path)
-    return title, status
+    desc = fm.field(text, "description") or _first_paragraph(text)
+    return title, status, desc
 
 
 def _files() -> list[Path]:
@@ -21,12 +37,12 @@ def _files() -> list[Path]:
     return sorted(f for f in _DIR.glob("*.md") if f.name not in ("README.md", "SPRINT.md"))
 
 
-def initiative_index() -> list[tuple[str, str, str]]:
-    """Return (slug, status, title) for all initiative files."""
+def initiative_index() -> list[tuple[str, str, str, str | None]]:
+    """Return (slug, status, title, description) for all initiative files."""
     results = []
     for f in _files():
-        title, status = _parse(f)
-        results.append((f.stem, status or "?", title))
+        title, status, desc = _parse(f)
+        results.append((f.stem, status or "?", title, desc))
     return results
 
 
@@ -45,7 +61,7 @@ def initiatives() -> None:
     closed_items = []
     invalid = []
     for f in files:
-        title, status = _parse(f)
+        title, status, _desc = _parse(f)
         if status is None:
             invalid.append((f.name, title))
         elif status in ("closed", "done"):

@@ -192,12 +192,13 @@ def render_initiatives() -> str:
     items = initiative_index()
     if not items:
         return ""
-    active = [(slug, status, title) for slug, status, title in items if status not in ("done", "closed")]
+    active = [(slug, status, title, desc) for slug, status, title, desc in items if status not in ("done", "closed")]
     if not active:
         return ""
     out = ["INITIATIVES (steward/initiatives/):"]
-    for _slug, status, title in active:
-        out.append(f"  [{status:<7}]  {title}")
+    for _slug, status, title, desc in active:
+        suffix = f"  —  {desc}" if desc else ""
+        out.append(f"  [{status:<7}]  {title}{suffix}")
     return "\n".join(out)
 
 

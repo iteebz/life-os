@@ -40,7 +40,7 @@ def improve(
             raise NotFoundError(f"no open improvement matching '{done}'")
         return
 
-    if log or not body:
+    if log or not body or body == "list":
         improvements = get_improvements()
         if not improvements:
             print_info("no open improvements")
