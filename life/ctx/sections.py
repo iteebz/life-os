@@ -26,6 +26,7 @@ from life.lib.ids import short
 from life.mood import get_recent_moods
 from life.skills import list_skills
 from life.steward import get_observations, get_sessions, latest_handover
+from life.steward.initiatives import initiative_index
 from life.task import get_all_tasks, get_tasks
 
 from .fragments import STEWARD_BIRTHDAY
@@ -184,6 +185,19 @@ def render_improvements() -> str:
         return ""
     out = ["IMPROVEMENTS:"]
     out.extend(f"  [{short('i', i.id)}] {i.body}" for i in items[:5])
+    return "\n".join(out)
+
+
+def render_initiatives() -> str:
+    items = initiative_index()
+    if not items:
+        return ""
+    active = [(slug, status, title) for slug, status, title in items if status not in ("done", "closed")]
+    if not active:
+        return ""
+    out = ["INITIATIVES (steward/initiatives/):"]
+    for _slug, status, title in active:
+        out.append(f"  [{status:<7}]  {title}")
     return "\n".join(out)
 
 
