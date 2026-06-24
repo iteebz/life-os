@@ -1,3 +1,6 @@
+---
+description: life-os overview and quick-start
+---
 # life-os
 
 personal life assistant. single agent (steward), not a swarm.

@@ -1,3 +1,6 @@
+---
+description: session model — entry points, steward identity, mode detection
+---
 # sessions
 
 one steward, many entry points, one session model.

@@ -1,3 +1,6 @@
+---
+description: context injection into active steward sessions via PreToolUse hook
+---
 # hooks
 
 context injection into active steward sessions. steward sees ambient life signals without

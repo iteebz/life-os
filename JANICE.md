@@ -1,3 +1,6 @@
+---
+description: collaboration guide for janice steward sessions
+---
 # Collaborating on life-os
 
 Two humans, two stewards, one engine.

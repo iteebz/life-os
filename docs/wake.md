@@ -1,3 +1,6 @@
+---
+description: steward boot sequence — context snapshot, observations, mood, telegram
+---
 # wake
 
 every steward session starts cold. wake is the total context snapshot — everything steward

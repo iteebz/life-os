@@ -1,3 +1,6 @@
+---
+description: daily dashboard layout — sections, tag groups, rendering pipeline
+---
 # dashboard
 
 `life` renders the daily dashboard. layout is fixed sections top-down, with a config-driven

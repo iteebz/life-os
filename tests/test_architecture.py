@@ -1,6 +1,7 @@
 """Architecture enforcement: dependency DAG and import discipline."""
 
 import ast
+import warnings
 from collections import defaultdict
 from pathlib import Path
 
@@ -49,10 +50,57 @@ def _collect_edges():
             tgt_pkg = mod.split(".")[1]
             if tgt_pkg == src_pkg or tgt_pkg not in _LAYERS:
                 continue
-            edges[(src_pkg, tgt_pkg)].append(
-                (str(rel), node.lineno, mod)
-            )
+            edges[(src_pkg, tgt_pkg)].append((str(rel), node.lineno, mod))
     return edges
+
+
+_CODE_MAX = 16 * 1024  # 16kb
+_MD_MAX = 4 * 1024  # 4kb
+_SKIP_DIRS_SIZE = {"__pycache__", ".venv", ".git", ".pytest_cache", "seed"}
+
+
+def test_file_size_limits():
+    """No code file > 16kb, no markdown file > 4kb."""
+    repo_root = LIFE_ROOT.parent
+    violations = []
+    for path in sorted(repo_root.rglob("*")):
+        if any(p in _SKIP_DIRS_SIZE for p in path.parts):
+            continue
+        if not path.is_file():
+            continue
+        size = path.stat().st_size
+        rel = path.relative_to(repo_root)
+        if path.suffix == ".py" and size > _CODE_MAX:
+            violations.append(f"  {rel}  {size // 1024}kb (max 16kb)")
+        elif path.suffix == ".md" and size > _MD_MAX:
+            violations.append(f"  {rel}  {size // 1024}kb (max 4kb)")
+    # Known violations: tracked as initiatives, must not grow
+    known = {
+        "life/hook.py",
+        "life/task/render.py",
+    }
+    new_violations = [v for v in violations if not any(k in v for k in known)]
+    assert not new_violations, "files exceed size limits:\n" + "\n".join(new_violations)
+    if violations:
+        warnings.warn("known size violations still open:\n" + "\n".join(violations), stacklevel=1)
+
+
+def test_markdown_has_description_frontmatter():
+    """All tracked markdown files must have YAML frontmatter with a description field."""
+    repo_root = LIFE_ROOT.parent
+    violations = []
+    for path in sorted(repo_root.rglob("*.md")):
+        if any(p in _SKIP_DIRS_SIZE for p in path.parts):
+            continue
+        text = path.read_text()
+        rel = path.relative_to(repo_root)
+        if not text.startswith("---"):
+            violations.append(f"  {rel}  missing frontmatter")
+            continue
+        end = text.find("---", 3)
+        if end == -1 or "description:" not in text[3:end]:
+            violations.append(f"  {rel}  missing description: in frontmatter")
+    assert not violations, "markdown files missing description frontmatter:\n" + "\n".join(violations)
 
 
 def test_no_upward_imports():

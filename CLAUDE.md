@@ -1,3 +1,6 @@
+---
+description: steward operating instructions for life-os codebase
+---
 # life-os
 
 steward's own tooling. python CLI + daemon + hooks.

@@ -1,3 +1,6 @@
+---
+description: persistent launchd process that spawns claude steward sessions
+---
 # daemon
 
 persistent process. launchd KeepAlive. spawns claude for steward sessions.

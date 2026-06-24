@@ -1,3 +1,6 @@
+---
+description: deploying life-os to a new machine
+---
 # setup
 
 deploying life-os to a new machine.
