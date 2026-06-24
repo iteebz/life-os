@@ -39,6 +39,45 @@ def _notify_tg(note: str, runtime_mins: int | None, welfare: int | None) -> None
         tg.send(chat_id, "\n".join(parts))
 
 
+def _session_banner(db_id: int, note: str, runtime_seconds: int | None, welfare: int | None) -> None:
+    with get_db() as conn:
+        started_at = conn.execute("SELECT started_at FROM sessions WHERE id = ?", (db_id,)).fetchone()
+        if not started_at or not started_at[0]:
+            return
+        t = started_at[0]
+        tasks_done = conn.execute(
+            "SELECT content FROM tasks WHERE completed_at >= ? AND deleted_at IS NULL ORDER BY completed_at",
+            (t,),
+        ).fetchall()
+        obs_count = conn.execute(
+            "SELECT COUNT(*) FROM observations WHERE logged_at >= ? AND deleted_at IS NULL", (t,)
+        ).fetchone()[0]
+        imp_count = conn.execute(
+            "SELECT COUNT(*) FROM improvements WHERE logged_at >= ? AND deleted_at IS NULL", (t,)
+        ).fetchone()[0]
+
+    mins = f"  {runtime_seconds // 60}m" if runtime_seconds else ""
+    w = f"  welfare {welfare}/10" if welfare else ""
+    bar = "─" * 52
+    print(f"\n{bar}")
+    print(f"  session{mins}{w}")
+    if note:
+        wrapped = note[:120] + ("…" if len(note) > 120 else "")
+        print(f"  {wrapped}")
+    stats = []
+    if tasks_done:
+        names = " · ".join(r[0] for r in tasks_done[:5])
+        tail = f" +{len(tasks_done) - 5}" if len(tasks_done) > 5 else ""
+        stats.append(f"✓ {len(tasks_done)} tasks  {names}{tail}")
+    if obs_count:
+        stats.append(f"{obs_count} obs")
+    if imp_count:
+        stats.append(f"{imp_count} improvements")
+    if stats:
+        print(f"  {'  ·  '.join(stats)}")
+    print(bar + "\n")
+
+
 def _push_repos() -> None:
     life_dir = Path.home() / "life"
     repos = [life_dir] + [d for d in life_dir.iterdir() if d.is_dir() and (d / ".git").exists()]
@@ -101,6 +140,10 @@ def sleep(note: str, handover: str | None = None, welfare: int | None = None):
         welfare_str = ""
     handover_str = f"  handover: {handover}" if handover else ""
     print_info(f"session closed{runtime_str}{welfare_str}{handover_str}")
+    if db_id is not None and session_row:
+        runtime_secs = session_row[0]
+        welfare_val = session_row[1] or welfare
+        _session_banner(db_id, note, runtime_secs, welfare_val)
     source = session_row[2] if session_row else None
     if source in ("tg", "auto", "daemon"):
         runtime_mins = (session_row[0] // 60) if (session_row and session_row[0]) else None
