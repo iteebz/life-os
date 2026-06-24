@@ -205,7 +205,8 @@ def render_skills() -> str:
     width = max(len(s.name) for s in skills)
     out = ["SKILLS (load with `life skill <name>`):"]
     for s in skills:
-        when = f"  {s.when}" if s.when else ""
+        desc = s.when[:128] if s.when else ""
+        when = f"  {desc}" if desc else ""
         out.append(f"  {s.name:<{width}}{when}")
     return "\n".join(out)
 

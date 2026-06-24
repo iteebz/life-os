@@ -27,7 +27,7 @@ class Skill:
 
 def _parse(path: Path) -> Skill:
     text = path.read_text()
-    when = field(text, "when") or ""
+    when = (field(text, "when") or "")[:128]
     m = _FM_RE.match(text)
     body = text[m.end() :].lstrip() if m else text
     return Skill(name=path.stem, when=when, body=body.rstrip())
