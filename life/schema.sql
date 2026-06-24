@@ -122,7 +122,9 @@ CREATE TABLE improvements (
     body TEXT NOT NULL,
     logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     done_at TIMESTAMP,
-    deleted_at TIMESTAMP
+    deleted_at TIMESTAMP,
+    promoted_at TIMESTAMP,
+    initiative TEXT
 );
 
 CREATE TABLE achievements (

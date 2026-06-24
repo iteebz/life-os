@@ -55,6 +55,7 @@ def render_milestones() -> str:
 def render_steward_tasks() -> str:
     tasks = [t for t in get_tasks(include_steward=True) if t.steward]
     improvements = get_improvements()
+    promoted = [i for i in get_improvements(include_promoted=True) if i.promoted_at]
     if not tasks and not improvements:
         return ""
     lines = ["── STEWARD ──"]
@@ -62,6 +63,10 @@ def render_steward_tasks() -> str:
         tag_str = f"  #{' #'.join(t.tags)}" if t.tags else ""
         lines.append(f"  → {t.content.lower()}{tag_str}")
     lines.extend(f"  ✦ [{short('i', i.id)}] {i.body}" for i in improvements[:5])
+    if len(improvements) > 5:
+        lines.append(f"  ✦ ... +{len(improvements) - 5} more")
+    if promoted:
+        lines.append(f"  ↑ {len(promoted)} promoted to initiatives")
     return "\n".join(lines)
 
 
@@ -176,15 +181,6 @@ def render_contacts() -> str:
     for contact, days in stale:
         label = "never" if days is None else f"{days}d ago"
         out.append(f"  {contact.name:<12} {label:<10}  (every {contact.cadence_days}d)")
-    return "\n".join(out)
-
-
-def render_improvements() -> str:
-    items = get_improvements()
-    if not items:
-        return ""
-    out = ["IMPROVEMENTS:"]
-    out.extend(f"  [{short('i', i.id)}] {i.body}" for i in items[:5])
     return "\n".join(out)
 
 
