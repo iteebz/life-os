@@ -9,7 +9,7 @@ from life.core.types import UNSET
 from life.habit import update_habit
 from life.lib import ansi, clock
 from life.lib.clock import today
-from life.lib.format import format_status, format_task
+from life.lib.format import format_status, format_task, render_row
 from life.lib.parsing import parse_due_and_item
 from life.resolve import resolve_item, resolve_task
 from life.task.item import add as add_item
@@ -58,7 +58,7 @@ def _schedule(args: list[str], remove: bool = False) -> None:
             if not task:
                 raise UsageError(f"item not found: {item_name}")
             update_task(task.id, scheduled_date=None, scheduled_time=None, is_deadline=False)
-            print(format_status("\u25a1", task.content, task.id))
+            render_row(task.content, task.tags, task.id)
         return
     try:
         date_str, time_str, item_name = parse_due_and_item(list(args))
@@ -82,10 +82,10 @@ def _schedule(args: list[str], remove: bool = False) -> None:
         updates["scheduled_time"] = time_str
     update_task(task.id, **updates)
     if time_str:
-        label = ansi.muted(time_str)
+        time_label = ansi.muted(time_str)
     else:
-        label = ansi.muted(_fmt_date_label(date_str or ""))
-    print(format_status(label, task.content, task.id))
+        time_label = ansi.muted(_fmt_date_label(date_str or ""))
+    render_row(task.content, task.tags, task.id, time_str=time_label)
 
 
 @cli("life")
@@ -97,7 +97,7 @@ def focus(ref: list[str]) -> None:
     t = resolve_task(item_ref)
     toggle_focus(t.id)
     symbol = ansi.bold("→") if not t.focus else "□"
-    print(format_status(symbol, t.content, t.id))
+    render_row(t.content, t.tags, t.id, symbol=symbol)
 
 
 @cli("life")
@@ -109,7 +109,7 @@ def fire(ref: list[str]) -> None:
     t = resolve_task(item_ref)
     toggle_urgent(t.id)
     symbol = "🔥" if not t.is_urgent else "□"
-    print(format_status(symbol, t.content, t.id))
+    render_row(t.content, t.tags, t.id, symbol=symbol)
 
 
 @cli("life", flags={"remove": ["-r", "--remove"]})
@@ -123,7 +123,7 @@ def due(ref: list[str], when: str, remove: bool = False) -> None:
     t = resolve_task(item_name)
     if remove:
         update_task(t.id, scheduled_date=None, scheduled_time=None, is_deadline=False)
-        print(format_status("\u25a1", t.content, t.id))
+        render_row(t.content, t.tags, t.id)
         return
     if not date_str and not time_str:
         raise UsageError("Due spec required: today, tomorrow, day name, YYYY-MM-DD, HH:MM, 'now', or -r to clear")
@@ -137,7 +137,7 @@ def due(ref: list[str], when: str, remove: bool = False) -> None:
         label = ansi.coral(time_str)
     else:
         label = ansi.coral(_fmt_date_label(date_str or ""))
-    print(format_status(label, t.content, t.id))
+    render_row(t.content, t.tags, t.id, symbol=label)
 
 
 @cli(
@@ -206,7 +206,7 @@ def set_cmd(
         )
     updated = resolve_task(content or item_ref)
     prefix = "  └ " if updated.parent_id else ""
-    print(f"{prefix}{format_status('□', updated.content, updated.id)}")
+    render_row(updated.content, updated.tags, updated.id, prefix=prefix or "  ")
 
 
 @cli("life", flags={"as_json": ["-j", "--json"]})
@@ -308,7 +308,7 @@ def unschedule(ref: list[str] | None = None, overdue: bool = False) -> None:
             return
         for t in tasks:
             update_task(t.id, scheduled_date=None, scheduled_time=None, is_deadline=False)
-            print(format_status("\u25a1", t.content, t.id))
+            render_row(t.content, t.tags, t.id)
         return
 
     if not ref:
@@ -317,7 +317,7 @@ def unschedule(ref: list[str] | None = None, overdue: bool = False) -> None:
     for r in ref:
         t = resolve_task(r)
         update_task(t.id, scheduled_date=None, scheduled_time=None, is_deadline=False)
-        print(format_status("\u25a1", t.content, t.id))
+        render_row(t.content, t.tags, t.id)
 
 
 @cli("life", flags={"ref": [], "tag": ["-t", "--tag"], "schedule": ["-s", "--schedule"]})
@@ -353,7 +353,7 @@ def task(
                 updates["scheduled_time"] = time_str
         if updates:
             update_task(existing.id, **updates)
-        print(format_status("\u25a1", existing.content, existing.id))
+        render_row(existing.content, existing.tags, existing.id)
         return
 
     if not tag:
