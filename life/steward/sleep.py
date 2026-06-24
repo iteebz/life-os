@@ -14,7 +14,6 @@ from life.lib.store import get_db
 
 from . import (
     add_observation,
-    clear_handover,
     close_session,
     get_observations,
 )
@@ -100,10 +99,10 @@ def _push_repos() -> None:
             print(f"  {name}: {msg}")
 
 
-@cli("life", flags={"note": [], "handover": ["-h", "--handover"], "welfare": ["-w", "--welfare"]})
-@cli("life steward", flags={"note": [], "handover": ["-h", "--handover"], "welfare": ["-w", "--welfare"]})
-def sleep(note: str, handover: str | None = None, welfare: int | None = None):
-    """Close the session — note recaps, --handover points the next steward at the next physical action"""
+@cli("life", flags={"note": [], "welfare": ["-w", "--welfare"]})
+@cli("life steward", flags={"note": [], "welfare": ["-w", "--welfare"]})
+def sleep(note: str, welfare: int | None = None):
+    """Close the session with a recap note"""
     db_id_env = os.environ.get("STEWARD_DB_SESSION_ID")
     session_id_env = os.environ.get("STEWARD_SESSION_ID")
     db_id: int | None = None
@@ -124,7 +123,7 @@ def sleep(note: str, handover: str | None = None, welfare: int | None = None):
     welfare_db: int | None = None
     source: str | None = None
     if db_id is not None:
-        close_session(db_id, summary=note, handover=handover, welfare=welfare)
+        close_session(db_id, summary=note, welfare=welfare)
         with get_db() as conn:
             row = conn.execute(
                 "SELECT runtime_seconds, welfare, source FROM sessions WHERE id = ?", (db_id,)
@@ -143,8 +142,7 @@ def sleep(note: str, handover: str | None = None, welfare: int | None = None):
     else:
         runtime_str = ""
         welfare_str = ""
-    handover_str = f"  handover: {handover}" if handover else ""
-    print_info(f"session closed{runtime_str}{welfare_str}{handover_str}")
+    print_info(f"session closed{runtime_str}{welfare_str}")
     if db_id is not None and runtime_seconds is not None:
         welfare_val = welfare_db or welfare
         _session_banner(db_id, note, runtime_seconds, welfare_val)
@@ -153,26 +151,6 @@ def sleep(note: str, handover: str | None = None, welfare: int | None = None):
         welfare_val = welfare_db or welfare
         _notify_tg(note, runtime_mins, welfare_val)
     _push_repos()
-
-
-@cli("life", flags={"text": [], "done": ["-d", "--done"]})
-@cli("life steward", flags={"text": [], "done": ["-d", "--done"]})
-def handover(text: str | None = None, done: bool = False):
-    """Show, set, or mark-done the handover pointer for the next session"""
-    from life.steward import latest_handover  # noqa: PLC0415
-
-    if done or text == "done":
-        n = clear_handover()
-        print_info("done" if n else "no handover to clear")
-        return
-    if text:
-        from life.steward import update_session_handover  # noqa: PLC0415
-
-        update_session_handover(text)
-        print_info(text)
-        return
-    current = latest_handover()
-    print(current or "(no handover)")
 
 
 @cli("life", flags={"body": [], "tag": ["-t", "--tag"], "about": ["-a", "--about"], "search": ["-s", "--search"]})
