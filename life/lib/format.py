@@ -19,15 +19,13 @@ __all__ = [
 
 
 def fmt_time(t: str | datetime) -> str:
-    """Format time as '1 am', '4:20 pm' — no leading zero, no :00 for on-the-hour."""
+    """Format time as '1:42', '10:00' — 24h, no leading zero."""
     if isinstance(t, datetime):
         h, m = t.hour, t.minute
     else:
         parts = t.split(":")
         h, m = int(parts[0]), int(parts[1])
-    suffix = "am" if h < 12 else "pm"
-    h12 = h % 12 or 12
-    return f"{h12}:{m:02d} {suffix}" if m else f"{h12} {suffix}"
+    return f"{h}:{m:02d}"
 
 
 def format_elapsed(dt: datetime, now: datetime | None = None) -> str:
