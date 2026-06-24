@@ -66,11 +66,8 @@ def main():
     """) or [0])[0]
     tasks_today = (q(conn, """
         SELECT COUNT(*) FROM tasks
-        WHERE completed_at IS NULL AND deleted_at IS NULL
-        AND (
-            scheduled_date = date('now', 'localtime')
-            OR (is_deadline = 1 AND scheduled_date <= date('now', 'localtime'))
-        )
+        WHERE deleted_at IS NULL
+        AND date(completed_at, 'localtime') = date('now', 'localtime')
     """) or [0])[0]
 
     conn.close()
