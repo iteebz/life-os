@@ -66,7 +66,7 @@ def task_sort_key(task: Task) -> tuple[bool, bool, object, object]:
 
 _AUTOTAG_PATTERNS = {
     "comms": re.compile(r"\b(call|message|whatsapp|email|voicemail|reply|text|telegram|signal)\b", re.IGNORECASE),
-    "finance": re.compile(r"\b(invoice|pay|transfer|liquidate|buy|order|purchase|refund|deposit)\b", re.IGNORECASE),
+    "finance": re.compile(r"\b(invoice|pay|transfer|liquidate|order|purchase|refund|deposit)\b", re.IGNORECASE),
     "health": re.compile(r"\b(dentist|doctor|physio|health|medical|pharmacy|chemist)\b", re.IGNORECASE),
 }
 
