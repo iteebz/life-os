@@ -64,8 +64,14 @@ def main():
         WHERE archived_at IS NULL AND deleted_at IS NULL AND cadence='daily'
         AND id NOT IN (SELECT habit_id FROM tags WHERE tag = 'vice')
     """) or [0])[0]
-    tasks_done = (q(conn, "SELECT COUNT(*) FROM tasks WHERE date(completed_at) = date('now', 'localtime') AND deleted_at IS NULL") or [0])[0]
-    tasks_open = (q(conn, "SELECT COUNT(*) FROM tasks WHERE completed_at IS NULL AND deleted_at IS NULL") or [0])[0]
+    tasks_today = (q(conn, """
+        SELECT COUNT(*) FROM tasks
+        WHERE completed_at IS NULL AND deleted_at IS NULL
+        AND (
+            scheduled_date = date('now', 'localtime')
+            OR (is_deadline = 1 AND scheduled_date <= date('now', 'localtime'))
+        )
+    """) or [0])[0]
 
     conn.close()
 
@@ -83,13 +89,9 @@ def main():
     red = "\x1b[31m"
     yellow = "\x1b[33m"
     cyan = "\x1b[36m"
-    purple = "\x1b[38;5;141m"   # last — matches brr-statusline
-    green = "\x1b[38;5;114m"    # tasks done — matches `life` dashboard
-
-    # habits: purple to match dashboard
-    h_color = purple
-    # tasks done today: green if any, dim if none
-    t_color = green if tasks_done > 0 else dim
+    purple = "\x1b[38;5;141m"
+    mustard = "\x1b[38;5;178m"
+    green = "\x1b[38;5;114m"
 
     parts = []
 
@@ -97,12 +99,12 @@ def main():
         ctx_color = cyan if pct < 50 else (yellow if pct < 80 else red)
         parts.append(f"{dim}ctx{reset} {ctx_color}{format_tokens(used)}{reset}")
 
-    parts.append(f"{dim}habits{reset} {h_color}{habits_done}{reset}")
-    parts.append(f"{dim}tasks{reset} {t_color}{tasks_open}{reset}")
+    parts.append(f"{dim}tasks{reset} {green}{tasks_today}{reset}")
+    parts.append(f"{dim}habits{reset} {purple}{habits_done}{reset}")
 
     last = read_last_time(data.get("session_id", ""))
     if last:
-        parts.append(f"{dim}last{reset} {purple}{last}{reset}")
+        parts.append(f"{dim}last{reset} {mustard}{last}{reset}")
 
     print("  ".join(parts), end="")
 
