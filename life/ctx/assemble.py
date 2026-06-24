@@ -36,7 +36,7 @@ WAKE_ORDER = [
     sections.render_comms,
     sections.render_telegram,
     sections.render_inbox,
-    sections.render_xmit,
+    sections.render_space_mail,
 ]
 
 

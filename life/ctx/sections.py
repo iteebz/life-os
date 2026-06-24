@@ -351,13 +351,13 @@ def render_inbox() -> str:
         return ""
 
 
-def render_xmit() -> str:
+def render_space_mail() -> str:
     try:
-        result = subprocess.run(["xmit", "recv"], capture_output=True, text=True, timeout=5)
+        result = subprocess.run(["space", "mail", "read"], capture_output=True, text=True, timeout=5)
         out = result.stdout.strip()
-        if not out or out == "no messages":
+        if not out or out == "no mail":
             return ""
-        return f"XMIT (new messages):\n{out}"
+        return f"SPACE MAIL:\n{out}"
     except Exception:
         return ""
 
