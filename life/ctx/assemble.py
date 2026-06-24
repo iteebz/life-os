@@ -27,6 +27,7 @@ WAKE_ORDER = [
     sections.render_milestones,
     sections.render_handover,
     sections.render_feedback,
+    sections.render_observatory,
     sections.render_last_session,
     sections.render_contracts,
     sections.render_observations,
