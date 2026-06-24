@@ -269,6 +269,10 @@ def defer_task(task_id: str, reason: str) -> Task | None:
 
 
 def delete_task(task_id: str, cancel_reason: str | None = None, hard: bool = False) -> None:
+    emit_event(
+        "task.deleted",
+        payload={"task_id": task_id, "cancel_reason": cancel_reason, "hard": hard},
+    )
     with get_db() as conn:
         if hard:
             conn.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
