@@ -45,7 +45,10 @@ def check(ref: list[str], date: str | None = None, time: str | None = None, repe
         if task and not habit:
             if task.completed_at:
                 raise UsageError("task is already done — uncheck first to re-complete with a date")
-            check_task_cmd(task, completed_at=f"{parsed}T23:59:59")
+            time_part = time or "23:59:59"
+            if time and len(time) == 5:
+                time_part = f"{time}:00"
+            check_task_cmd(task, completed_at=f"{parsed}T{time_part}")
             return
         if not habit:
             raise UsageError("item not found")
