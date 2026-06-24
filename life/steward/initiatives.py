@@ -3,27 +3,15 @@ from pathlib import Path
 from fncli import cli
 
 from life.lib import ansi
+from life.lib import frontmatter as fm
 
-_INITIATIVES_DIR = Path.home() / "life" / "steward" / "initiatives"
+_DIR = Path.home() / "life" / "steward" / "initiatives"
 
 
 def _parse(path: Path) -> tuple[str, str]:
-    """Return (title, status) from a markdown initiative file."""
-    title = path.stem.replace("-", " ")
-    status = "open"
-    for line in path.read_text().splitlines():
-        if line.startswith("# "):
-            title = line[2:].strip()
-        if line.startswith("## status") or line.strip().lower() == "## status":
-            continue
-    lines = path.read_text().splitlines()
-    for i, line in enumerate(lines):
-        if line.strip().lower() == "## status":
-            if i + 1 < len(lines):
-                val = lines[i + 1].strip().lower().split()[0] if lines[i + 1].strip() else ""
-                if val:
-                    status = val
-            break
+    text = path.read_text()
+    status = fm.field(text, "status") or "open"
+    title = fm.title(path)
     return title, status
 
 
@@ -31,10 +19,10 @@ def _parse(path: Path) -> tuple[str, str]:
 @cli("life steward")
 def initiatives() -> None:
     """List initiatives from steward/initiatives/"""
-    if not _INITIATIVES_DIR.exists():
+    if not _DIR.exists():
         print("no initiatives folder found")
         return
-    files = sorted(f for f in _INITIATIVES_DIR.glob("*.md") if f.name != "README.md")
+    files = sorted(f for f in _DIR.glob("*.md") if f.name not in ("README.md", "SPRINT.md"))
     if not files:
         print("no initiatives")
         return
@@ -49,9 +37,8 @@ def initiatives() -> None:
     if open_items:
         print(ansi.muted(f"  open ({len(open_items)})\n"))
         for title, status in open_items:
-            tag = ansi.muted(f"[{status}]")
-            print(f"  {tag}  {title}")
+            print(f"  {ansi.muted(f'[{status}]'):<24}  {title}")
     if closed_items:
         print(ansi.muted(f"\n  closed ({len(closed_items)})\n"))
         for title, _ in closed_items:
-            print(f"  {ansi.muted('[done]')}  {ansi.muted(title)}")
+            print(f"  {ansi.muted('[done]'):<24}  {ansi.muted(title)}")
