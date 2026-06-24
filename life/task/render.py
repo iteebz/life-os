@@ -370,10 +370,25 @@ def _row_daily_habit(habit: Habit, checked_ids: set[str], ctx: RenderCtx) -> lis
     id_str = f" {dim('[' + habit.id[:8] + ']')}"
     count_p1, count_p2 = _habit_counts(habit, ctx.today)
     trend = "↗" if count_p1 > count_p2 else "↘" if count_p1 < count_p2 else "→"
-    time_str = f"{theme.gray}{fmt_time(habit.scheduled_time)}{_R} " if habit.scheduled_time else ""
-    if habit.id in checked_ids:
+
+    now_hhmm = clock.now().strftime("%H:%M")
+    is_checked = habit.id in checked_ids
+    past_due = bool(habit.scheduled_time and not is_checked and habit.scheduled_time <= now_hhmm)
+
+    if habit.scheduled_time:
+        if past_due:
+            time_str = f"{theme.red}{fmt_time(habit.scheduled_time)}{_R} "
+        else:
+            time_str = f"{theme.gray}{fmt_time(habit.scheduled_time)}{_R} "
+    else:
+        time_str = ""
+
+    if is_checked:
         label = f"{gray(habit.content.lower())}{tags_str}"
         lines = [f"  {purple('●')} {gray(trend)} {time_str}{label}{id_str}"]
+    elif past_due:
+        label = f"{theme.bold}{habit.content.lower()}{_R}{tags_str}"
+        lines = [f"  {red('○')} {gray(trend)} {time_str}{label}{id_str}"]
     else:
         label = f"{habit.content.lower()}{tags_str}"
         lines = [f"  {purple('○')} {gray(trend)} {time_str}{label}{id_str}"]
