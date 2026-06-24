@@ -12,6 +12,8 @@ from pathlib import Path
 from fncli import cli
 
 from life.core.errors import NotFoundError
+from life.lib.frontmatter import _RE as _FM_RE
+from life.lib.frontmatter import field
 
 SKILLS_DIR = Path.home() / "life" / "steward" / "skills"
 
@@ -25,18 +27,9 @@ class Skill:
 
 def _parse(path: Path) -> Skill:
     text = path.read_text()
-    when = ""
-    body = text
-    if text.startswith("---\n"):
-        end = text.find("\n---\n", 4)
-        if end != -1:
-            front = text[4:end]
-            body = text[end + 5 :].lstrip()
-            for line in front.splitlines():
-                if ":" in line:
-                    k, _, v = line.partition(":")
-                    if k.strip() == "when":
-                        when = v.strip()
+    when = field(text, "when") or ""
+    m = _FM_RE.match(text)
+    body = text[m.end() :].lstrip() if m else text
     return Skill(name=path.stem, when=when, body=body.rstrip())
 
 

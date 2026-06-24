@@ -1,3 +1,7 @@
+---
+description: multi-step steward projects — canonical source of truth, no parallel TODO files
+---
+
 # initiatives
 
 multi-step steward projects. canonical source of truth — no parallel TODO files.
