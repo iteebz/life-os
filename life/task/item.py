@@ -30,7 +30,7 @@ from life.task import (
 
 
 @cli("life", name="done", flags={"date": ["-d", "--date"], "time": ["-t", "--time"]})
-def check(ref: list[str], date: str | None = None, time: str | None = None) -> None:
+def check(ref: list[str], date: str | None = None, time: str | None = None, repeat: bool = False) -> None:
     """Toggle done"""
     item_ref = " ".join(ref) if ref else ""
     if not item_ref:
@@ -84,6 +84,15 @@ def check(ref: list[str], date: str | None = None, time: str | None = None) -> N
             render_uncheck_row(task.content.lower(), task.tags, task.id)
         else:
             check_task_cmd(task)
+            if repeat:
+                new_id = add_task(
+                    task.content,
+                    tags=task.tags,
+                    parent_id=task.parent_id,
+                    notes=task.notes,
+                    source=task.source,
+                )
+                render_row(task.content.lower(), task.tags, new_id, symbol="□")
 
 
 def add(
