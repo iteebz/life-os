@@ -306,7 +306,7 @@ def add_observation(body: str, tag: str | None = None, about_date: date | None =
 def get_observations(limit: int = 20, tag: str | None = None, search: str | None = None) -> list[Observation]:
     with get_db() as conn:
         conditions = ["deleted_at IS NULL"]
-        params: list = []
+        params: list[str | int] = []
         if tag:
             conditions.append("tag = ?")
             params.append(tag)

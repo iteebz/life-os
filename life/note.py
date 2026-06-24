@@ -44,18 +44,6 @@ def get_notes(entity_type: str, entity_id: str) -> list[Note]:
     ]
 
 
-def _resolve_entity_id(entity_type: str, entity_id_prefix: str) -> str | None:
-    """Resolve a short prefix to a full entity_id within the notes table."""
-    with get_db() as conn:
-        rows = conn.execute(
-            "SELECT DISTINCT entity_id FROM notes WHERE entity_type = ? AND entity_id LIKE ?",
-            (entity_type, f"{entity_id_prefix}%"),
-        ).fetchall()
-    if len(rows) == 1:
-        return rows[0][0]
-    return None
-
-
 @cli("life")
 def note(entity_type: str, entity_id: str, body: str) -> None:
     """Add a note to any entity. entity_type: task|habit|habit_check|observation|improvement|mood"""

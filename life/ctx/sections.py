@@ -6,7 +6,7 @@ import os
 import re
 import subprocess
 import time
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from life.achievements import get_achievements
@@ -40,9 +40,7 @@ def render_header() -> str:
 
 def render_milestones() -> str:
     today_d = date.today()
-    milestones = [
-        a for a in get_achievements() if a.achieved_at.replace(tzinfo=datetime.UTC).astimezone().date() == today_d
-    ]
+    milestones = [a for a in get_achievements() if a.achieved_at.replace(tzinfo=UTC).astimezone().date() == today_d]
     if not milestones:
         return ""
     out = ["★ MILESTONE" + ("S" if len(milestones) > 1 else "") + " TODAY:"]
@@ -78,6 +76,20 @@ def render_feedback() -> str:
         today=today(),
     )
     return render_feedback_headline(snapshot)
+
+
+def render_observatory() -> str:
+    try:
+        result = subprocess.run(
+            ["python", "-m", "observatory", "--digest"],
+            cwd=str(Path.home() / "life"),
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        return result.stdout.strip()
+    except Exception:
+        return ""
 
 
 def render_handover() -> str:

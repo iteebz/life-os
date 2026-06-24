@@ -120,34 +120,37 @@ def sleep(note: str, handover: str | None = None, welfare: int | None = None):
             if row:
                 db_id = row[0]
 
-    session_row: tuple | None = None
+    runtime_seconds: int | None = None
+    welfare_db: int | None = None
+    source: str | None = None
     if db_id is not None:
         close_session(db_id, summary=note, handover=handover, welfare=welfare)
         with get_db() as conn:
-            session_row = conn.execute(
+            row = conn.execute(
                 "SELECT runtime_seconds, welfare, source FROM sessions WHERE id = ?", (db_id,)
             ).fetchone()
         runtime_str = ""
         welfare_str = ""
-        if session_row:
-            if session_row[0]:
-                mins = session_row[0] // 60
+        if row:
+            runtime_seconds = int(row[0]) if row[0] is not None else None
+            welfare_db = int(row[1]) if row[1] is not None else None
+            source = str(row[2]) if row[2] is not None else None
+            if runtime_seconds:
+                mins = runtime_seconds // 60
                 runtime_str = f"  {mins}m"
-            if session_row[1]:
-                welfare_str = f"  welfare {session_row[1]}/10"
+            if welfare_db:
+                welfare_str = f"  welfare {welfare_db}/10"
     else:
         runtime_str = ""
         welfare_str = ""
     handover_str = f"  handover: {handover}" if handover else ""
     print_info(f"session closed{runtime_str}{welfare_str}{handover_str}")
-    if db_id is not None and session_row:
-        runtime_secs = session_row[0]
-        welfare_val = session_row[1] or welfare
-        _session_banner(db_id, note, runtime_secs, welfare_val)
-    source = session_row[2] if session_row else None
+    if db_id is not None and runtime_seconds is not None:
+        welfare_val = welfare_db or welfare
+        _session_banner(db_id, note, runtime_seconds, welfare_val)
     if source in ("tg", "auto", "daemon"):
-        runtime_mins = (session_row[0] // 60) if (session_row and session_row[0]) else None
-        welfare_val = (session_row[1]) if (session_row and session_row[1]) else welfare
+        runtime_mins = (runtime_seconds // 60) if runtime_seconds else None
+        welfare_val = welfare_db or welfare
         _notify_tg(note, runtime_mins, welfare_val)
     _push_repos()
 
