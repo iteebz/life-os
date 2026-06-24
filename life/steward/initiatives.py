@@ -15,6 +15,21 @@ def _parse(path: Path) -> tuple[str, str | None]:
     return title, status
 
 
+def _files() -> list[Path]:
+    if not _DIR.exists():
+        return []
+    return sorted(f for f in _DIR.glob("*.md") if f.name not in ("README.md", "SPRINT.md"))
+
+
+def initiative_index() -> list[tuple[str, str, str]]:
+    """Return (slug, status, title) for all initiative files."""
+    results = []
+    for f in _files():
+        title, status = _parse(f)
+        results.append((f.stem, status or "?", title))
+    return results
+
+
 @cli("life")
 @cli("life steward")
 def initiatives() -> None:
