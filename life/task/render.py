@@ -520,7 +520,7 @@ def render_dashboard(
     all_habits = list(set(habits + today_habit_items))
     lines += _tag_section(all_habits, checked_ids, ctx, "self", "SELF", theme.purple)
     lines += _tag_section(all_habits, checked_ids, ctx, "love", "LOVE", theme.pink)
-    lines += _tag_section(all_habits, checked_ids, ctx, "admin", "ADMIN", theme.yellow)
+    lines += _tag_section(all_habits, checked_ids, ctx, "admin", "LIFE", theme.yellow)
     lines += _tag_section(all_habits, checked_ids, ctx, "chore", "CHORES", theme.cyan)
     lines += _section_weekly(all_habits, checked_ids, ctx)
     lines += _section_untagged(all_habits, checked_ids, ctx)
