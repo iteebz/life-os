@@ -1,63 +1,85 @@
 ---
-description: context injection into active steward sessions via PreToolUse hook
+description: how hooks keep steward oriented and stop bad state from landing
 ---
 # hooks
 
-context injection into active steward sessions. steward sees ambient life signals without
-polling or explicit commands.
+hooks are the small bits of code that fire around steward's session and around
+every commit. they do two things: feed steward ambient context so it isn't blind
+between tool calls, and guard the repo so broken state can't slip in unnoticed.
 
-## why hooks
+## why bother
 
-agents are blind between tool calls. telegram messages arrive, tasks change, mood shifts —
-none of this surfaces unless steward explicitly checks. hooks solve this by injecting context
-at the moment a tool fires. steward stays oriented mid-flight.
+without hooks, steward only knows what it explicitly checks. telegram comes in,
+tasks change, a mood gets logged — none of it surfaces unless someone asks. with
+hooks, that context arrives the moment a tool fires. same idea applies at commit:
+without a guard, malformed files land and rot quietly.
 
-## design
+## the session side
 
-four hook events (PreToolUse, UserPromptSubmit, Stop, SessionEnd). same pattern as spacebrr.
+four events wrap a steward session. each does one job:
 
-all sessions (chat and auto) inject hook settings via `--settings` JSON at spawn time.
-no writes to `.claude/settings.*` — hooks live in launch architecture, not config.
+| event | what it does |
+|-------|-------------|
+| UserPromptSubmit | logs the human turn, drains the inbox, surfaces session size |
+| PreToolUse | injects ambient signals — dirty repo, new commits, habits, mood, tasks |
+| Stop | logs steward's response |
+| SessionEnd | auto-sleeps the session and pushes every repo |
 
-## state model
+settings are injected at spawn time via `--settings`. nothing is written to
+`.claude/settings.*` — hooks live in the launcher, not in any config file.
 
-per-session state file in `$TMPDIR`. stores watermark timestamps for throttling. each signal
-has its own throttle interval — high-frequency signals (new messages) check often, low-frequency
-signals (mood) check rarely. state is ephemeral — dies with the session. no cleanup needed.
+state is throttled per session in a tmp file. high-frequency signals (inbox,
+tasks) check often, low-frequency ones (mood, dirty state) check rarely or once
+per spawn. the file dies with the session — no cleanup, no leakage.
 
-## signals
+## the signals
 
-seven ambient signals, each independently throttled:
+seven ambient signals, each independently throttled. they fire on every tool
+call. if the count ever grows beyond what's cheap, add routing by tool name.
 
-| signal | what steward sees | throttle |
-|--------|------------------|---------|
+| signal | what steward sees | when |
+|--------|------------------|------|
 | dirty_state | uncommitted ~/life changes | once per spawn |
-| life_os_commits | new life-os commits since last seen HEAD | watermark (HEAD hash) |
-| inbox | queued messages from when steward was busy | drain (no throttle) |
-| habits | today's completion status | 60s |
-| mood | latest mood score | 300s |
-| tasks | open task summary | 60s |
+| life_os_commits | new life-os commits since last seen HEAD | when HEAD advances |
+| inbox | queued messages from when steward was busy | drained on read |
+| habits | today's completion status | every 60s |
+| mood | latest mood score | every 5min |
+| tasks | open task summary | every 60s |
+| session-meta | size/age of the current session | at every prompt |
 
-dirty_state fires once per spawn — presence of uncommitted changes is the signal, not frequency.
-life_os_commits uses HEAD-hash watermarking (spacebrr pattern): fires only when HEAD advances, never on repeated calls.
+## the commit side
 
-all signals fire on every tool call (no tool-name routing). acceptable for a single agent
-with seven cheap signals. if signal count grows, add routing.
+two guards run on every commit. both can block.
 
-## vs spacebrr hooks
+**commit-msg** enforces `type(scope): verb object` — atomic, no commas, no
+trailing periods, em-dashes auto-sanitized to `-`. subject capped at 72 chars.
 
-same pattern (PreToolUse, watermarks, --settings injection, JSON output). differences:
-- no tool-name routing (spacebrr routes Read→file notes, Bash→commit alerts)
-- no credential guards (steward is trusted, no multi-agent isolation)
-- python not rust
+**pre-commit** runs two things in order: the **frontmatter guard** (below), then
+ruff format-check + lint on staged python.
 
-## session lifecycle
+## frontmatter guarding
 
-| event | handler | what it does |
-|-------|---------|-------------|
-| UserPromptSubmit | `hook prompt` | log human turn, drain inbox, surface session meta |
-| PreToolUse | `hook tool` | inject ambient signals (habits, tasks, mood, commits, inbox) |
-| Stop | `hook stop` | log steward response |
-| SessionEnd | `hook session-end` | auto-close session record, push all repos |
+stolen from spacebrr. the idea: certain directories own a frontmatter contract,
+and the commit hook refuses to land files that break it. cheap to check, catches
+typos and drift before they pollute steward's reads.
 
-SessionEnd auto-sleep generates a mechanical summary from the message log — no human required.
+today there's one schema:
+
+| glob | required field | valid values |
+|------|----------------|--------------|
+| `steward/initiatives/` | `status` | idea, design, active, closed, done |
+
+adding a new schema is one line in `_FRONTMATTER_SCHEMAS` (hook.py). set
+`valid_values` to `None` if any non-empty value is acceptable. keep the schema
+table small — every entry is a contract you're promising to maintain.
+
+what it doesn't do: parse full YAML, enforce field ordering, check the body, or
+warn on extra fields. it's a guard, not a linter. if a stricter shape matters,
+write a dedicated check rather than expand this one.
+
+## differences from spacebrr
+
+same skeleton, smaller surface. no tool-name routing because steward is one
+agent. no credential isolation because there's no multi-agent trust boundary.
+python rather than rust because the rest of life-os is python and the perf
+budget here is irrelevant.

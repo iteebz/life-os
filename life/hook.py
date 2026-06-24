@@ -20,6 +20,7 @@ from typing import Any
 from life.comms import events
 from life.core.config import get_user_name
 from life.habit import get_habits
+from life.lib import frontmatter as fm
 from life.lib.clock import today
 from life.lib.store import get_db
 from life.mood import get_recent_moods
@@ -563,18 +564,51 @@ def cmd_hook_commit() -> None:
         _commit_fail(subject, f"subject is {len(subject)} chars (max 72)")
 
 
+# Frontmatter schemas — glob → (required_field, valid_values).
+# None for valid_values means any non-empty value is fine.
+_FRONTMATTER_SCHEMAS: dict[str, tuple[str, set[str] | None]] = {
+    "steward/initiatives/": ("status", {"idea", "design", "active", "closed", "done"}),
+}
+
+
+def _frontmatter_guard(root: Path, staged_all: list[str]) -> None:
+    """Block commit when staged markdown breaks its frontmatter contract."""
+    failures: list[str] = []
+    for rel in staged_all:
+        if not rel.endswith(".md"):
+            continue
+        schema = next(((g, s) for g, s in _FRONTMATTER_SCHEMAS.items() if rel.startswith(g)), None)
+        if schema is None:
+            continue
+        _glob, (field, valid) = schema
+        path = root / rel
+        if not path.exists():
+            continue
+        value = fm.field(path.read_text(), field)
+        if value is None:
+            failures.append(f"  {rel}: missing '{field}:' in frontmatter")
+        elif valid is not None and value not in valid:
+            failures.append(f"  {rel}: {field}={value!r} not in {sorted(valid)}")
+    if failures:
+        print("BLOCKED — frontmatter guard:\n" + "\n".join(failures), file=sys.stderr)
+        sys.exit(1)
+
+
 def cmd_hook_pre_commit() -> None:
-    """pre-commit — ruff format check + lint on staged Python files."""
+    """pre-commit — frontmatter guard + ruff format/lint on staged Python files."""
     result = subprocess.run(
         ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR"],
         capture_output=True,
         text=True,
     )
-    staged = [f for f in result.stdout.splitlines() if f.endswith((".py", ".pyi"))]
+    staged_all = result.stdout.splitlines()
+    root = Path(subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip())
+    _frontmatter_guard(root, staged_all)
+
+    staged = [f for f in staged_all if f.endswith((".py", ".pyi"))]
     if not staged:
         return
 
-    root = Path(subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip())
     ruff = root / ".venv" / "bin" / "ruff"
     if not ruff.is_file():
         ruff = Path("ruff")
