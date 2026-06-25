@@ -68,7 +68,10 @@ def _section_done_today(
         t_disp = fmt_time(task.completed_at)  # type: ignore[union-attr]
         tags_str = fmt_tags(task.tags, ctx.tag_colors)
         id_str = f" {dim('[' + task.id[:8] + ']')}"
-        entries.append((t_sort, [f"  {green('✓')} {gray(t_disp)} {task.content.lower()}{tags_str}{id_str}"]))
+        notes_marker = f" {dim('»')}" if task.id in ctx.noted_ids else ""
+        entries.append(
+            (t_sort, [f"  {green('✓')} {gray(t_disp)} {task.content.lower()}{tags_str}{id_str}{notes_marker}"])
+        )
 
     for habit in all_habits:
         if habit.private or habit.parent_id or "vice" in (habit.tags or []) or habit.id not in checked_ids:
@@ -79,7 +82,8 @@ def _section_done_today(
         t_disp = fmt_time(check_dt) if check_dt else (habit.scheduled_time or now_time)
         tags_str = fmt_tags(habit.tags, ctx.tag_colors)
         id_str = f" {dim('[' + habit.id[:8] + ']')}"
-        row = f"  {purple('●')} {gray(t_disp)} {habit.content.lower()}{tags_str}{id_str}"
+        notes_marker = f" {dim('»')}" if habit.id in ctx.noted_ids else ""
+        row = f"  {purple('●')} {gray(t_disp)} {habit.content.lower()}{tags_str}{id_str}{notes_marker}"
         entries.append((_pad_hm(t_str), [row]))
 
     if not entries:

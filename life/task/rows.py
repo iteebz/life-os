@@ -98,6 +98,7 @@ class RenderCtx:
     id_to_content: dict[str, str]
     subtask_ids: set[str]
     scheduled_ids: set[str] = dataclasses.field(default_factory=set)
+    noted_ids: set[str] = dataclasses.field(default_factory=set)
 
     @classmethod
     def build(
@@ -105,6 +106,8 @@ class RenderCtx:
         items: Sequence[Task | Habit],
         today_items: Sequence[Task | Habit] | None = None,
     ) -> "RenderCtx":
+        from life.note import get_noted_ids
+
         today = clock.today()
         pending = [i for i in items if isinstance(i, Task)]
         tag_colors = build_tag_colors(list(items) + list(today_items or []))
@@ -112,6 +115,10 @@ class RenderCtx:
         for t in pending:
             if t.parent_id:
                 subtasks.setdefault(t.parent_id, []).append(t)
+        all_items = list(items) + list(today_items or [])
+        task_ids = [i.id for i in all_items if isinstance(i, Task)]
+        habit_ids = [i.id for i in all_items if isinstance(i, Habit)]
+        noted_ids = get_noted_ids("task", task_ids) | get_noted_ids("habit", habit_ids)
         return cls(
             today=today,
             tag_colors=tag_colors,
@@ -119,6 +126,7 @@ class RenderCtx:
             subtasks=subtasks,
             id_to_content={t.id: t.content for t in pending},
             subtask_ids={t.id for t in pending if t.parent_id},
+            noted_ids=noted_ids,
         )
 
 
@@ -156,15 +164,17 @@ def row_task(
         if parent_name:
             parent_str = f" {dim('~ ' + parent_name.lower())}"
 
+    notes_marker = f" {dim('»')}" if task.id in ctx.noted_ids else ""
+
     if task.blocked_by:
         blocker = ctx.id_to_content.get(task.blocked_by, task.blocked_by[:8])
         blocker_str = dim("← " + blocker.lower())
         content = f"{_GREY}{prefix}{task.content.lower()}{tags_str}{_R}"
-        row = f"{indent}⊘ {content} {blocker_str}{id_str}"
+        row = f"{indent}⊘ {content} {blocker_str}{id_str}{notes_marker}"
     else:
         focus_marker = f"{theme.bold}→{_R} " if task.focus else ""
         fire_marker = f"{theme.bold}🔥{_R} " if task.is_urgent else ""
-        row = f"{indent}□ {focus_marker}{fire_marker}{prefix}{task.content.lower()}{tags_str}{id_str}{parent_str}"
+        row = f"{indent}□ {focus_marker}{fire_marker}{prefix}{task.content.lower()}{tags_str}{id_str}{parent_str}{notes_marker}"
 
     rows = [row]
     rows.extend(
@@ -205,12 +215,13 @@ def row_habit(habit: Habit, checked_ids: set[str], ctx: RenderCtx, indent: str =
     count_p1, count_p2 = habit_counts(habit, ctx.today)
     trend = "↗" if count_p1 > count_p2 else "↘" if count_p1 < count_p2 else "→"
     time_str = f" {gray(fmt_time(habit.scheduled_time))}" if habit.scheduled_time else ""
+    notes_marker = f" {dim('»')}" if habit.id in ctx.noted_ids else ""
     if habit.id in checked_ids:
         label = f"{gray(habit.content.lower())}{tags_str}"
-        lines = [f"{indent}{purple('●')} {gray(trend)} {label}{time_str}{id_str}"]
+        lines = [f"{indent}{purple('●')} {gray(trend)} {label}{time_str}{id_str}{notes_marker}"]
     else:
         label = f"{habit.content.lower()}{tags_str}"
-        lines = [f"{indent}{purple('○')} {gray(trend)} {label}{time_str}{id_str}"]
+        lines = [f"{indent}{purple('○')} {gray(trend)} {label}{time_str}{id_str}{notes_marker}"]
     for sub in get_subhabits(habit.id):
         lines.extend(row_habit(sub, checked_ids, ctx, indent="   └ "))
     return lines
@@ -253,15 +264,17 @@ def row_daily_habit(habit: Habit, checked_ids: set[str], ctx: RenderCtx) -> list
     else:
         time_str = ""
 
+    notes_marker = f" {dim('»')}" if habit.id in ctx.noted_ids else ""
+
     if is_checked:
         label = f"{gray(habit.content.lower())}{tags_str}"
-        lines = [f"  {purple('●')} {gray(trend)} {time_str}{label}{id_str}"]
+        lines = [f"  {purple('●')} {gray(trend)} {time_str}{label}{id_str}{notes_marker}"]
     elif past_due:
         label = f"{habit.content.lower()}{tags_str}"
-        lines = [f"  {red('○')} {gray(trend)} {time_str}{label}{id_str}"]
+        lines = [f"  {red('○')} {gray(trend)} {time_str}{label}{id_str}{notes_marker}"]
     else:
         label = f"{habit.content.lower()}{tags_str}"
-        lines = [f"  {purple('○')} {gray(trend)} {time_str}{label}{id_str}"]
+        lines = [f"  {purple('○')} {gray(trend)} {time_str}{label}{id_str}{notes_marker}"]
     for sub in get_subhabits(habit.id):
         lines.extend(row_daily_habit(sub, checked_ids, ctx))
     return lines

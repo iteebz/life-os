@@ -31,6 +31,21 @@ def add_note(entity_type: str, entity_id: str, body: str) -> str:
     return note_id
 
 
+def get_noted_ids(entity_type: str, ids: list[str]) -> set[str]:
+    """Return full IDs from `ids` that have notes. Matches on full ID or 8-char prefix."""
+    if not ids:
+        return set()
+    prefixes = [i[:8] for i in ids]
+    prefix_to_full = {i[:8]: i for i in ids}
+    placeholders = ",".join("?" * len(prefixes))
+    with get_db() as conn:
+        rows = conn.execute(
+            f"SELECT DISTINCT entity_id FROM notes WHERE entity_type = ? AND SUBSTR(entity_id, 1, 8) IN ({placeholders}) AND deleted_at IS NULL",
+            (entity_type, *prefixes),
+        ).fetchall()
+    return {prefix_to_full.get(r[0][:8], r[0]) for r in rows}
+
+
 def get_notes(entity_type: str, entity_id: str) -> list[Note]:
     with get_db() as conn:
         rows = conn.execute(
