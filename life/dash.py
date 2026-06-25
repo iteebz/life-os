@@ -247,8 +247,8 @@ def _show_day(target: date) -> None:
 
 
 @cli("life")
-def momentum() -> None:
-    """Momentum and weekly trends"""
+def trends() -> None:
+    """Weekly task/habit completion trends"""
     print(render_momentum(weekly_momentum()))
 
 

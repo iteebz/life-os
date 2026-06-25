@@ -32,12 +32,14 @@ TAG_WEIGHTS = {
     "vice": 0.0,
 }
 DEFAULT_WEIGHT = 0.3
-HALF_LIFE_HOURS = 24  # decay constant: e^(-h / HL)
-WINDOW_HOURS = 48  # cutoff
-STALE_DAYS = 7  # discomfort age threshold
-STALE_PENALTY = 5  # points per stale discomfort task (post-clamp scale)
+HABIT_WEIGHT = 0.5  # per habit check; tag-weighted if habit has tags
+HALF_LIFE_HOURS = 24
+WINDOW_HOURS = 48
+STALE_DAYS = 7
+STALE_PENALTY_K = 3  # penalty = K * sqrt(stale_count), capped
+STALE_PENALTY_CAP = 15
 DISCOMFORT_TAGS = {"janice", "finance", "legal"}
-SCALE = 10  # raw → display multiplier
+SCALE = 10
 
 
 def load_done_tasks(conn):
@@ -59,6 +61,29 @@ def load_done_tasks(conn):
             ts = ts.replace(tzinfo=UTC)
         tags = tag_map.get(tid, set())
         weight = max((TAG_WEIGHTS.get(t, DEFAULT_WEIGHT) for t in tags), default=DEFAULT_WEIGHT)
+        out.append((ts, weight, tags))
+    return out
+
+
+def load_habit_checks(conn):
+    """Returns list of (completed_at: datetime, weight: float, tags)."""
+    rows = conn.execute("""
+        SELECT hc.habit_id, hc.completed_at
+        FROM habit_checks hc
+        WHERE hc.completed_at >= datetime('now', '-35 days')
+    """).fetchall()
+    tag_map = defaultdict(set)
+    for hid, tag in conn.execute("SELECT habit_id, tag FROM tags WHERE habit_id IS NOT NULL"):
+        tag_map[hid].add(tag)
+    out = []
+    for hid, completed in rows:
+        ts = datetime.fromisoformat(completed)
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=UTC)
+        tags = tag_map.get(hid, set())
+        # habit weight: tag-weighted but scaled down (habits fire daily)
+        tag_w = max((TAG_WEIGHTS.get(t, DEFAULT_WEIGHT) for t in tags), default=DEFAULT_WEIGHT)
+        weight = HABIT_WEIGHT * (tag_w / 1.0)  # tag scales habit weight
         out.append((ts, weight, tags))
     return out
 
@@ -86,16 +111,17 @@ def load_open_discomfort(conn, asof):
     return count
 
 
-def momentum(asof, done, conn):
+def momentum(asof, events, conn):
     raw = 0.0
-    for ts, weight, _ in done:
+    for ts, weight, _ in events:
         age_h = (asof - ts).total_seconds() / 3600
         if age_h < 0 or age_h > WINDOW_HOURS:
             continue
         raw += weight * math.exp(-age_h / HALF_LIFE_HOURS)
     stale = load_open_discomfort(conn, asof)
-    score = round(raw * SCALE) - STALE_PENALTY * stale
-    return max(0, min(99, score)), raw, stale
+    penalty = min(STALE_PENALTY_CAP, STALE_PENALTY_K * math.sqrt(stale))
+    score = round(raw * SCALE - penalty)
+    return max(0, min(99, score)), raw, stale, penalty
 
 
 def ascii_chart(series, height=12, width=None):
@@ -115,32 +141,33 @@ def ascii_chart(series, height=12, width=None):
 
 def main():
     conn = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
-    done = load_done_tasks(conn)
-    print(f"loaded {len(done)} done tasks (last 35d)")
+    tasks = load_done_tasks(conn)
+    habits = load_habit_checks(conn)
+    events = tasks + habits
+    print(f"loaded {len(tasks)} tasks + {len(habits)} habit checks (35d)")
 
     now = datetime.now(UTC)
     series = []
-    for hours_ago in range(30 * 24, -1, -6):  # every 6h, 30d back
+    for hours_ago in range(30 * 24, -1, -3):  # every 3h, 30d back
         asof = now - timedelta(hours=hours_ago)
-        score, raw, stale = momentum(asof, done, conn)
+        score, *_ = momentum(asof, events, conn)
         series.append((asof, score))
 
     print()
     print(ascii_chart(series))
     print()
 
-    # current breakdown
-    score, raw, stale = momentum(now, done, conn)
-    print(f"NOW: M={score}  raw={raw:.2f}  stale_discomfort={stale}")
+    score, raw, stale, penalty = momentum(now, events, conn)
+    print(f"NOW: M={score}  raw={raw:.2f}  stale={stale}  penalty=-{penalty:.1f}")
     print()
     print("top contributors (now):")
     contribs = []
-    for ts, weight, tags in done:
+    for ts, weight, tags in events:
         age_h = (now - ts).total_seconds() / 3600
         if 0 <= age_h <= WINDOW_HOURS:
             contribs.append((weight * math.exp(-age_h / HALF_LIFE_HOURS), age_h, tags))
-    for c, age, tags in sorted(contribs, reverse=True)[:8]:
-        print(f"  +{c:.2f}  age={age:5.1f}h  tags={sorted(tags)}")
+    for c, age, tags in sorted(contribs, reverse=True)[:10]:
+        print(f"  +{c:.2f}  age={age:5.1f}h  tags={sorted(tags) or ['(none)']}")
 
 
 if __name__ == "__main__":

@@ -3,9 +3,32 @@
 
 import json
 import sqlite3
+import subprocess
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
+
+MOMENTUM_CACHE = Path.home() / ".life" / "momentum.cache"
+MOMENTUM_TTL = 60
+
+
+def momentum_score():
+    """Cached `life momentum` output: returns (text, delta_sign) or (None, None)."""
+    try:
+        if MOMENTUM_CACHE.exists() and time.time() - MOMENTUM_CACHE.stat().st_mtime < MOMENTUM_TTL:
+            text = MOMENTUM_CACHE.read_text().strip()
+        else:
+            text = subprocess.run(
+                ["life", "momentum"], capture_output=True, text=True, timeout=2
+            ).stdout.strip()
+            MOMENTUM_CACHE.write_text(text)
+        if not text:
+            return None, None
+        sign = "↑" if "↑" in text else ("↓" if "↓" in text else "·")
+        return text, sign
+    except Exception:
+        return None, None
 
 
 def q(conn, sql, *args):
@@ -98,6 +121,15 @@ def main():
 
     parts.append(f"{dim}tasks{reset} {green}{tasks_today}{reset}")
     parts.append(f"{dim}habits{reset} {purple}{habits_done}{reset}")
+
+    m_text, m_sign = momentum_score()
+    if m_text:
+        try:
+            m_val = int(m_text.split()[0][1:])  # strip 'M'
+        except (ValueError, IndexError):
+            m_val = 0
+        m_color = green if m_val >= 60 else (mustard if m_val >= 30 else (yellow if m_val >= 10 else red))
+        parts.append(f"{dim}m{reset} {m_color}{m_text}{reset}")
 
     last = read_last_time(data.get("session_id", ""))
     if last:
