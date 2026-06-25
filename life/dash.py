@@ -121,12 +121,17 @@ def dash() -> None:
     print(render_dashboard(items, today_breakdown, today_items=today_items))
 
 
-def minimal() -> None:
+@cli("life", name="today")
+def cmd_today() -> None:
     """Minimal dashboard — done timeline, habits, today+tomorrow. Human focus view."""
     items = get_tasks() + get_habits()
     today_items = get_today_completed()
     today_breakdown = get_today_breakdown()
     print(render_minimal(items, today_breakdown, today_items=today_items))
+
+
+def minimal() -> None:
+    cmd_today()
 
 
 @cli("life", flags={"as_json": ["-j", "--json"]})

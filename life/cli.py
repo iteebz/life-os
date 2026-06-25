@@ -67,9 +67,11 @@ def main():
 
     user_args = sys.argv[1:]
     if not user_args or user_args == ["-v"] or user_args == ["--verbose"]:
-        from .dash import minimal
+        from .dash import get_habits, get_tasks, get_today_breakdown, get_today_completed
+        from .task.render import render_dashboard
 
-        minimal()
+        items = get_tasks() + get_habits()
+        print(render_dashboard(items, get_today_breakdown(), today_items=get_today_completed()))
         return
     if user_args == ["-w"]:
         _watch()
