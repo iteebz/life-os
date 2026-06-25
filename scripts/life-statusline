@@ -108,8 +108,9 @@ def main():
         parts.append(f"{dim}last{reset} {purple}{last}{reset}")
 
     gray = "\x1b[38;5;250m"
+    dark_gray = "\x1b[38;5;240m"
     done_color = green if done_today >= 5 else (yellow if done_today >= 2 else mustard)
-    parts.append(f"{dim}done{reset} {done_color}{done_today}{reset}{gray}/{total_today}{reset}")
+    parts.append(f"{dim}done{reset} {done_color}{done_today}{reset}{dark_gray}/{reset}{gray}{total_today}{reset}")
 
     print("  ".join(parts), end="")
 
