@@ -1,15 +1,34 @@
-import dataclasses
-from collections.abc import Sequence
-from datetime import date, datetime, timedelta
+"""Public render API — dashboard, timeline, detail, momentum."""
+
+from datetime import date, timedelta
 
 from life.core.models import Habit, Task, TaskMutation, Weekly
-from life.habit import get_subhabits
 from life.lib import clock
-from life.lib.ansi import NAMED_COLORS, POOL, bold, dim, gold, gray, green, purple, red, theme, white
+from life.lib.ansi import bold, dim, gold, gray, green, purple, red, theme, white
 from life.lib.dates import upcoming_dates
 from life.lib.format import fmt_time
-from life.lib.tags import load_tag_groups, load_tag_overrides
 from life.task import task_sort_key
+from life.task.rows import (
+    RenderCtx,
+    fmt_tags,
+    get_direct_tags,
+    get_trend,
+    row_habit,
+    row_task,
+)
+from life.task.sections import (
+    section_backlog,
+    section_daily,
+    section_done,
+    section_header,
+    section_hobbies,
+    section_overdue,
+    section_schedule,
+    section_untagged,
+    section_vices,
+    section_weekly,
+    tag_section,
+)
 
 __all__ = [
     "render_dashboard",
@@ -19,557 +38,8 @@ __all__ = [
     "render_timeline",
 ]
 
-_DEFAULT_TAG_ORDER = ["finance", "legal", "janice", "comms", "home", "income"]
-
-
-def _get_tag_order() -> list[str]:
-    groups = load_tag_groups()
-    return [tag for tag, _ in groups] if groups else _DEFAULT_TAG_ORDER
-
-
-# Tags that act as auxiliary labels — never primary if another tag exists
-AUX_TAGS = {"comms"}
-
 _R = theme.reset
 _GREY = theme.muted
-
-
-def _primary_tag(task: Task) -> str | None:
-    tags = task.tags or []
-    non_aux = [t for t in tags if t not in AUX_TAGS]
-    candidates = non_aux or tags
-    for tag in _get_tag_order():
-        if tag in candidates:
-            return tag
-    return sorted(candidates)[0] if candidates else None
-
-
-def _fmt_time(t: str) -> str:
-    return f"{theme.gray}{fmt_time(t)}{_R}"
-
-
-def _fmt_rel_date(due: date, today: date, time: str | None = None, is_deadline: bool = False) -> str:
-    delta = (due - today).days
-    if delta <= 7:
-        day_label = due.strftime("%a").lower()
-        label = f"{day_label}·{time}" if time else day_label
-    else:
-        label = f"+{delta}d"
-    return red(label) if is_deadline else label
-
-
-def _fmt_tags(tags: list[str], tag_colors: dict[str, str]) -> str:
-    if not tags:
-        return ""
-    return " " + " ".join(f"{tag_colors.get(t, _GREY)}#{t}{_R}" for t in tags)
-
-
-def _get_direct_tags(task: Task, pending: list[Task]) -> list[str]:
-    if not task.parent_id:
-        return task.tags
-    parent = next((t for t in pending if t.id == task.parent_id), None)
-    if not parent:
-        return task.tags
-    return [tag for tag in task.tags if tag not in parent.tags]
-
-
-def _tag_hash(tag: str) -> int:
-    import hashlib  # noqa: PLC0415
-
-    return int(hashlib.md5(tag.encode()).hexdigest(), 16)  # noqa: S324
-
-
-def _build_tag_colors(items: Sequence[Task | Habit]) -> dict[str, str]:
-    tags = sorted({tag for item in items for tag in item.tags})
-    pool = [code for code, _ in POOL]
-    n = len(pool)
-    ordered = sorted(tags, key=_tag_hash)
-    step = max(1, n // max(len(ordered), 1))
-    colors = {tag: pool[(i * step) % n] for i, tag in enumerate(ordered)}
-    for tag, color_name in load_tag_overrides().items():
-        if tag in colors and color_name in NAMED_COLORS:
-            colors[tag] = NAMED_COLORS[color_name]
-    return colors
-
-
-def _get_trend(current: int, previous: int) -> str:
-    if previous == 0:
-        return "↗" if current > 0 else "→"
-    return "↗" if current > previous else "↘" if current < previous else "→"
-
-
-@dataclasses.dataclass
-class RenderCtx:
-    today: date
-    tag_colors: dict[str, str]
-    pending: list[Task]
-    subtasks: dict[str, list[Task]]  # parent_id → children
-    id_to_content: dict[str, str]  # task_id → content
-    subtask_ids: set[str]  # IDs that are subtasks
-    scheduled_ids: set[str] = dataclasses.field(default_factory=set)
-
-    @classmethod
-    def build(
-        cls,
-        items: Sequence[Task | Habit],
-        today_items: Sequence[Task | Habit] | None = None,
-    ) -> "RenderCtx":
-        today = clock.today()
-        pending = [i for i in items if isinstance(i, Task)]
-        tag_colors = _build_tag_colors(list(items) + list(today_items or []))
-        subtasks: dict[str, list[Task]] = {}
-        for t in pending:
-            if t.parent_id:
-                subtasks.setdefault(t.parent_id, []).append(t)
-        return cls(
-            today=today,
-            tag_colors=tag_colors,
-            pending=pending,
-            subtasks=subtasks,
-            id_to_content={t.id: t.content for t in pending},
-            subtask_ids={t.id for t in pending if t.parent_id},
-        )
-
-
-def _row_subtask(sub: Task, ctx: RenderCtx, indent: str = "  └ ") -> str:
-    id_str = f" {dim('[' + sub.id[:8] + ']')}"
-    tags_str = _fmt_tags(_get_direct_tags(sub, ctx.pending), ctx.tag_colors)
-    time_str = f"{_fmt_time(sub.scheduled_time)} " if sub.scheduled_time else ""
-    return f"{indent}□ {time_str}{sub.content.lower()}{tags_str}{id_str}{_R}"
-
-
-def _row_task(
-    task: Task,
-    ctx: RenderCtx,
-    completed_subs: dict[str, list[Task]],
-    indent: str = "  ",
-    tags_override: list[str] | None = None,
-    show_date: bool = True,
-    show_parent: bool = False,
-) -> list[str]:
-    today_str = ctx.today.isoformat()
-    tomorrow_str = (ctx.today + timedelta(days=1)).isoformat()
-    tags_str = _fmt_tags(tags_override if tags_override is not None else task.tags, ctx.tag_colors)
-    id_str = f" {dim('[' + task.id[:8] + ']')}"
-
-    if show_date:
-        prefix = ""
-        if task.scheduled_date and task.scheduled_date.isoformat() not in (today_str, tomorrow_str):
-            prefix = _fmt_rel_date(task.scheduled_date, ctx.today, task.scheduled_time, task.is_deadline) + " "
-    else:
-        prefix = f"{_fmt_time(task.scheduled_time)} " if task.scheduled_time else ""
-
-    parent_str = ""
-    if show_parent and task.parent_id:
-        parent_name = ctx.id_to_content.get(task.parent_id, "")
-        if parent_name:
-            parent_str = f" {dim('~ ' + parent_name.lower())}"
-
-    if task.blocked_by:
-        blocker = ctx.id_to_content.get(task.blocked_by, task.blocked_by[:8])
-        blocker_str = dim("← " + blocker.lower())
-        content = f"{_GREY}{prefix}{task.content.lower()}{tags_str}{_R}"
-        row = f"{indent}⊘ {content} {blocker_str}{id_str}"
-    else:
-        focus_marker = f"{theme.bold}→{_R} " if task.focus else ""
-        fire_marker = f"{theme.bold}🔥{_R} " if task.is_urgent else ""
-        row = f"{indent}□ {focus_marker}{fire_marker}{prefix}{task.content.lower()}{tags_str}{id_str}{parent_str}"
-
-    rows = [row]
-    rows.extend(
-        _row_subtask(sub, ctx, indent=f"{indent}└ ")
-        for sub in sorted(ctx.subtasks.get(task.id, []), key=task_sort_key)
-        if sub.id not in ctx.scheduled_ids
-    )
-    for sub in completed_subs.get(task.id, []):
-        tags_str2 = _fmt_tags(_get_direct_tags(sub, ctx.pending), ctx.tag_colors)
-        time_str = f"{_fmt_time(sub.scheduled_time)} " if sub.scheduled_time else ""
-        rows.append(f"{indent}  {gray('└ ' + time_str + '✓ ' + sub.content.lower())}{tags_str2}{id_str}")
-    return rows
-
-
-def _habit_counts(habit: Habit, today: date) -> tuple[int, int]:
-    """Return (count_p1, count_p2) for trend calculation."""
-    if habit.cadence == "weekly":
-
-        def _weeks_hit(start: date, end: date) -> int:
-            dates = {dt.date() for dt in habit.checks if start <= dt.date() <= end}
-            return len({d.isocalendar()[1] for d in dates})
-
-        p1_start = today - timedelta(weeks=4)
-        p2_start = today - timedelta(weeks=8)
-        p2_end = p1_start - timedelta(days=1)
-        return _weeks_hit(p1_start, today), _weeks_hit(p2_start, p2_end)
-    p1_start = today - timedelta(days=6)
-    p2_start = today - timedelta(days=13)
-    p2_end = p1_start - timedelta(days=1)
-    return (
-        sum(1 for dt in habit.checks if p1_start <= dt.date() <= today),
-        sum(1 for dt in habit.checks if p2_start <= dt.date() <= p2_end),
-    )
-
-
-def _row_habit(habit: Habit, checked_ids: set[str], ctx: RenderCtx, indent: str = "  ") -> list[str]:
-    tags_str = _fmt_tags(habit.tags, ctx.tag_colors)
-    id_str = f" {dim('[' + habit.id[:8] + ']')}"
-    count_p1, count_p2 = _habit_counts(habit, ctx.today)
-    trend = "↗" if count_p1 > count_p2 else "↘" if count_p1 < count_p2 else "→"
-    time_str = f" {gray(fmt_time(habit.scheduled_time))}" if habit.scheduled_time else ""
-    if habit.id in checked_ids:
-        label = f"{gray(habit.content.lower())}{tags_str}"
-        lines = [f"{indent}{purple('●')} {gray(trend)} {label}{time_str}{id_str}"]
-    else:
-        label = f"{habit.content.lower()}{tags_str}"
-        lines = [f"{indent}{purple('○')} {gray(trend)} {label}{time_str}{id_str}"]
-    for sub in get_subhabits(habit.id):
-        lines.extend(_row_habit(sub, checked_ids, ctx, indent="   └ "))
-    return lines
-
-
-def _row_vice(habit: Habit, checked_ids: set[str], ctx: RenderCtx) -> list[str]:
-    """Render a vice row — inverted: checked (used) is bad, clean is good."""
-    id_str = f" {dim('[' + habit.id[:8] + ']')}"
-    count_p1, count_p2 = _habit_counts(habit, ctx.today)
-    # For vices, ↗ (more use) is bad (red), ↘ (less use) is good (green)
-    if count_p1 > count_p2:
-        trend_str = red("↗")
-    elif count_p1 < count_p2:
-        trend_str = green("↘")
-    else:
-        trend_str = gray("→")
-    time_str = f" {gray(fmt_time(habit.scheduled_time))}" if habit.scheduled_time else ""
-    if habit.id in checked_ids:
-        # Used today — bad
-        label = f"{red(habit.content.lower())}"
-        lines = [f"  {red('●')} {trend_str} {label}{time_str}{id_str}"]
-    else:
-        # Clean today — good
-        label = f"{gray(habit.content.lower())}"
-        lines = [f"  {green('○')} {trend_str} {label}{time_str}{id_str}"]
-    return lines
-
-
-def _section_header(
-    today: date, tasks_done: int, habits_done: int, total_habits: int, added: int, deleted: int
-) -> list[str]:
-    time_str = fmt_time(clock.now())
-    header = today.strftime("%a") + " · " + today.strftime("%-d %b %Y") + " · " + time_str
-    lines = [f"\n{bold(white(header))}"]
-    lines.append(f"{_GREY}tasks:{_R} {green(str(tasks_done))}")
-    lines.append(f"{_GREY}habits:{_R} {purple(str(habits_done))}")
-    if added:
-        lines.append(f"{_GREY}added:{_R} {gold(str(added))}")
-    if deleted:
-        lines.append(f"{_GREY}removed:{_R} {red(str(deleted))}")
-    return lines
-
-
-def _section_done(
-    items: list[Task | Habit],
-    ctx: RenderCtx,
-    target_date: date | None = None,
-    show_header: bool = True,
-) -> list[str]:
-    if not items:
-        return []
-    target = target_date or ctx.today
-
-    def _sort_key(item: Task | Habit) -> datetime:
-        if isinstance(item, Task) and item.completed_at:
-            return item.completed_at
-        if isinstance(item, Habit) and item.checks:
-            day_checks = [c for c in item.checks if c.date() == target]
-            if day_checks:
-                return max(day_checks)
-            return max(item.checks)
-        return item.created
-
-    lines = [bold(green(f"DONE ({len(items)})"))] if show_header else []
-    for item in sorted(items, key=_sort_key):
-        tags_str = _fmt_tags(item.tags, ctx.tag_colors)
-        content = item.content.lower()
-        id_str = f" {dim('[' + item.id[:8] + ']')}"
-        if isinstance(item, Habit):
-            on_date = [c for c in item.checks if c.date() == target]
-            time_str = fmt_time(max(on_date)) if on_date else ""
-            lines.append(f"  {purple('●')} {_GREY}{time_str}{_R} {content}{tags_str}{id_str}")
-        elif item.completed_at:
-            time_str = fmt_time(item.completed_at)
-            parent_str = ""
-            if item.parent_id:
-                parent = next((t for t in ctx.pending if t.id == item.parent_id), None)
-                if parent and not parent.completed_at:
-                    parent_str = f" {dim('→ ' + parent.content.lower())}"
-            lines.append(f"  {green('✓')} {_GREY}{time_str}{_R} {content}{tags_str}{id_str}{parent_str}")
-    return lines
-
-
-def _section_overdue(tasks: list[Task], ctx: RenderCtx) -> tuple[list[str], set[str]]:
-    lines = [f"\n{theme.bold}{theme.red}OVERDUE{_R}"]
-    scheduled_ids: set[str] = set()
-    for task in sorted(tasks, key=task_sort_key):
-        scheduled_ids.add(task.id)
-        lines.extend(_row_task(task, ctx, {}))
-        for sub in ctx.subtasks.get(task.id, []):
-            scheduled_ids.add(sub.id)
-    return lines, scheduled_ids
-
-
-_EVENT_EMOJI: dict[str, str] = {
-    "birthday": "🎂",
-    "anniversary": "💍",
-    "deadline": "⚠️",
-    "other": "📌",
-}
-
-
-def _section_schedule(
-    tasks: list[Task],
-    label: str,
-    ctx: RenderCtx,
-    is_today: bool = False,
-    events: list[dict[str, object]] | None = None,
-) -> tuple[list[str], set[str]]:
-    all_events = events or []
-    if not tasks and not all_events:
-        if is_today:
-            return [f"\n{bold(gold(label + ' (0)'))}", f"  {gray('nothing scheduled.')}"], set()
-        return [], set()
-
-    count = len(tasks) + len(all_events)
-    header_color = gold if is_today else white
-    lines = [f"\n{bold(header_color(label + f' ({count})'))}"]
-    scheduled_ids: set[str] = set()
-
-    def _sort(t: Task) -> tuple[int, str, bool]:
-        return (0, t.scheduled_time, not t.focus) if t.scheduled_time else (1, "", not t.focus)
-
-    for task in sorted(tasks, key=_sort):
-        scheduled_ids.add(task.id)
-        lines.extend(_row_task(task, ctx, {}, show_date=False, show_parent=True))
-        for sub in ctx.subtasks.get(task.id, []):
-            scheduled_ids.add(sub.id)
-
-    for event in all_events:
-        emoji = _EVENT_EMOJI.get(str(event.get("type", "")), "📌")
-        lines.append(f"  {emoji} {str(event.get('name', '')).lower()}")
-
-    return lines, scheduled_ids
-
-
-_HABIT_CATEGORY_TAGS = {"self", "love", "admin", "input", "chore", "vice", "hobby"}
-
-
-def _habit_sort_key(h: Habit) -> tuple[int, str]:
-    return (1 if h.scheduled_time else 0, h.scheduled_time or h.content.lower())
-
-
-def _row_daily_habit(habit: Habit, checked_ids: set[str], ctx: RenderCtx) -> list[str]:
-    """Render a daily habit with time at front."""
-    tags_str = _fmt_tags(habit.tags, ctx.tag_colors)
-    id_str = f" {dim('[' + habit.id[:8] + ']')}"
-    count_p1, count_p2 = _habit_counts(habit, ctx.today)
-    trend = "↗" if count_p1 > count_p2 else "↘" if count_p1 < count_p2 else "→"
-
-    now_hhmm = clock.now().strftime("%H:%M")
-    is_checked = habit.id in checked_ids
-    past_due = bool(habit.scheduled_time and not is_checked and habit.scheduled_time <= now_hhmm)
-
-    if habit.scheduled_time:
-        if past_due:
-            time_str = f"{theme.red}{fmt_time(habit.scheduled_time)}{_R} "
-        else:
-            time_str = f"{theme.gray}{fmt_time(habit.scheduled_time)}{_R} "
-    else:
-        time_str = ""
-
-    if is_checked:
-        label = f"{gray(habit.content.lower())}{tags_str}"
-        lines = [f"  {purple('●')} {gray(trend)} {time_str}{label}{id_str}"]
-    elif past_due:
-        label = f"{theme.bold}{habit.content.lower()}{_R}{tags_str}"
-        lines = [f"  {red('○')} {gray(trend)} {time_str}{label}{id_str}"]
-    else:
-        label = f"{habit.content.lower()}{tags_str}"
-        lines = [f"  {purple('○')} {gray(trend)} {time_str}{label}{id_str}"]
-    for sub in get_subhabits(habit.id):
-        lines.extend(_row_daily_habit(sub, checked_ids, ctx))
-    return lines
-
-
-def _section_daily(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) -> list[str]:
-    matching = [
-        h
-        for h in habits
-        if not h.private
-        and not h.parent_id
-        and "self" in (h.tags or [])
-        and "vice" not in (h.tags or [])
-        and h.cadence != "weekly"
-    ]
-    if not matching:
-        return []
-    done_count = sum(1 for h in matching if h.id in checked_ids)
-    lines = [f"\n{theme.bold}{theme.purple}DAILY ({done_count}/{len(matching)}){_R}"]
-    remaining = [h for h in matching if h.id not in checked_ids]
-    done = [h for h in matching if h.id in checked_ids]
-
-    def _daily_sort(h: Habit) -> tuple[int, str]:
-        return (0 if h.scheduled_time else 1, h.scheduled_time or h.content.lower())
-
-    if remaining or done:
-        for habit in sorted(remaining, key=_daily_sort) + sorted(done, key=_daily_sort):
-            lines.extend(_row_daily_habit(habit, checked_ids, ctx))
-    else:
-        lines.append(f"  {gray('all done.')}")
-    return lines
-
-
-def _tag_section(
-    habits: list[Habit],
-    checked_ids: set[str],
-    ctx: RenderCtx,
-    tag: str,
-    label: str,
-    color: str,
-) -> list[str]:
-    matching = [
-        h
-        for h in habits
-        if not h.private
-        and not h.parent_id
-        and tag in (h.tags or [])
-        and "vice" not in (h.tags or [])
-        and h.cadence != "weekly"
-    ]
-    if not matching:
-        return []
-    done_count = sum(1 for h in matching if h.id in checked_ids)
-    lines = [f"\n{theme.bold}{color}{label} ({done_count}/{len(matching)}){_R}"]
-    remaining = [h for h in matching if h.id not in checked_ids]
-    if remaining:
-        for habit in sorted(remaining, key=_habit_sort_key):
-            lines.extend(_row_habit(habit, checked_ids, ctx))
-    else:
-        lines.append(f"  {gray('all done.')}")
-    return lines
-
-
-def _section_hobbies(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) -> list[str]:
-    week_start = ctx.today - timedelta(days=ctx.today.weekday())
-
-    def _is_done(h: Habit) -> bool:
-        if h.id in checked_ids:
-            return True
-        if h.cadence == "weekly":
-            return any(week_start <= dt.date() <= ctx.today for dt in h.checks)
-        return False
-
-    matching = [
-        h
-        for h in habits
-        if not h.private and not h.parent_id and "hobby" in (h.tags or []) and "vice" not in (h.tags or [])
-    ]
-    if not matching:
-        return []
-    daily = [h for h in matching if h.cadence != "weekly"]
-    weekly = [h for h in matching if h.cadence == "weekly"]
-    done_count = sum(1 for h in daily if h.id in checked_ids) + sum(1 for h in weekly if _is_done(h))
-    total = len(matching)
-    lines = [f"\n{theme.bold}{theme.green}HOBBIES ({done_count}/{total}){_R}"]
-    remaining = [h for h in matching if not _is_done(h)]
-    if remaining:
-        for habit in sorted(remaining, key=_habit_sort_key):
-            lines.extend(_row_habit(habit, checked_ids, ctx))
-    else:
-        lines.append(f"  {gray('all done.')}")
-    return lines
-
-
-def _section_weekly(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) -> list[str]:
-    week_start = ctx.today - timedelta(days=ctx.today.weekday())
-
-    def _is_done(h: Habit) -> bool:
-        if h.id in checked_ids:
-            return True
-        return any(week_start <= dt.date() <= ctx.today for dt in h.checks)
-
-    weekly = [
-        h
-        for h in habits
-        if not h.private and not h.parent_id and h.cadence == "weekly" and "hobby" not in (h.tags or [])
-    ]
-    if not weekly:
-        return []
-    lines = [f"\n{theme.bold}{theme.purple}WEEKLY{_R}"]
-    remaining = [h for h in weekly if not _is_done(h)]
-    if remaining:
-        for habit in sorted(remaining, key=_habit_sort_key):
-            lines.extend(_row_habit(habit, checked_ids, ctx))
-    else:
-        lines.append(f"  {gray('all done.')}")
-    return lines
-
-
-def _section_untagged(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) -> list[str]:
-    residual = [
-        h
-        for h in habits
-        if not h.private
-        and not h.parent_id
-        and h.cadence != "weekly"
-        and not (set(h.tags or []) & _HABIT_CATEGORY_TAGS)
-    ]
-    if not residual:
-        return []
-    done_count = sum(1 for h in residual if h.id in checked_ids)
-    lines = [f"\n{theme.bold}{theme.purple}HABITS ({done_count}/{len(residual)}){_R}"]
-    remaining = [h for h in residual if h.id not in checked_ids]
-    for habit in sorted(remaining, key=_habit_sort_key):
-        lines.extend(_row_habit(habit, checked_ids, ctx))
-    return lines
-
-
-def _section_vices(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) -> list[str]:
-    vices = [h for h in habits if not h.private and not h.parent_id and "vice" in (h.tags or [])]
-    if not vices:
-        return []
-
-    clean_count = sum(1 for h in vices if h.id not in checked_ids)
-    lines = [f"\n{theme.bold}{theme.red}VICES ({clean_count}/{len(vices)}){_R}"]
-    clean = sorted([h for h in vices if h.id not in checked_ids], key=lambda h: h.content.lower())
-    used = sorted([h for h in vices if h.id in checked_ids], key=lambda h: h.content.lower())
-    for vice in clean + used:
-        lines.extend(_row_vice(vice, checked_ids, ctx))
-    return lines
-
-
-def _section_backlog(
-    tasks: list[Task],
-    ctx: RenderCtx,
-    completed_subs: dict[str, list[Task]],
-) -> list[str]:
-    if not tasks:
-        return []
-    groups: dict[str, list[Task]] = {}
-    for task in sorted(tasks, key=lambda t: t.content.lower()):
-        groups.setdefault(_primary_tag(task) or "", []).append(task)
-
-    tag_order = _get_tag_order()
-    tag_labels = dict(load_tag_groups())
-    sections = [t for t in tag_order if t in groups]
-    sections += sorted(k for k in groups if k and k not in tag_order)
-    if "" in groups:
-        sections.append("")
-
-    lines: list[str] = []
-    for tag in sections:
-        label = tag_labels.get(tag, tag.upper()) if tag else "BACKLOG"
-        color = ctx.tag_colors.get(tag, theme.white) if tag else theme.white
-        lines.append(f"\n{theme.bold}{color}{label} ({len(groups[tag])}){_R}")
-        for task in groups[tag]:
-            lines.extend(_row_task(task, ctx, completed_subs, tags_override=task.tags))
-    return lines
 
 
 def render_dashboard(
@@ -589,9 +59,9 @@ def render_dashboard(
         upcoming_by_date.setdefault(ev_date, []).append(ev)
 
     lines: list[str] = []
-    lines += _section_header(ctx.today, tasks_today, habits_today, total_habits, added_today, deleted_today)
+    lines += section_header(ctx.today, tasks_today, habits_today, total_habits, added_today, deleted_today)
 
-    done_lines = _section_done(today_items or [], ctx)
+    done_lines = section_done(today_items or [], ctx)
     if done_lines:
         lines.append("")
         lines += done_lines
@@ -601,13 +71,13 @@ def render_dashboard(
     ]
     scheduled_ids: set[str] = set()
     if overdue:
-        overdue_lines, overdue_ids = _section_overdue(overdue, ctx)
+        overdue_lines, overdue_ids = section_overdue(overdue, ctx)
         lines += overdue_lines
         scheduled_ids |= overdue_ids
 
     today_str = ctx.today.isoformat()
     due_today = [t for t in ctx.pending if t.scheduled_date and t.scheduled_date.isoformat() == today_str]
-    today_lines, today_ids = _section_schedule(
+    today_lines, today_ids = section_schedule(
         due_today, "TODAY", ctx, is_today=True, events=upcoming_by_date.get(ctx.today, [])
     )
     lines += today_lines
@@ -616,14 +86,14 @@ def render_dashboard(
     today_habit_items = [i for i in (today_items or []) if isinstance(i, Habit)]
     checked_ids = {i.id for i in today_habit_items}
     all_habits = list(set(habits + today_habit_items))
-    lines += _section_daily(all_habits, checked_ids, ctx)
-    lines += _tag_section(all_habits, checked_ids, ctx, "love", "LOVE", theme.pink)
-    lines += _tag_section(all_habits, checked_ids, ctx, "admin", "LIFE", theme.yellow)
-    lines += _tag_section(all_habits, checked_ids, ctx, "chore", "CHORES", theme.cyan)
-    lines += _section_hobbies(all_habits, checked_ids, ctx)
-    lines += _section_weekly(all_habits, checked_ids, ctx)
-    lines += _section_untagged(all_habits, checked_ids, ctx)
-    lines += _section_vices(all_habits, checked_ids, ctx)
+    lines += section_daily(all_habits, checked_ids, ctx)
+    lines += tag_section(all_habits, checked_ids, ctx, "love", "LOVE", theme.pink)
+    lines += tag_section(all_habits, checked_ids, ctx, "admin", "LIFE", theme.yellow)
+    lines += tag_section(all_habits, checked_ids, ctx, "chore", "CHORES", theme.cyan)
+    lines += section_hobbies(all_habits, checked_ids, ctx)
+    lines += section_weekly(all_habits, checked_ids, ctx)
+    lines += section_untagged(all_habits, checked_ids, ctx)
+    lines += section_vices(all_habits, checked_ids, ctx)
 
     for offset in range(1, 15):
         day = ctx.today + timedelta(days=offset)
@@ -634,7 +104,7 @@ def render_dashboard(
         else:
             label = day.strftime("%-d %b").upper()
         due_day = [t for t in ctx.pending if t.scheduled_date and t.scheduled_date == day]
-        day_lines, day_ids = _section_schedule(due_day, label, ctx, events=upcoming_by_date.get(day, []))
+        day_lines, day_ids = section_schedule(due_day, label, ctx, events=upcoming_by_date.get(day, []))
         lines += day_lines
         scheduled_ids |= day_ids
 
@@ -646,7 +116,7 @@ def render_dashboard(
 
     ctx.scheduled_ids = scheduled_ids
     backlog = [i for i in items if isinstance(i, Task) and i.id not in scheduled_ids and i.id not in ctx.subtask_ids]
-    lines += _section_backlog(backlog, ctx, completed_subs)
+    lines += section_backlog(backlog, ctx, completed_subs)
 
     return "\n".join(lines) + "\n"
 
@@ -679,7 +149,7 @@ def render_day_summary(
         lines.append(f"\n  {gray('nothing completed.')}")
         return "\n".join(lines) + "\n"
 
-    done_lines = _section_done(completed_items, ctx, target_date=target_date, show_header=False)
+    done_lines = section_done(completed_items, ctx, target_date=target_date, show_header=False)
     if done_lines:
         lines.append("")
         lines += done_lines
@@ -699,8 +169,8 @@ def render_momentum(momentum: dict[str, Weekly]) -> str:
     if "this_week" in momentum and "last_week" in momentum:
         lines.append(f"\n{bold(white('TRENDS (vs. Last Week):'))}")
         tw, lw = momentum["this_week"], momentum["last_week"]
-        task_trend = _get_trend(tw.tasks_completed, lw.tasks_completed)
-        habit_trend = _get_trend(tw.habits_completed, lw.habits_completed)
+        task_trend = get_trend(tw.tasks_completed, lw.tasks_completed)
+        habit_trend = get_trend(tw.habits_completed, lw.habits_completed)
         lines.append(f"  Tasks: {task_trend}")
         lines.append(f"  Habits: {habit_trend}")
     return "\n".join(lines)
@@ -713,7 +183,7 @@ def _block_task(
     mutations: list[TaskMutation] | None = None,
     indent: str = "",
 ) -> list[str]:
-    tags_str = _fmt_tags(task.tags, ctx.tag_colors)
+    tags_str = fmt_tags(task.tags, ctx.tag_colors)
     focus_str = f"{theme.bold}→{_R} " if task.focus else ""
     fire_str = f"{theme.bold}🔥{_R} " if task.is_urgent else ""
     status = gray("✓") if task.completed_at else "□"
@@ -723,7 +193,7 @@ def _block_task(
         label = "deadline" if task.is_deadline else "scheduled"
         date_str = task.scheduled_date.isoformat()
         if task.scheduled_time:
-            date_str += f" {_fmt_time(task.scheduled_time)}"
+            date_str += f" {fmt_time(task.scheduled_time)}"
         lines.append(f"{indent}  {red(label) if task.is_deadline else label}: {date_str}")
     if task.notes:
         lines.append(f"{indent}  {task.notes}")
@@ -732,8 +202,8 @@ def _block_task(
 
     for sub in sorted(subtasks, key=task_sort_key):
         sub_status = gray("✓") if sub.completed_at else "□"
-        sub_tags_str = _fmt_tags(_get_direct_tags(sub, ctx.pending), ctx.tag_colors)
-        time_str = f"{dim(_fmt_time(sub.scheduled_time))} " if sub.scheduled_time else ""
+        sub_tags_str = fmt_tags(get_direct_tags(sub, ctx.pending), ctx.tag_colors)
+        time_str = f"{dim(fmt_time(sub.scheduled_time))} " if sub.scheduled_time else ""
         lines.append(
             f"{indent}  └ {sub_status} {dim('[' + sub.id[:8] + ']')}  {time_str}{sub.content.lower()}{sub_tags_str}"
         )
@@ -763,15 +233,12 @@ def render_timeline(
     header = ctx.today.strftime("%a") + " · " + ctx.today.strftime("%-d %b %Y") + " · " + now_display
     lines = [f"\n{bold(white('TIMELINE · ' + header))}\n"]
 
-    # Build timed entries: (hhmm_str, sort_priority, rendered_lines, is_done)
-    # priority: 0=task, 1=habit (tasks before habits at same time)
     timed: list[tuple[str, int, list[str], bool]] = []
 
     overdue = [
         t for t in ctx.pending if t.scheduled_date and t.scheduled_date < ctx.today and t.id not in ctx.subtask_ids
     ]
 
-    # Today's scheduled tasks
     due_today = [
         t
         for t in ctx.pending
@@ -779,11 +246,10 @@ def render_timeline(
     ]
     for task in due_today:
         t_str = task.scheduled_time or "00:00"
-        rows = _row_task(task, ctx, {}, show_date=False, show_parent=True)
+        rows = row_task(task, ctx, {}, show_date=False, show_parent=True)
         timed.append((t_str, 0, rows, False))
         ctx.scheduled_ids.add(task.id)
 
-    # Completed tasks (not already in timed band)
     completed_tasks = [i for i in (today_items or []) if isinstance(i, Task) and i.completed_at]
     timed_task_ids = {task.id for task in due_today}
     for task in completed_tasks:
@@ -791,12 +257,11 @@ def render_timeline(
             continue
         t_sort = task.completed_at.strftime("%H:%M")  # type: ignore[union-attr]
         t_disp = fmt_time(task.completed_at)  # type: ignore[union-attr]
-        tags_str = _fmt_tags(task.tags, ctx.tag_colors)
+        tags_str = fmt_tags(task.tags, ctx.tag_colors)
         id_str = f" {dim('[' + task.id[:8] + ']')}"
         row = f"  {dim(green('✓') + ' ' + gray(t_disp) + ' ' + task.content.lower() + tags_str + id_str)}"
         timed.append((t_sort, 0, [row], True))
 
-    # Timed habits (checked go into timed band at check time; unchecked with time also go in)
     floating_habits: list[Habit] = []
     placed_habit_ids: set[str] = set()
     for habit in all_habits:
@@ -804,21 +269,19 @@ def render_timeline(
             continue
         if habit.id in checked_ids:
             today_checks = [c for c in habit.checks if c.date() == ctx.today]
-            t_str = (
-                max(today_checks).strftime("%H:%M") if today_checks else (habit.scheduled_time or now_time)
-            )  # sort key
-            rows = _row_habit(habit, checked_ids, ctx)
+            t_str = max(today_checks).strftime("%H:%M") if today_checks else (habit.scheduled_time or now_time)
+            rows = row_habit(habit, checked_ids, ctx)
             timed.append((t_str, 1, rows, True))
             placed_habit_ids.add(habit.id)
         elif habit.scheduled_time:
-            rows = _row_habit(habit, checked_ids, ctx)
+            rows = row_habit(habit, checked_ids, ctx)
             timed.append((habit.scheduled_time, 1, rows, False))
             placed_habit_ids.add(habit.id)
         elif "chore" in (habit.tags or []):
-            rows = _row_habit(habit, checked_ids, ctx)
+            rows = row_habit(habit, checked_ids, ctx)
             if habit.id in checked_ids:
                 today_checks = [c for c in habit.checks if c.date() == ctx.today]
-                t_str = max(today_checks).strftime("%H:%M") if today_checks else now_time  # sort key
+                t_str = max(today_checks).strftime("%H:%M") if today_checks else now_time
                 timed.append((t_str, 2, rows, True))
             else:
                 timed.append(("~~:~~", 2, rows, False))
@@ -826,10 +289,8 @@ def render_timeline(
         else:
             floating_habits.append(habit)
 
-    # Sort timed by time, then priority
     timed.sort(key=lambda x: (x[0], x[1]))
 
-    # Emit with now-marker inserted once
     now_inserted = False
     for t_str, _, rows, is_done in timed:
         if not now_inserted and t_str > now_time:
@@ -843,20 +304,17 @@ def render_timeline(
     if not now_inserted:
         lines.append(f"  {gray('─')} {theme.coral}▸ {now_time}{gray(' ─────────────────────')}{_R}")
 
-    # Overdue band above floating
     if overdue:
         lines.append(f"\n{bold(red('OVERDUE'))}")
         for task in sorted(overdue, key=task_sort_key):
-            lines.extend(_row_task(task, ctx, {}))
+            lines.extend(row_task(task, ctx, {}))
 
-    # Floating habits (no time)
     if floating_habits:
         lines.append(f"\n{bold(purple('FLOATING'))}")
         for habit in sorted(floating_habits, key=lambda h: (h.tags[0] if h.tags else "", h.content.lower())):
-            lines.extend(_row_habit(habit, checked_ids, ctx))
+            lines.extend(row_habit(habit, checked_ids, ctx))
 
-    # Weekly
-    lines += _section_weekly(all_habits, checked_ids, ctx)
+    lines += section_weekly(all_habits, checked_ids, ctx)
 
     return "\n".join(lines) + "\n"
 
