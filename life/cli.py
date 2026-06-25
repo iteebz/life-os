@@ -96,7 +96,7 @@ def main():
             sys.exit(1)
         return
     if user_args[0] == "hook":
-        from .hook import main as hook_main
+        from .hooks import main as hook_main
 
         sys.argv = ["life", *user_args]
         hook_main()

@@ -25,7 +25,7 @@ _SILENT_CATCH_BUDGET: dict[str, int] = {
     "ctx/sections.py": 8,
     "doctor.py": 2,
     "health.py": 2,
-    "hook.py": 1,
+    "hooks/__init__.py": 1,
     "lib/tags.py": 1,
     "ref.py": 1,
     "store/connection.py": 2,

@@ -77,7 +77,6 @@ def test_file_size_limits():
             violations.append(f"  {rel}  {size // 1024}kb (max 4kb)")
     # Known violations: tracked as initiatives, must not grow
     known = {
-        "life/hook.py",
         "life/task/render.py",
     }
     new_violations = [v for v in violations if not any(k in v for k in known)]
@@ -130,7 +129,6 @@ _LIFE_MD_KNOWN = {
 
 # ~/life/ python size guard. Same 16kb ceiling as life-os, applied across the whole tree.
 _LIFE_PY_KNOWN = {
-    "life-os/life/hook.py",
     "taxing/tests/unit/core/test_mining.py",
     "taxing/tests/unit/core/test_trades.py",
     "taxing/taxing/core/mining.py",
