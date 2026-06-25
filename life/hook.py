@@ -77,6 +77,17 @@ def _inbox_signal(state: dict[str, str], parts: list[str]) -> None:
         parts.append("inbox:\n" + "\n".join(_render_inbox(rows)))
 
 
+def _ping_signal(state: dict[str, str], parts: list[str]) -> None:
+    from life.steward.ping import drain  # noqa: PLC0415
+
+    last = int(state.get("last_ping_id", "0"))
+    with contextlib.suppress(Exception):
+        pings, max_id = drain(last)
+        state["last_ping_id"] = str(max_id)
+        for _, msg in pings:
+            parts.append(f"[steward ping]: {msg}")
+
+
 def _habit_status(state: dict[str, str], parts: list[str]) -> None:
     """Inject today's habit completion status."""
     if _throttled(state, "habits_at", 60):
@@ -470,7 +481,7 @@ def cmd_hook_tool() -> None:
     state = _load_state()
     parts: list[str] = []
 
-    for fn in (_dirty_state, _life_os_commits, _inbox_signal, _habit_status, _mood, _active_tasks):
+    for fn in (_dirty_state, _life_os_commits, _inbox_signal, _ping_signal, _habit_status, _mood, _active_tasks):
         try:
             fn(state, parts)
         except Exception as e:
@@ -567,7 +578,6 @@ def cmd_hook_commit() -> None:
 # Frontmatter schemas — glob → (required_field, valid_values).
 # None for valid_values means any non-empty value is fine.
 _FRONTMATTER_SCHEMAS: dict[str, tuple[str, set[str] | None]] = {
-    "notes/steward/initiatives/": ("status", {"idea", "design", "active", "closed", "done"}),
     "notes/steward/trails/": ("description", None),
 }
 

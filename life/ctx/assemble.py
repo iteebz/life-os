@@ -24,7 +24,6 @@ CONSTITUTION = [
 WAKE_ORDER = [
     sections.render_header,
     sections.render_steward_tasks,
-    sections.render_initiatives,
     sections.render_trails,
     sections.render_today,
     sections.render_milestones,

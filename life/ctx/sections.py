@@ -26,7 +26,6 @@ from life.lib.ids import short
 from life.mood import get_recent_moods
 from life.skills import list_skills
 from life.steward import get_observations, get_sessions
-from life.steward.initiatives import initiative_index
 from life.steward.trails import trail_index
 from life.task import get_all_tasks, get_tasks
 
@@ -65,7 +64,7 @@ def render_steward_tasks() -> str:
     if len(improvements) > 5:
         lines.append(f"  ✦ ... +{len(improvements) - 5} more")
     if promoted:
-        lines.append(f"  ↑ {len(promoted)} promoted to initiatives")
+        lines.append(f"  ↑ {len(promoted)} promoted to trails")
     return "\n".join(lines)
 
 
@@ -187,20 +186,6 @@ def render_contacts() -> str:
     for contact, days in stale:
         label = "never" if days is None else f"{days}d ago"
         out.append(f"  {contact.name:<12} {label:<10}  (every {contact.cadence_days}d)")
-    return "\n".join(out)
-
-
-def render_initiatives() -> str:
-    items = initiative_index()
-    if not items:
-        return ""
-    active = [(slug, status, title, desc) for slug, status, title, desc in items if status not in ("done", "closed")]
-    if not active:
-        return ""
-    out = ["INITIATIVES (steward/initiatives/):"]
-    for _slug, status, title, desc in active:
-        suffix = f"  —  {desc}" if desc else ""
-        out.append(f"  [{status:<7}]  {title}{suffix}")
     return "\n".join(out)
 
 

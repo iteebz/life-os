@@ -125,8 +125,8 @@ _LIFE_MD_KNOWN = {
     "notes/steward/model/tyson/traumas.md",
     "notes/steward/model/tyson/cognition.md",
     "notes/steward/model/people/janice-manual.md",
-    "notes/steward/work/initiatives/prompt-layering.md",
-    "notes/steward/work/initiatives/financial-position-dashboard.md",
+    "notes/steward/work/trails/prompt-layering.md",
+    "notes/steward/work/trails/financial-position-dashboard.md",
 }
 
 # ~/life/ python size guard. Same 16kb ceiling as life-os, applied across the whole tree.

@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS pings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    message TEXT NOT NULL,
+    from_session_id INTEGER REFERENCES sessions(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
