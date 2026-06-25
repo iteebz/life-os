@@ -1,12 +1,9 @@
 import os
-import re
 import signal
 import subprocess
 import threading
 import time
 from pathlib import Path
-
-import yaml
 
 import life.daemon.shared as shared
 from life.comms import accounts as accts_module
@@ -26,6 +23,7 @@ from life.daemon.shared import (
     log,
 )
 from life.lib.clock import is_quiet_now
+from life.lib.frontmatter import parse as fm_parse
 from life.steward import current_session, hookable_session
 from life.steward.auto import run_autonomous
 
@@ -36,13 +34,10 @@ def _load_allowed_tg_chats() -> set[int]:
         return chat_ids
     for profile in PEOPLE_DIR.glob("*.md"):
         try:
-            text = profile.read_text()
-            match = re.match(r"^---\n(.*?)\n---", text, re.DOTALL)
-            if not match:
-                continue
-            frontmatter = yaml.safe_load(match.group(1))
-            if isinstance(frontmatter, dict) and frontmatter.get("telegram"):
-                chat_ids.add(int(frontmatter["telegram"]))
+            fm = fm_parse(profile.read_text())
+            tg_id = fm.get("telegram")
+            if tg_id:
+                chat_ids.add(int(tg_id))
         except Exception:  # noqa: S112
             continue
     return chat_ids
