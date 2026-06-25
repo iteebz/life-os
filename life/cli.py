@@ -67,7 +67,9 @@ def main():
 
     user_args = sys.argv[1:]
     if not user_args or user_args == ["-v"] or user_args == ["--verbose"]:
-        fncli.dispatch(["life", "dash"])
+        from .dash import minimal
+
+        minimal()
         return
     if user_args == ["-w"]:
         _watch()

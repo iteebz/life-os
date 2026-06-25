@@ -398,7 +398,7 @@ def render_space_mail() -> str:
 
 def render_today() -> str:
     try:
-        result = subprocess.run(["life"], capture_output=True, text=True, timeout=10)
+        result = subprocess.run(["life", "dash"], capture_output=True, text=True, timeout=10)
         out = result.stdout.strip()
         if not out:
             return ""

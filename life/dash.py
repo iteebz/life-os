@@ -112,14 +112,21 @@ def dashboard() -> None:
     print(render_dashboard(items, today_breakdown, today_items=today_items))
 
 
-@cli("life", flags={"full": ["-f", "--full"]})
-def dash(full: bool = False) -> None:
-    """Minimal dashboard — done timeline, habits, today+tomorrow. --full for tag-grouped view."""
+@cli("life")
+def dash() -> None:
+    """Full dashboard — tag-grouped view of every task and habit. Steward injection target."""
     items = get_tasks() + get_habits()
     today_items = get_today_completed()
     today_breakdown = get_today_breakdown()
-    render = render_dashboard if full else render_minimal
-    print(render(items, today_breakdown, today_items=today_items))
+    print(render_dashboard(items, today_breakdown, today_items=today_items))
+
+
+def minimal() -> None:
+    """Minimal dashboard — done timeline, habits, today+tomorrow. Human focus view."""
+    items = get_tasks() + get_habits()
+    today_items = get_today_completed()
+    today_breakdown = get_today_breakdown()
+    print(render_minimal(items, today_breakdown, today_items=today_items))
 
 
 @cli("life", flags={"as_json": ["-j", "--json"]})
