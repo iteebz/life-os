@@ -63,16 +63,25 @@ def load_manifest(mode: str) -> list[tuple[str, str]]:
     return frags
 
 
+_WAKE_BUDGET = 28_000  # chars — stay well under 100k context
+
+
 def build_wake() -> str:
-    """Compose all wake sections into a single string."""
+    """Compose wake sections up to budget. WAKE_ORDER is priority order — drop from the tail."""
     parts: list[str] = []
+    total = 0
     for renderer in WAKE_ORDER:
         try:
             text = renderer()
         except Exception:
             text = ""
-        if text:
-            parts.append(text)
+        if not text:
+            continue
+        if total + len(text) > _WAKE_BUDGET:
+            parts.append(f"[wake truncated at {total} chars — {_WAKE_BUDGET} budget]")
+            break
+        parts.append(text)
+        total += len(text)
     return "\n\n".join(parts)
 
 
