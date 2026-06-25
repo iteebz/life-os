@@ -103,7 +103,7 @@ def close_session(
         "state = 'closed'",
         "ended_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime')",
         "last_active_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime')",
-        "runtime_seconds = CAST((JULIANDAY('now') - JULIANDAY(started_at)) * 86400 AS INTEGER)",
+        "runtime_seconds = MAX(0, CAST((JULIANDAY('now') - JULIANDAY(started_at)) * 86400 AS INTEGER))",
         "pid = NULL",
     ]
     params: list[object] = []

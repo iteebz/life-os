@@ -360,4 +360,4 @@ def task(
     if not tag:
         raise UsageError('Tag required: life task "name" -t <tag>')
 
-    add_item(ref, tag=tag, due=due or schedule, focus=focus, done=done, steward=steward)
+    add_item(ref, tag=tag, due=due or schedule, focus=focus, done=done, steward=steward, source="tyson")
