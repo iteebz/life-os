@@ -2,7 +2,6 @@
 
 from datetime import date, timedelta
 
-from life.core.models import Habit, Task, TaskMutation, Weekly
 from life.lib import clock
 from life.lib.ansi import bold, dim, gold, gray, green, purple, red, theme, white
 from life.lib.dates import upcoming_dates
@@ -13,12 +12,11 @@ from life.task.rows import (
     fmt_tags,
     get_direct_tags,
     get_trend,
-    row_habit,
+    row_daily_habit,
     row_task,
 )
 from life.task.sections import (
     section_backlog,
-    section_daily,
     section_done,
     section_header,
     section_hobbies,
@@ -29,17 +27,97 @@ from life.task.sections import (
     section_weekly,
     tag_section,
 )
+from lifeos.core.models import Habit, Task, TaskMutation, Weekly
 
 __all__ = [
     "render_dashboard",
     "render_day_summary",
     "render_momentum",
     "render_task_detail",
-    "render_timeline",
 ]
 
 _R = theme.reset
 _GREY = theme.muted
+
+
+def _section_today_timeline(
+    ctx: RenderCtx,
+    today_items: list[Task | Habit],
+    all_habits: list[Habit],
+    checked_ids: set[str],
+    today_str: str,
+    events: list[dict[str, object]],
+) -> tuple[list[str], set[str]]:
+    """Chronological today block: done + upcoming timed items + now-marker."""
+    now_dt = clock.now()
+    now_time = now_dt.strftime("%H:%M")
+    now_display = fmt_time(now_dt)
+
+    # (sort_key, priority, rows, is_done)
+    timed: list[tuple[str, int, list[str], bool]] = []
+    scheduled_ids: set[str] = set()
+
+    # completed tasks (not in due_today)
+    completed_tasks = [i for i in today_items if isinstance(i, Task) and i.completed_at]
+    due_today = [t for t in ctx.pending if t.scheduled_date and t.scheduled_date.isoformat() == today_str]
+    due_today_ids = {t.id for t in due_today}
+
+    for task in completed_tasks:
+        if task.id in due_today_ids:
+            continue
+        t_sort = task.completed_at.strftime("%H:%M")  # type: ignore[union-attr]
+        t_disp = fmt_time(task.completed_at)  # type: ignore[union-attr]
+        tags_str = fmt_tags(task.tags, ctx.tag_colors)
+        id_str = f" {dim('[' + task.id[:8] + ']')}"
+        row = f"  {dim(green('✓') + ' ' + gray(t_disp) + ' ' + task.content.lower() + tags_str + id_str)}"
+        timed.append((t_sort, 0, [row], True))
+
+    # checked habits
+    for habit in all_habits:
+        if habit.private or habit.parent_id or "vice" in (habit.tags or []):
+            continue
+        if habit.id in checked_ids:
+            day_checks = [c for c in habit.checks if c.date() == ctx.today]
+            t_str = max(day_checks).strftime("%H:%M") if day_checks else now_time
+            timed.append((t_str, 1, row_daily_habit(habit, checked_ids, ctx), True))
+        elif habit.scheduled_time:
+            timed.append((habit.scheduled_time, 1, row_daily_habit(habit, checked_ids, ctx), False))
+
+    # tasks due today — untimed float after all timed items
+    for task in due_today:
+        t_str = task.scheduled_time or "zz:zz"
+        rows = row_task(task, ctx, {}, show_date=False, show_parent=True)
+        timed.append((t_str, 0, rows, False))
+        scheduled_ids.add(task.id)
+        for sub in ctx.subtasks.get(task.id, []):
+            scheduled_ids.add(sub.id)
+
+    # events (birthdays etc) — always at very end
+    event_emoji: dict[str, str] = {"birthday": "🎂", "anniversary": "💍", "deadline": "⚠️", "other": "📌"}
+    for ev in events:
+        emoji = event_emoji.get(str(ev.get("type", "")), "📌")
+        timed.append(("zz:zz", 3, [f"  {emoji} {str(ev.get('name', '')).lower()}"], False))
+
+    timed.sort(key=lambda x: (x[0], x[1]))
+
+    total_today = len(due_today) + len(events)
+    header_str = f"TODAY ({total_today})" if total_today else "TODAY (0)"
+    lines = [f"\n{bold(gold(header_str))}"]
+
+    now_inserted = False
+    for t_str, _, rows, is_done in timed:
+        if not now_inserted and t_str not in ("~~:~~", "zz:zz") and t_str > now_time:
+            lines.append(f"  {gray('─')} {theme.coral}▸ {now_display}{gray(' ──────────────')}{_R}")
+            now_inserted = True
+        if is_done:
+            lines.extend(rows)
+        else:
+            lines.extend(f"{theme.bold}{r}{_R}" for r in rows)
+
+    if not now_inserted:
+        lines.append(f"  {gray('─')} {theme.coral}▸ {now_display}{gray(' ──────────────')}{_R}")
+
+    return lines, scheduled_ids
 
 
 def render_dashboard(
@@ -58,35 +136,27 @@ def render_dashboard(
         ev_date = ctx.today + timedelta(days=ev["days_until"])
         upcoming_by_date.setdefault(ev_date, []).append(ev)
 
+    today_habit_items = [i for i in (today_items or []) if isinstance(i, Habit)]
+    checked_ids = {i.id for i in today_habit_items}
+    all_habits = list({h.id: h for h in habits + today_habit_items}.values())
+
     lines: list[str] = []
     lines += section_header(ctx.today, tasks_today, habits_today, total_habits, added_today, deleted_today)
 
-    done_lines = section_done(today_items or [], ctx)
-    if done_lines:
-        lines.append("")
-        lines += done_lines
+    today_str = ctx.today.isoformat()
+    today_lines, scheduled_ids = _section_today_timeline(
+        ctx, today_items or [], all_habits, checked_ids, today_str, upcoming_by_date.get(ctx.today, [])
+    )
+    lines += today_lines
 
     overdue = [
         t for t in ctx.pending if t.scheduled_date and t.scheduled_date < ctx.today and t.id not in ctx.subtask_ids
     ]
-    scheduled_ids: set[str] = set()
     if overdue:
         overdue_lines, overdue_ids = section_overdue(overdue, ctx)
         lines += overdue_lines
         scheduled_ids |= overdue_ids
 
-    today_str = ctx.today.isoformat()
-    due_today = [t for t in ctx.pending if t.scheduled_date and t.scheduled_date.isoformat() == today_str]
-    today_lines, today_ids = section_schedule(
-        due_today, "TODAY", ctx, is_today=True, events=upcoming_by_date.get(ctx.today, [])
-    )
-    lines += today_lines
-    scheduled_ids |= today_ids
-
-    today_habit_items = [i for i in (today_items or []) if isinstance(i, Habit)]
-    checked_ids = {i.id for i in today_habit_items}
-    all_habits = list(set(habits + today_habit_items))
-    lines += section_daily(all_habits, checked_ids, ctx)
     lines += tag_section(all_habits, checked_ids, ctx, "love", "LOVE", theme.pink)
     lines += tag_section(all_habits, checked_ids, ctx, "admin", "LIFE", theme.yellow)
     lines += tag_section(all_habits, checked_ids, ctx, "chore", "CHORES", theme.cyan)
@@ -215,108 +285,6 @@ def _block_task(
             reason = f" — {m.reason}" if m.reason else ""
             lines.append(f"{indent}    {m.mutated_at.strftime('%Y-%m-%d')}{reason}")
     return lines
-
-
-def render_timeline(
-    items: list[Task | Habit],
-    today_items: list[Task | Habit] | None = None,
-) -> str:
-    ctx = RenderCtx.build(items, today_items)
-    habits = [i for i in items if isinstance(i, Habit)]
-    today_habit_items = [i for i in (today_items or []) if isinstance(i, Habit)]
-    checked_ids = {i.id for i in today_habit_items}
-    all_habits = list({h.id: h for h in habits + today_habit_items}.values())
-
-    now_time = clock.now().strftime("%H:%M")
-    now_display = fmt_time(clock.now())
-    today_str = ctx.today.isoformat()
-    header = ctx.today.strftime("%a") + " · " + ctx.today.strftime("%-d %b %Y") + " · " + now_display
-    lines = [f"\n{bold(white('TIMELINE · ' + header))}\n"]
-
-    timed: list[tuple[str, int, list[str], bool]] = []
-
-    overdue = [
-        t for t in ctx.pending if t.scheduled_date and t.scheduled_date < ctx.today and t.id not in ctx.subtask_ids
-    ]
-
-    due_today = [
-        t
-        for t in ctx.pending
-        if t.scheduled_date and t.scheduled_date.isoformat() == today_str and t.id not in ctx.subtask_ids
-    ]
-    for task in due_today:
-        t_str = task.scheduled_time or "00:00"
-        rows = row_task(task, ctx, {}, show_date=False, show_parent=True)
-        timed.append((t_str, 0, rows, False))
-        ctx.scheduled_ids.add(task.id)
-
-    completed_tasks = [i for i in (today_items or []) if isinstance(i, Task) and i.completed_at]
-    timed_task_ids = {task.id for task in due_today}
-    for task in completed_tasks:
-        if task.id in timed_task_ids:
-            continue
-        t_sort = task.completed_at.strftime("%H:%M")  # type: ignore[union-attr]
-        t_disp = fmt_time(task.completed_at)  # type: ignore[union-attr]
-        tags_str = fmt_tags(task.tags, ctx.tag_colors)
-        id_str = f" {dim('[' + task.id[:8] + ']')}"
-        row = f"  {dim(green('✓') + ' ' + gray(t_disp) + ' ' + task.content.lower() + tags_str + id_str)}"
-        timed.append((t_sort, 0, [row], True))
-
-    floating_habits: list[Habit] = []
-    placed_habit_ids: set[str] = set()
-    for habit in all_habits:
-        if habit.private or habit.parent_id or habit.cadence == "weekly" or "vice" in (habit.tags or []):
-            continue
-        if habit.id in checked_ids:
-            today_checks = [c for c in habit.checks if c.date() == ctx.today]
-            t_str = max(today_checks).strftime("%H:%M") if today_checks else (habit.scheduled_time or now_time)
-            rows = row_habit(habit, checked_ids, ctx)
-            timed.append((t_str, 1, rows, True))
-            placed_habit_ids.add(habit.id)
-        elif habit.scheduled_time:
-            rows = row_habit(habit, checked_ids, ctx)
-            timed.append((habit.scheduled_time, 1, rows, False))
-            placed_habit_ids.add(habit.id)
-        elif "chore" in (habit.tags or []):
-            rows = row_habit(habit, checked_ids, ctx)
-            if habit.id in checked_ids:
-                today_checks = [c for c in habit.checks if c.date() == ctx.today]
-                t_str = max(today_checks).strftime("%H:%M") if today_checks else now_time
-                timed.append((t_str, 2, rows, True))
-            else:
-                timed.append(("~~:~~", 2, rows, False))
-            placed_habit_ids.add(habit.id)
-        else:
-            floating_habits.append(habit)
-
-    timed.sort(key=lambda x: (x[0], x[1]))
-
-    now_inserted = False
-    for t_str, _, rows, is_done in timed:
-        if not now_inserted and t_str > now_time:
-            lines.append(f"  {gray('─')} {theme.coral}▸ {now_display}{gray(' ─────────────────────')}{_R}")
-            now_inserted = True
-        if not is_done:
-            lines.extend(f"{theme.bold}{r}{_R}" for r in rows)
-        else:
-            lines.extend(rows)
-
-    if not now_inserted:
-        lines.append(f"  {gray('─')} {theme.coral}▸ {now_time}{gray(' ─────────────────────')}{_R}")
-
-    if overdue:
-        lines.append(f"\n{bold(red('OVERDUE'))}")
-        for task in sorted(overdue, key=task_sort_key):
-            lines.extend(row_task(task, ctx, {}))
-
-    if floating_habits:
-        lines.append(f"\n{bold(purple('FLOATING'))}")
-        for habit in sorted(floating_habits, key=lambda h: (h.tags[0] if h.tags else "", h.content.lower())):
-            lines.extend(row_habit(habit, checked_ids, ctx))
-
-    lines += section_weekly(all_habits, checked_ids, ctx)
-
-    return "\n".join(lines) + "\n"
 
 
 def render_task_detail(
