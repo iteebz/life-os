@@ -38,7 +38,6 @@ def drain(last_ping_id: int) -> tuple[list[tuple[int, str]], int]:
 
 
 @cli("life steward")
-@cli("steward")
 def ping(message: str) -> None:
     """Broadcast a message to all live steward sessions."""
     ping_id = send(message)
