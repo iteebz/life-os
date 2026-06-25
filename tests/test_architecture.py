@@ -115,8 +115,6 @@ _LIFE_MD_KNOWN = {
     "steward/arch/ctx-layering.md",
     "steward/arch/memory.md",
     "steward/arch/rsi.md",
-    "steward/initiatives/financial-position-dashboard.md",
-    "steward/initiatives/prompt-layering.md",
     "steward/people/janice-manual.md",
     "steward/tyson/cognition.md",
     "steward/tyson/operating-manual.md",

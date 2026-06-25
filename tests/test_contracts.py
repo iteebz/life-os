@@ -4,13 +4,18 @@ Each test guards a boundary where two subsystems must stay in sync but nothing
 enforces it at write time. Violations here are silent runtime failures.
 """
 
+import ast
 import os
 import re
+import sqlite3
 import tomllib
 from pathlib import Path
 
 LIFE_ROOT = Path(__file__).parent.parent / "life"
+LIFEOS_ROOT = Path(__file__).parent.parent / "lifeos"
+CLI_ROOTS = [LIFE_ROOT, LIFEOS_ROOT]
 MIGRATIONS_DIR = LIFE_ROOT / "store" / "migrations"
+SCHEMA_PATH = LIFE_ROOT / "schema.sql"
 
 _TAGS_PATH = Path(os.environ.get("LIFE_DIR", str(Path.home() / ".life"))) / "tags.toml"
 
@@ -161,3 +166,178 @@ def test_tags_valid_list_has_no_duplicates():
     seen: set[str] = set()
     dups = [t for t in tags if t in seen or seen.add(t)]  # type: ignore[func-returns-value]
     assert not dups, f"Duplicate tags in tags.toml valid[]: {sorted(set(dups))}\nRemove the duplicates."
+
+
+# ── schema integrity ─────────────────────────────────────────────────────────
+
+
+_REQUIRED_TABLES = {
+    "tasks",
+    "habits",
+    "habit_checks",
+    "tags",
+    "sessions",
+    "observations",
+    "moods",
+    "improvements",
+    "achievements",
+    "contacts",
+    "events",
+    "notes",
+}
+
+# Columns whose removal/rename would silently corrupt soft-delete, completion,
+# scheduling, or session-tracking semantics. Tyson-visible state lives here.
+_REQUIRED_COLUMNS = {
+    "tasks": {"id", "content", "completed_at", "deleted_at", "scheduled_date", "parent_id"},
+    "habits": {"id", "content", "deleted_at", "archived_at", "cadence"},
+    "habit_checks": {"habit_id", "check_date", "completed_at"},
+    "tags": {"task_id", "habit_id", "tag"},
+    "sessions": {"id"},
+    "observations": {"id", "body", "deleted_at"},
+    "events": {"id"},
+}
+
+
+def _fresh_schema_conn() -> sqlite3.Connection:
+    conn = sqlite3.connect(":memory:")
+    conn.executescript(SCHEMA_PATH.read_text())
+    return conn
+
+
+def test_schema_has_required_tables():
+    """schema.sql must declare every table the app reads from at boot."""
+    conn = _fresh_schema_conn()
+    have = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    missing = _REQUIRED_TABLES - have
+    assert not missing, f"schema.sql missing required tables: {sorted(missing)}"
+
+
+def test_schema_has_required_columns():
+    """Critical columns must exist — renames silently break queries that filter on them."""
+    conn = _fresh_schema_conn()
+    violations = []
+    for table, cols in _REQUIRED_COLUMNS.items():
+        actual = {r[1] for r in conn.execute(f"PRAGMA table_info({table})")}
+        missing = cols - actual
+        if missing:
+            violations.append(f"  {table}: missing {sorted(missing)}")
+    assert not violations, "schema.sql is missing required columns:\n" + "\n".join(violations)
+
+
+def test_schema_enables_foreign_keys():
+    """schema.sql must enable foreign_keys — without it, ON DELETE CASCADE is a no-op."""
+    sql = SCHEMA_PATH.read_text()
+    assert re.search(r"PRAGMA\s+foreign_keys\s*=\s*ON", sql, re.IGNORECASE), (
+        "schema.sql must declare PRAGMA foreign_keys = ON — cascades silently no-op without it."
+    )
+
+
+# ── hard-delete confinement ──────────────────────────────────────────────────
+
+
+# Tables holding user-visible state that must only be soft-deleted.
+# DELETE FROM <table> is only allowed in the listed file (the rm path).
+_HARD_DELETE_ALLOWED = {
+    "tasks": {"life/task/domain.py"},
+    "habits": set(),  # habits never hard-delete; archive only
+    "observations": {"life/rm.py", "life/note.py"},
+}
+
+
+def test_hard_delete_confined_to_rm_path():
+    """`DELETE FROM <user_state_table>` must only appear in the soft/hard-delete module.
+
+    A stray DELETE elsewhere bypasses the deleted_at convention and irrecoverably
+    drops Tyson's data. Every new hard-delete site = explicit allowlist entry.
+    """
+    pattern = re.compile(r"DELETE\s+FROM\s+(\w+)", re.IGNORECASE)
+    violations = []
+    for path in sorted(LIFE_ROOT.rglob("*.py")):
+        if "__pycache__" in str(path):
+            continue
+        rel = str(path.relative_to(LIFE_ROOT.parent))
+        text = path.read_text()
+        for match in pattern.finditer(text):
+            table = match.group(1).lower()
+            if table not in _HARD_DELETE_ALLOWED:
+                continue
+            if rel not in _HARD_DELETE_ALLOWED[table]:
+                line = text[: match.start()].count("\n") + 1
+                violations.append(f"  {rel}:{line}  DELETE FROM {table} (not allowed here)")
+    assert not violations, (
+        "Hard-delete on user-state tables outside the rm path:\n"
+        + "\n".join(violations)
+        + "\n\nUse UPDATE ... SET deleted_at = ... instead, or extend the allowlist."
+    )
+
+
+# ── CLI surface stability ────────────────────────────────────────────────────
+
+
+# Verbs tyson types daily. Renaming or losing any of these breaks muscle memory
+# and silently degrades the loop — `life done` is the closure ritual itself.
+_CRITICAL_CLI = {
+    "done",  # life done <ref>  — mark task complete
+    "task",  # life task "..."  — create task
+    "habit",  # life habit "..." — create/list habit
+    "rm",  # life rm <ref>    — soft delete
+    "show",  # life show <ref>  — inspect
+    "set",  # life set ...     — edit
+    "mood",  # life mood log    — energy state
+    "observe",  # life observe ... — capture context
+    "improve",  # life improve ... — steward backlog
+    "sleep",  # life sleep "..." — close ritual
+    "backup",  # life backup      — pre-risk safety
+    "skill",  # life skill <name>— load skill
+}
+
+
+def _registered_cli_commands() -> set[str]:
+    """Walk @cli(...) decorators in life/ and collect every command token reachable.
+
+    Includes both the terminal command name (name= kwarg or function name) and
+    each segment of the namespace after `life ` — so `@cli("life mood", name="log")`
+    contributes both `mood` and `log`.
+    """
+    names: set[str] = set()
+    paths = [p for root in CLI_ROOTS if root.exists() for p in sorted(root.rglob("*.py"))]
+    for path in paths:
+        if "__pycache__" in str(path):
+            continue
+        try:
+            tree = ast.parse(path.read_text())
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.FunctionDef):
+                continue
+            for dec in node.decorator_list:
+                if not isinstance(dec, ast.Call):
+                    continue
+                func = dec.func
+                func_name = (
+                    func.id if isinstance(func, ast.Name) else (func.attr if isinstance(func, ast.Attribute) else None)
+                )
+                if func_name != "cli":
+                    continue
+                if dec.args and isinstance(dec.args[0], ast.Constant):
+                    ns = str(dec.args[0].value).split()
+                    if ns and ns[0] == "life":
+                        names.update(ns[1:])
+                explicit = None
+                for kw in dec.keywords:
+                    if kw.arg == "name" and isinstance(kw.value, ast.Constant):
+                        explicit = kw.value.value
+                names.add(explicit or node.name)
+    return names
+
+
+def test_critical_cli_commands_exist():
+    """Every verb in Tyson's muscle memory must remain a registered command."""
+    registered = _registered_cli_commands()
+    missing = _CRITICAL_CLI - registered
+    assert not missing, (
+        f"Critical CLI commands missing or renamed: {sorted(missing)}\n"
+        f"These are in Tyson's muscle memory — re-add the alias or restore the name."
+    )
