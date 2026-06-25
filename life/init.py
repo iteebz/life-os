@@ -65,8 +65,8 @@ def init(force: bool = False, github: str | None = None):
         ("CLAUDE.md", True),
         ("LIFE.md", False),
         (".gitignore", False),
-        ("steward/memory.md", False),
-        ("steward/human.md", False),
+        ("notes/steward/memory.md", False),
+        ("notes/steward/human.md", False),
     ]
 
     for rel, overwritable in seed_files:
@@ -82,8 +82,8 @@ def init(force: bool = False, github: str | None = None):
         else:
             print(f"  exists:  {rel}")
 
-    # steward/{user}/ placeholder
-    user_dir = LIFE_HOME / "steward" / user
+    # notes/steward/{user}/ placeholder
+    user_dir = LIFE_HOME / "notes" / "steward" / user
     user_dir.mkdir(parents=True, exist_ok=True)
 
     _setup_git(github)

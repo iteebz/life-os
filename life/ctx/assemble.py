@@ -9,7 +9,7 @@ from pathlib import Path
 from . import sections
 
 LIFE_DIR = Path.home() / "life"
-STEWARD_DIR = LIFE_DIR / "steward"
+STEWARD_DIR = LIFE_DIR / "notes" / "steward"
 
 CONSTITUTION = [
     ("geometry", STEWARD_DIR / "geometry.md"),

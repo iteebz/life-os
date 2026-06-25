@@ -2,8 +2,8 @@
 */
 
 # track these explicitly
-!steward/
-!steward/**
+!notes/
+!notes/**
 
 # secrets — never track
 .env

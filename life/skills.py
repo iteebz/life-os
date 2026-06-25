@@ -1,6 +1,6 @@
 """Skills — markdown playbooks loadable on demand.
 
-Files in ~/life/steward/skills/<name>.md. Optional frontmatter `when:` one-liner
+Files in ~/life/notes/steward/skills/<name>.md. Optional frontmatter `when:` one-liner
 indexed in wake; body fetched via `life skill <name>`.
 """
 
@@ -15,7 +15,7 @@ from life.core.errors import NotFoundError
 from life.lib.frontmatter import _RE as _FM_RE
 from life.lib.frontmatter import field
 
-SKILLS_DIR = Path.home() / "life" / "steward" / "skills"
+SKILLS_DIR = Path.home() / "life" / "notes" / "steward" / "skills"
 
 
 @dataclass(frozen=True)
@@ -55,7 +55,7 @@ def skill(name: str | None = None):
     if not name:
         skills = list_skills()
         if not skills:
-            print("no skills — drop markdown into ~/life/steward/skills/")
+            print("no skills — drop markdown into ~/life/notes/steward/skills/")
             return
         width = max(len(s.name) for s in skills)
         for s in skills:

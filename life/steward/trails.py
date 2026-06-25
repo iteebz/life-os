@@ -8,7 +8,7 @@ from fncli import cli
 from life.lib import ansi
 from life.lib import frontmatter as fm
 
-_DIR = Path.home() / "life" / "steward" / "trails"
+_DIR = Path.home() / "life" / "notes" / "steward" / "trails"
 _FM_RE = re.compile(r"^---\s*\n.*?\n---\s*\n", re.DOTALL)
 _CAP = 10
 

@@ -567,8 +567,8 @@ def cmd_hook_commit() -> None:
 # Frontmatter schemas — glob → (required_field, valid_values).
 # None for valid_values means any non-empty value is fine.
 _FRONTMATTER_SCHEMAS: dict[str, tuple[str, set[str] | None]] = {
-    "steward/initiatives/": ("status", {"idea", "design", "active", "closed", "done"}),
-    "steward/trails/": ("description", None),
+    "notes/steward/initiatives/": ("status", {"idea", "design", "active", "closed", "done"}),
+    "notes/steward/trails/": ("description", None),
 }
 
 

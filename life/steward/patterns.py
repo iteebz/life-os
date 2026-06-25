@@ -5,7 +5,7 @@ from fncli import cli
 from life.lib import ansi
 from life.lib import frontmatter as fm
 
-_DIR = Path.home() / "life" / "steward" / "patterns"
+_DIR = Path.home() / "life" / "notes" / "steward" / "patterns"
 
 
 def _parse(path: Path) -> tuple[str, str, str]:
