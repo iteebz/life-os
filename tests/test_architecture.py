@@ -56,6 +56,7 @@ def _collect_edges():
 
 _CODE_MAX = 16 * 1024  # 16kb
 _MD_MAX = 4 * 1024  # 4kb
+_PATTERN_MAX = 2 * 1024  # 2kb — patterns must be lean
 _SKIP_DIRS_SIZE = {"__pycache__", ".venv", ".git", ".pytest_cache", "seed", "ctx"}
 
 
@@ -149,13 +150,15 @@ def test_life_markdown_size_limits():
         if path.suffix != ".md":
             continue
         size = path.stat().st_size
-        if size <= _MD_MAX:
-            continue
         rel = str(path.relative_to(_LIFE_ROOT))
-        violations.append((rel, size))
-    new = [f"  {r}  {s // 1024}kb (max 4kb)" for r, s in violations if r not in _LIFE_MD_KNOWN]
+        # tighter limit for pattern files
+        limit = _PATTERN_MAX if "notes/patterns/" in rel else _MD_MAX
+        if size <= limit:
+            continue
+        violations.append((rel, size, limit))
+    new = [f"  {r}  {s // 1024}kb (max {lim // 1024}kb)" for r, s, lim in violations if r not in _LIFE_MD_KNOWN]
     assert not new, "new ~/life/ markdown size violations (split by topic):\n" + "\n".join(new)
-    stale = _LIFE_MD_KNOWN - {r for r, _ in violations}
+    stale = _LIFE_MD_KNOWN - {r for r, _, _ in violations}
     assert not stale, "files in _LIFE_MD_KNOWN no longer violate — remove from set:\n  " + "\n  ".join(sorted(stale))
 
 
