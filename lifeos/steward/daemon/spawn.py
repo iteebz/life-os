@@ -1,6 +1,6 @@
 """Deprecated: use life.daemon.claude instead."""
 
-from life.daemon.claude import fetch_wake_context, run_claude
+from lifeos.steward.daemon.claude import fetch_wake_context, run_claude
 
 spawn_claude = run_claude
 

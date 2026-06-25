@@ -9,10 +9,10 @@ from pathlib import Path
 
 from fncli import cli
 
-from life.daemon.__main__ import supervise
-from life.daemon.claude import fetch_wake_context
-from life.daemon.session import get_user_chat_id, run_session
-from life.daemon.shared import pid
+from lifeos.steward.daemon.__main__ import supervise
+from lifeos.steward.daemon.claude import fetch_wake_context
+from lifeos.steward.daemon.session import get_user_chat_id, run_session
+from lifeos.steward.daemon.shared import pid
 
 _LABEL = "com.life.daemon"
 _PLIST_SRC = Path(__file__).parent.parent.parent / "scripts" / f"{_LABEL}.plist"

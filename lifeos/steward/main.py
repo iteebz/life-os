@@ -22,7 +22,7 @@ def main():
     fncli.alias_namespace("life steward", "steward")
     # steward (bare) → new session
     if not args:
-        from life.steward.chat import chat
+        from lifeos.steward.chat import chat
 
         sys.exit(chat() or 0)
     # steward continue / steward chat → smart resume

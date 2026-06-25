@@ -12,8 +12,8 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
-from life.daemon.shared import IDLE_REAP_SECS, IDLE_WAKE_SECS, log
-from life.steward import Session, close_session, get_sessions, set_session_idle
+from lifeos.steward import Session, close_session, get_sessions, set_session_idle
+from lifeos.steward.daemon.shared import IDLE_REAP_SECS, IDLE_WAKE_SECS, log
 
 WAKE_MARKER_DIR = Path.home() / ".life"
 LIFE_DIR = Path.home() / "life"

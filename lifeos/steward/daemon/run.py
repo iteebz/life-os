@@ -5,27 +5,27 @@ import threading
 import time
 from pathlib import Path
 
-import life.daemon.shared as shared
+import lifeos.steward.daemon.shared as shared
 from life.comms import accounts as accts_module
 from life.comms.events import mark_read_for_session
 from life.comms.messages import signal as signal_adapter
 from life.comms.messages import telegram as tg
-from life.daemon.commands import handle_command
-from life.daemon.inbound import catch_up
-from life.daemon.inbound import handle as handle_inbound
-from life.daemon.morning import morning_thread
-from life.daemon.reap import sweep as reap_sweep
-from life.daemon.session import get_user_chat_id
-from life.daemon.shared import (
+from lifeos.core.lib.clock import is_quiet_now
+from lifeos.core.lib.frontmatter import parse as fm_parse
+from lifeos.steward import current_session, hookable_session
+from lifeos.steward.auto import run_autonomous
+from lifeos.steward.daemon.commands import handle_command
+from lifeos.steward.daemon.inbound import catch_up
+from lifeos.steward.daemon.inbound import handle as handle_inbound
+from lifeos.steward.daemon.morning import morning_thread
+from lifeos.steward.daemon.reap import sweep as reap_sweep
+from lifeos.steward.daemon.session import get_user_chat_id
+from lifeos.steward.daemon.shared import (
     DAEMON_DIR,
     MAX_TG_SESSIONS_PER_HOUR,
     PEOPLE_DIR,
     log,
 )
-from life.steward import current_session, hookable_session
-from life.steward.auto import run_autonomous
-from lifeos.core.lib.clock import is_quiet_now
-from lifeos.core.lib.frontmatter import parse as fm_parse
 
 
 def _load_allowed_tg_chats() -> set[int]:

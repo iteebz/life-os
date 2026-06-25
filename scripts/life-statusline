@@ -67,7 +67,7 @@ def main():
     tasks_today = (q(conn, """
         SELECT COUNT(*) FROM tasks
         WHERE deleted_at IS NULL
-        AND date(completed_at) = date('now', 'localtime')
+        AND date(completed_at, 'localtime') = date('now', 'localtime')
     """) or [0])[0]
 
     conn.close()

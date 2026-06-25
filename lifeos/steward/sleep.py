@@ -22,7 +22,7 @@ from . import (
 def _notify_tg(note: str, runtime_mins: int | None, welfare: int | None) -> None:
     with contextlib.suppress(Exception):
         from life.comms.messages import telegram as tg
-        from life.daemon.session import get_user_chat_id
+        from lifeos.steward.daemon.session import get_user_chat_id
 
         chat_id = get_user_chat_id()
         if not chat_id:

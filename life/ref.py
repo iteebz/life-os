@@ -68,8 +68,8 @@ def _try_task(ref: str) -> bool:
 
 
 def _try_obs(fragment: str) -> bool:
-    from life.steward import get_observations
     from lifeos.core.lib.ids import resolve_prefix
+    from lifeos.steward import get_observations
 
     obs = resolve_prefix(fragment, get_observations(limit=500))
     if not obs:
@@ -100,7 +100,7 @@ def _try_imp(fragment: str) -> bool:
 
 
 def _try_session(fragment: str) -> bool:
-    from life.steward import get_sessions
+    from lifeos.steward import get_sessions
 
     sessions = get_sessions(limit=500)
     target = next((s for s in sessions if str(s.id) == fragment), None)

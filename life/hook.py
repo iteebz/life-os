@@ -20,13 +20,13 @@ from typing import Any
 from life.comms import events
 from life.habit import get_habits
 from life.mood import get_recent_moods
-from life.steward.sleep import _push_repos
 from life.task import get_tasks
 from lifeos.core.config import get_user_name
 from lifeos.core.lib import frontmatter as fm
 from lifeos.core.lib.clock import today
 from lifeos.core.lib.store import get_db
 from lifeos.core.store.migrations import init
+from lifeos.steward.sleep import _push_repos
 
 # Hook state file — throttle map persisted per session.
 # Keyed by STEWARD_SESSION_ID (falls back to PID).
@@ -78,7 +78,7 @@ def _inbox_signal(state: dict[str, str], parts: list[str]) -> None:
 
 
 def _ping_signal(state: dict[str, str], parts: list[str]) -> None:
-    from life.steward.ping import drain
+    from lifeos.steward.ping import drain
 
     last = int(state.get("last_ping_id", "0"))
     with contextlib.suppress(Exception):

@@ -6,9 +6,9 @@ from pathlib import Path
 import fncli
 
 from lifeos.core.errors import LifeError
+from lifeos.steward import get_sessions
+from lifeos.steward.chat import DEFAULT_MODEL, _launch, chat
 
-from .steward import get_sessions
-from .steward.chat import DEFAULT_MODEL, _launch, chat
 from .store import migrations as db
 
 _STEWARD_CHAT_FLAGS = {"--opus", "--sonnet", "-m", "--model", "-n", "--name", "--raw"}
@@ -78,7 +78,7 @@ def main():
         user_args = [aliases[user_args[0]], *user_args[1:]]
     # life steward (bare) → new session
     if user_args == ["steward"]:
-        from .steward.chat import chat
+        from lifeos.steward.chat import chat
 
         sys.exit(chat() or 0)
     # life steward continue / life steward chat → smart resume

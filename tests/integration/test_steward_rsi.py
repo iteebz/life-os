@@ -1,7 +1,7 @@
 import pytest
 
-from life.steward import close_session, create_session
 from life.task import add_task
+from lifeos.steward import close_session, create_session
 from tests.conftest import invoke
 
 pytestmark = pytest.mark.timeout(30)

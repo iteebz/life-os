@@ -12,10 +12,9 @@ import time
 from life.comms import events
 from life.comms.messages import telegram as tg
 from life.comms.peers import resolve_or_create
-from life.daemon.claude import fetch_wake_context, run_claude
-from life.daemon.session import build_reply_prompt, build_tg_boot_prompt, load_history_from_db
-from life.daemon.shared import log
-from life.steward import (
+from lifeos.core.lib.clock import is_quiet_now
+from lifeos.core.lib.store import get_db
+from lifeos.steward import (
     create_session,
     current_session,
     hookable_session,
@@ -23,8 +22,9 @@ from life.steward import (
     set_session_pid,
     touch_session,
 )
-from lifeos.core.lib.clock import is_quiet_now
-from lifeos.core.lib.store import get_db
+from lifeos.steward.daemon.claude import fetch_wake_context, run_claude
+from lifeos.steward.daemon.session import build_reply_prompt, build_tg_boot_prompt, load_history_from_db
+from lifeos.steward.daemon.shared import log
 
 
 def handle(channel: str, sender: str, body: str, chat_id: int | None = None, image_path: str | None = None) -> str:

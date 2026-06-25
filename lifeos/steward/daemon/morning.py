@@ -12,10 +12,10 @@ import time
 from datetime import datetime
 
 from life.comms.messages.telegram import get_history
-from life.daemon.claude import fetch_wake_context
-from life.daemon.session import get_user_chat_id, load_memory, run_session
-from life.daemon.shared import log
 from lifeos.core.config import auto_sessions_enabled, get_user_name
+from lifeos.steward.daemon.claude import fetch_wake_context
+from lifeos.steward.daemon.session import get_user_chat_id, load_memory, run_session
+from lifeos.steward.daemon.shared import log
 
 MORNING_HOUR = 8
 NIGHTLY_HOUR = 20

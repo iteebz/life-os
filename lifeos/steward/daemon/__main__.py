@@ -46,7 +46,7 @@ def _acquire_lock() -> TextIOWrapper | None:
 
 def _spawn_child(log_fd) -> subprocess.Popen[bytes]:
     return subprocess.Popen(
-        [sys.executable, "-c", "from life.daemon.run import run; run()"],
+        [sys.executable, "-c", "from lifeos.steward.daemon.run import run; run()"],
         stdout=subprocess.DEVNULL,
         stderr=log_fd,
         start_new_session=True,

@@ -6,14 +6,14 @@ from pathlib import Path
 
 from life.comms.events import mark_read_for_session
 from life.comms.messages import telegram as tg
-from life.daemon.claude import run_claude
-from life.daemon.commands import handle_command
-from life.daemon.shared import TG_SESSION_TIMEOUT, log
-from life.steward import close_session, create_session, set_session_pid
 from lifeos.core.config import get_user_name
 from lifeos.core.lib.clock import is_quiet_now
 from lifeos.core.lib.resolve import resolve_people_field
 from lifeos.core.lib.store import get_db
+from lifeos.steward import close_session, create_session, set_session_pid
+from lifeos.steward.daemon.claude import run_claude
+from lifeos.steward.daemon.commands import handle_command
+from lifeos.steward.daemon.shared import TG_SESSION_TIMEOUT, log
 
 
 def load_memory() -> str:
@@ -80,7 +80,7 @@ def build_reply_prompt(history: list[dict[str, str]], message: str, tone: str = 
 def load_history_from_db(chat_id: int, hours: int = HISTORY_LOOKBACK_HOURS) -> list[dict[str, str]]:
     """Load recent telegram messages from DB to survive daemon restarts."""
     try:
-        from life.daemon.commands import get_sleep_marker
+        from lifeos.steward.daemon.commands import get_sleep_marker
 
         cutoff = int(time.time()) - (hours * 3600)
         sleep_marker = get_sleep_marker()

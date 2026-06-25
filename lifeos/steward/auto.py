@@ -12,13 +12,13 @@ from fncli import cli
 from life.feedback import build_feedback_snapshot, render_feedback_snapshot
 from life.habit import get_habits
 from life.loop import load_loop_state, require_real_world_closure, save_loop_state, update_loop_state
-from life.steward._stream import StreamParser, ansi_strip, format_entry
 from life.task import get_all_tasks, get_tasks
 from lifeos.core.config import auto_sessions_enabled, set_auto_sessions
 from lifeos.core.errors import LifeError
 from lifeos.core.lib.clock import today
 from lifeos.core.lib.providers import claude
 from lifeos.core.models import Task
+from lifeos.steward._stream import StreamParser, ansi_strip, format_entry
 
 from . import close_session, create_session, messages_since_last_auto_session
 
@@ -182,7 +182,7 @@ def _select_required_real_world_task(tasks: list[Any]) -> Task | None:
 
 
 def _build_cmd_env(prompt: str) -> tuple[list[str], dict[str, str]]:
-    from life.steward.chat import _build_hook_settings_json
+    from lifeos.steward.chat import _build_hook_settings_json
 
     env = claude.build_env("auto")
     cmd = [
