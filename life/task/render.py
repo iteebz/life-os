@@ -65,7 +65,10 @@ def _section_done_today(
         if habit.private or habit.parent_id or "vice" in (habit.tags or []) or habit.id not in checked_ids:
             continue
         day_checks = [c for c in habit.checks if c.date() == ctx.today]
-        t_str = max(day_checks).strftime("%H:%M") if day_checks else now_time
+        if day_checks:
+            t_str = max(day_checks).strftime("%H:%M")
+        else:
+            t_str = habit.scheduled_time or now_time
         entries.append((t_str, row_daily_habit(habit, checked_ids, ctx)))
 
     if not entries:
