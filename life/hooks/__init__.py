@@ -8,14 +8,7 @@ import sys
 import time
 
 from life.comms import events
-from life.hooks.git import cmd_hook_commit, cmd_hook_pre_commit
-from life.hooks.session import (
-    auto_sleep_summary,
-    ensure_session_row,
-    log_turn,
-    surface_session_meta,
-)
-from life.hooks.signals import ALL_SIGNALS, load_state, render_inbox, save_state
+from life.hooks import git, session, signals
 from lifeos.core.lib.store import get_db
 from lifeos.core.store.migrations import init
 from lifeos.steward.sleep import _push_repos
@@ -28,12 +21,12 @@ def cmd_hook_prompt() -> None:
     if not body:
         return
     provider_sid = data.get("session_id") or os.environ.get("STEWARD_SESSION_ID", "unknown")
-    ensure_session_row(provider_sid)
-    log_turn("in", body, provider_sid)
+    session.ensure_session_row(provider_sid)
+    session.log_turn("in", body, provider_sid)
     rows = events.drain_inbox()
     if rows:
-        print("\n[new messages received while you were working]\n" + "\n".join(render_inbox(rows)))
-    surface_session_meta(provider_sid)
+        print("\n[new messages received while you were working]\n" + "\n".join(signals.render_inbox(rows)))
+    session.surface_session_meta(provider_sid)
 
 
 def cmd_hook_stop() -> None:
@@ -43,7 +36,7 @@ def cmd_hook_stop() -> None:
     if not body:
         return
     provider_sid = data.get("session_id") or os.environ.get("STEWARD_SESSION_ID", "unknown")
-    log_turn("out", body, provider_sid)
+    session.log_turn("out", body, provider_sid)
 
 
 def cmd_hook_post_tool() -> None:
@@ -58,13 +51,13 @@ def cmd_hook_post_tool() -> None:
     if not is_done and not is_habit:
         return
 
-    state = load_state()
+    state = signals.load_state()
     session_id = os.environ.get("STEWARD_SESSION_ID", "unknown")
     flag = f"win_broadcast_{session_id[:8]}"
     if state.get(flag):
         return
     state[flag] = "1"
-    save_state(state)
+    signals.save_state(state)
 
     output = (data.get("tool_response") or {}).get("output", "").strip()
     kind = "task" if is_done else "habit"
@@ -90,7 +83,7 @@ def cmd_hook_session_end() -> None:
     session_id = os.environ.get("STEWARD_SESSION_ID", "unknown")
     if session_id == "unknown":
         return
-    summary = auto_sleep_summary(session_id)
+    summary = session.auto_sleep_summary(session_id)
     with contextlib.suppress(Exception):
         with get_db() as conn:
             row = conn.execute(
@@ -113,16 +106,16 @@ def cmd_hook_tool() -> None:
     sys.stdin.read()
     session_id = os.environ.get("STEWARD_SESSION_ID", "unknown")
     with contextlib.suppress(Exception):
-        surface_session_meta(session_id)
+        session.surface_session_meta(session_id)
 
-    state = load_state()
+    state = signals.load_state()
     parts: list[str] = []
-    for fn in ALL_SIGNALS:
+    for fn in signals.ALL_SIGNALS:
         try:
             fn(state, parts)
         except Exception as e:
             parts.append(f"[hook signal {fn.__name__} failed: {e}]")
-    save_state(state)
+    signals.save_state(state)
 
     if parts:
         print(
@@ -149,8 +142,8 @@ def main() -> None:
         "prompt": cmd_hook_prompt,
         "stop": cmd_hook_stop,
         "session-end": cmd_hook_session_end,
-        "commit": cmd_hook_commit,
-        "pre-commit": cmd_hook_pre_commit,
+        "commit": git.cmd_hook_commit,
+        "pre-commit": git.cmd_hook_pre_commit,
     }
     fn = dispatch.get(args[0])
     if fn is None:

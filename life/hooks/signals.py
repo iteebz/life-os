@@ -15,9 +15,6 @@ _LIFE_ROOT = Path.home() / "life"
 _LIFE_OS_ROOT = _LIFE_ROOT / "life-os"
 
 
-# ── hook state (per-session file) ─────────────────────────────────────────────
-
-
 def _state_path() -> Path:
     import os
 
@@ -50,9 +47,6 @@ def throttled(state: dict[str, str], key: str, interval: int) -> bool:
 
 def touch(state: dict[str, str], key: str) -> None:
     state[key] = str(time.time())
-
-
-# ── signals ───────────────────────────────────────────────────────────────────
 
 
 def render_inbox(rows) -> list[str]:

@@ -4,7 +4,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from life.hook import CTX_MAX_CHARS
+from life.hooks.session import CTX_MAX_CHARS
 from life.mood import get_recent_moods
 from life.task import get_tasks
 from lifeos.steward.daemon.shared import DAEMON_START_TIME, TG_SESSION_TIMEOUT

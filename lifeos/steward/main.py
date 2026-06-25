@@ -4,7 +4,7 @@ from pathlib import Path
 
 import fncli
 
-from life.hook import main as hook_main
+from life.hooks import main as hook_main
 from lifeos.core.store.migrations import init
 
 _SESSION_FLAGS = {"--opus", "--sonnet"}
