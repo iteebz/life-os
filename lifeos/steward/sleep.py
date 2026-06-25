@@ -123,7 +123,8 @@ def sleep(note: str, welfare: int | None = None):
     welfare_db: int | None = None
     source: str | None = None
     if db_id is not None:
-        close_session(db_id, summary=note, welfare=welfare)
+        kill = os.environ.get("STEWARD_MODE") in ("auto", "daemon")
+        close_session(db_id, summary=note, welfare=welfare, kill_pid=kill)
         with get_db() as conn:
             row = conn.execute(
                 "SELECT runtime_seconds, welfare, source FROM sessions WHERE id = ?", (db_id,)

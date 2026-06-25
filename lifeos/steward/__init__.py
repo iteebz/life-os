@@ -98,7 +98,19 @@ def close_session(
     session_id: int,
     summary: str | None = None,
     welfare: int | None = None,
+    kill_pid: bool = False,
 ) -> None:
+    if kill_pid:
+        with get_db() as conn:
+            row = conn.execute("SELECT pid FROM sessions WHERE id = ?", (session_id,)).fetchone()
+        pid = row[0] if row else None
+        if pid:
+            import contextlib
+            import signal as _signal
+
+            with contextlib.suppress(OSError):
+                os.kill(pid, _signal.SIGTERM)
+
     sets = [
         "state = 'closed'",
         "ended_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now', 'localtime')",
