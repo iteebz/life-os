@@ -59,12 +59,23 @@ def main():
         WHERE hc.check_date = date('now', 'localtime')
         AND h.id NOT IN (SELECT habit_id FROM tags WHERE tag = 'vice' AND habit_id IS NOT NULL)
     """) or [0])[0]
+    habits_total = (q(conn, """
+        SELECT COUNT(*) FROM habits
+        WHERE archived_at IS NULL AND deleted_at IS NULL AND cadence='daily'
+        AND id NOT IN (SELECT habit_id FROM tags WHERE tag = 'vice' AND habit_id IS NOT NULL)
+    """) or [0])[0]
     tasks_done = (q(conn, """
         SELECT COUNT(*) FROM tasks
         WHERE deleted_at IS NULL
         AND date(completed_at, 'localtime') = date('now', 'localtime')
     """) or [0])[0]
+    tasks_scheduled = (q(conn, """
+        SELECT COUNT(*) FROM tasks
+        WHERE deleted_at IS NULL
+        AND date(scheduled_for, 'localtime') = date('now', 'localtime')
+    """) or [0])[0]
     done_today = habits_done + tasks_done
+    total_today = habits_total + tasks_scheduled
 
     conn.close()
 
@@ -88,16 +99,16 @@ def main():
 
     parts = []
 
-    done_color = green if done_today >= 5 else (yellow if done_today >= 2 else mustard)
-    parts.append(f"{dim}done{reset} {done_color}{done_today}{reset}")
-
     if used > 0:
         ctx_color = cyan if pct < 50 else (yellow if pct < 80 else red)
         parts.append(f"{dim}ctx{reset} {ctx_color}{format_tokens(used)}{reset}")
 
     last = read_last_time(data.get("session_id", ""))
     if last:
-        parts.append(f"{dim}last{reset} {mustard}{last}{reset}")
+        parts.append(f"{dim}last{reset} {purple}{last}{reset}")
+
+    done_color = green if done_today >= 5 else (yellow if done_today >= 2 else mustard)
+    parts.append(f"{dim}done{reset} {done_color}{done_today}/{total_today}{reset}")
 
     print("  ".join(parts), end="")
 
