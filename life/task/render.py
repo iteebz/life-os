@@ -137,7 +137,7 @@ def _section_today_outstanding(
 
     now_inserted = False
     for t_str, _, rows in timed:
-        if not now_inserted and t_str not in ("~~:~~", "zz:zz") and t_str > now_time:
+        if not now_inserted and (t_str == "zz:zz" or (t_str != "~~:~~" and t_str > now_time)):
             lines.append(f"  {gray('─')} {theme.coral}▸ {now_display}{gray(' ──────────────')}{_R}")
             now_inserted = True
         lines.extend(rows)

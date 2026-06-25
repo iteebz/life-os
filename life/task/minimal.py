@@ -60,7 +60,7 @@ def _today(ctx: RenderCtx, today_str: str, events: list[dict[str, object]]) -> l
 
     now_inserted = False
     for t_str, row_lines in rows:
-        if not now_inserted and t_str != "zz:zz" and t_str > now_time:
+        if not now_inserted and (t_str == "zz:zz" or t_str > now_time):
             lines.append(now_marker)
             now_inserted = True
         lines.extend(row_lines)
