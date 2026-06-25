@@ -3,6 +3,7 @@
 from datetime import date, timedelta
 
 from life.task import task_sort_key
+from life.task.minimal import render_minimal
 from life.task.rows import (
     RenderCtx,
     fmt_tags,
@@ -33,6 +34,7 @@ from lifeos.core.models import Habit, Task, TaskMutation, Weekly
 __all__ = [
     "render_dashboard",
     "render_day_summary",
+    "render_minimal",
     "render_momentum",
     "render_task_detail",
 ]

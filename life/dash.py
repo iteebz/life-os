@@ -15,7 +15,7 @@ from .lib.format import format_elapsed
 from .lib.store import get_db
 from .momentum import weekly_momentum
 from .task import fetch_tasks, get_all_tasks, get_completed_today, get_tasks, last_completion
-from .task.render import render_dashboard, render_day_summary, render_momentum
+from .task.render import render_dashboard, render_day_summary, render_minimal, render_momentum
 
 # --- dashboard queries (inlined from dashboard.py) ---
 
@@ -112,13 +112,14 @@ def dashboard() -> None:
     print(render_dashboard(items, today_breakdown, today_items=today_items))
 
 
-@cli("life")
-def dash() -> None:
-    """Tag-grouped dashboard"""
+@cli("life", flags={"full": ["-f", "--full"]})
+def dash(full: bool = False) -> None:
+    """Minimal dashboard — done timeline, habits, today+tomorrow. --full for tag-grouped view."""
     items = get_tasks() + get_habits()
     today_items = get_today_completed()
     today_breakdown = get_today_breakdown()
-    print(render_dashboard(items, today_breakdown, today_items=today_items))
+    render = render_dashboard if full else render_minimal
+    print(render(items, today_breakdown, today_items=today_items))
 
 
 @cli("life", flags={"as_json": ["-j", "--json"]})
