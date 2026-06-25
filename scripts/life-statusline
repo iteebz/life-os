@@ -89,7 +89,7 @@ def main():
     parts = []
 
     done_color = green if done_today >= 5 else (yellow if done_today >= 2 else mustard)
-    parts.append(f"{done_color}{done_today}{reset} {dim}done{reset}")
+    parts.append(f"{dim}done{reset} {done_color}{done_today}{reset}")
 
     if used > 0:
         ctx_color = cyan if pct < 50 else (yellow if pct < 80 else red)
