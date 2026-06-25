@@ -28,9 +28,9 @@ def _habits(all_habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) -> l
     if not habits:
         return []
     pending = [h for h in habits if h.id not in checked_ids]
-    done = [h for h in habits if h.id in checked_ids]
-    lines = [f"\n{bold(purple(f'HABITS ({len(done)}/{len(habits)})'))}"]
-    for habit in sorted(pending, key=habit_sort_key) + sorted(done, key=habit_sort_key):
+    done_count = len(habits) - len(pending)
+    lines = [f"\n{bold(purple(f'HABITS ({done_count}/{len(habits)})'))}"]
+    for habit in sorted(pending, key=habit_sort_key):
         lines.extend(row_daily_habit(habit, checked_ids, ctx))
     return lines
 
