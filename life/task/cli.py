@@ -328,6 +328,7 @@ def task(
     focus: bool = False,
     schedule: str | None = None,
     done: bool = False,
+    steward: bool = False,
 ) -> None:
     """List tasks, or create one: `life task "name" -t tag`"""
     if not ref or (len(ref) == 1 and ref[0] in ("list", "ls", "all")):
@@ -359,4 +360,4 @@ def task(
     if not tag:
         raise UsageError('Tag required: life task "name" -t <tag>')
 
-    add_item(ref, tag=tag, due=due or schedule, focus=focus, done=done)
+    add_item(ref, tag=tag, due=due or schedule, focus=focus, done=done, steward=steward)
