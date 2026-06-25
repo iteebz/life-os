@@ -41,6 +41,13 @@ _R = theme.reset
 _GREY = theme.muted
 
 
+def _pad_hm(t: str) -> str:
+    """Zero-pad H:MM → HH:MM for stable lexicographic sort."""
+    if ":" in t and len(t.split(":", 1)[0]) == 1:
+        return "0" + t
+    return t
+
+
 def _section_done_today(
     ctx: RenderCtx,
     today_items: list[Task | Habit],
@@ -65,11 +72,13 @@ def _section_done_today(
         if habit.private or habit.parent_id or "vice" in (habit.tags or []) or habit.id not in checked_ids:
             continue
         day_checks = [c for c in habit.checks if c.date() == ctx.today]
-        if day_checks:
-            t_str = max(day_checks).strftime("%H:%M")
-        else:
-            t_str = habit.scheduled_time or now_time
-        entries.append((t_str, row_daily_habit(habit, checked_ids, ctx)))
+        check_dt = max(day_checks) if day_checks else None
+        t_str = check_dt.strftime("%H:%M") if check_dt else (habit.scheduled_time or now_time)
+        t_disp = fmt_time(check_dt) if check_dt else (habit.scheduled_time or now_time)
+        tags_str = fmt_tags(habit.tags, ctx.tag_colors)
+        id_str = f" {dim('[' + habit.id[:8] + ']')}"
+        row = f"  {purple('●')} {gray(t_disp)} {habit.content.lower()}{tags_str}{id_str}"
+        entries.append((_pad_hm(t_str), [row]))
 
     if not entries:
         return []
@@ -101,11 +110,11 @@ def _section_today_outstanding(
             continue
         if habit.id in checked_ids or not habit.scheduled_time:
             continue
-        timed.append((habit.scheduled_time, 1, row_daily_habit(habit, checked_ids, ctx)))
+        timed.append((_pad_hm(habit.scheduled_time), 1, row_daily_habit(habit, checked_ids, ctx)))
 
     due_today = [t for t in ctx.pending if t.scheduled_date and t.scheduled_date.isoformat() == today_str]
     for task in due_today:
-        t_str = task.scheduled_time or "zz:zz"
+        t_str = _pad_hm(task.scheduled_time) if task.scheduled_time else "zz:zz"
         rows = row_task(task, ctx, {}, show_date=False, show_parent=True)
         timed.append((t_str, 0, rows))
         scheduled_ids.add(task.id)
