@@ -257,7 +257,7 @@ def row_daily_habit(habit: Habit, checked_ids: set[str], ctx: RenderCtx) -> list
         label = f"{gray(habit.content.lower())}{tags_str}"
         lines = [f"  {purple('●')} {gray(trend)} {time_str}{label}{id_str}"]
     elif past_due:
-        label = f"{theme.bold}{habit.content.lower()}{_R}{tags_str}"
+        label = f"{habit.content.lower()}{tags_str}"
         lines = [f"  {red('○')} {gray(trend)} {time_str}{label}{id_str}"]
     else:
         label = f"{habit.content.lower()}{tags_str}"
