@@ -3,9 +3,9 @@ from datetime import UTC, datetime, timedelta
 
 from fncli import cli
 
-from life.lib.format import format_elapsed, print_info, print_ok
-from life.lib.store import get_db
 from lifeos.core.errors import NotFoundError, ValidationError
+from lifeos.core.lib.format import format_elapsed, print_info, print_ok
+from lifeos.core.lib.store import get_db
 
 
 @dataclass(frozen=True)

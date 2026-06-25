@@ -4,8 +4,8 @@ import uuid
 from dataclasses import dataclass
 from datetime import date, datetime
 
-from life.lib.ids import resolve_prefix
-from life.lib.store import get_db
+from lifeos.core.lib.ids import resolve_prefix
+from lifeos.core.lib.store import get_db
 
 
 @dataclass(frozen=True)

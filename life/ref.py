@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fncli import UsageError, cli
 
-from life.lib.ids import parse_ref
+from lifeos.core.lib.ids import parse_ref
 
 
 def _resolve_and_print(ref: str) -> bool:
@@ -68,8 +68,8 @@ def _try_task(ref: str) -> bool:
 
 
 def _try_obs(fragment: str) -> bool:
-    from life.lib.ids import resolve_prefix
     from life.steward import get_observations
+    from lifeos.core.lib.ids import resolve_prefix
 
     obs = resolve_prefix(fragment, get_observations(limit=500))
     if not obs:
@@ -86,7 +86,7 @@ def _try_obs(fragment: str) -> bool:
 
 def _try_imp(fragment: str) -> bool:
     from life.improvements import get_improvements
-    from life.lib.ids import resolve_prefix
+    from lifeos.core.lib.ids import resolve_prefix
 
     imp = resolve_prefix(fragment, get_improvements(done=True))
     if not imp:

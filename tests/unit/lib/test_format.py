@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from life.lib.format import format_due
+from lifeos.core.lib.format import format_due
 
 
 def test_format_due_today():

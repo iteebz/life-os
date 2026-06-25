@@ -2,10 +2,6 @@
 
 from datetime import date, timedelta
 
-from life.lib import clock
-from life.lib.ansi import bold, dim, gold, gray, green, purple, red, theme, white
-from life.lib.format import fmt_time
-from life.lib.tags import load_tag_groups
 from life.task import task_sort_key
 from life.task.rows import (
     RenderCtx,
@@ -18,6 +14,10 @@ from life.task.rows import (
     row_task,
     row_vice,
 )
+from lifeos.core.lib import clock
+from lifeos.core.lib.ansi import bold, dim, gold, gray, green, purple, red, theme, white
+from lifeos.core.lib.format import fmt_time
+from lifeos.core.lib.tags import load_tag_groups
 from lifeos.core.models import Habit, Task
 
 _R = theme.reset

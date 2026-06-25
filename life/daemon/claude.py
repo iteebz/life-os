@@ -8,9 +8,9 @@ from collections.abc import Callable
 from pathlib import Path
 
 from life.ctx.assemble import build_wake
-from life.lib.env import Mode
-from life.lib.providers.claude import SPAWN_SETTINGS
-from life.lib.providers.claude import build_env as build_claude_env
+from lifeos.core.lib.env import Mode
+from lifeos.core.lib.providers.claude import SPAWN_SETTINGS
+from lifeos.core.lib.providers.claude import build_env as build_claude_env
 
 MAX_RESPONSE_LEN = 4000
 

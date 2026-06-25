@@ -19,15 +19,15 @@ from life.contacts import get_stale_contacts
 from life.feedback import build_feedback_snapshot, render_feedback_headline
 from life.habit import get_habits
 from life.improvements import get_improvements
-from life.lib.clock import today
-from life.lib.dates import list_dates
-from life.lib.format import format_elapsed
-from life.lib.ids import short
 from life.mood import get_recent_moods
 from life.skills import list_skills
 from life.steward import get_observations, get_sessions
 from life.steward.trails import trail_index
 from life.task import get_all_tasks, get_tasks
+from lifeos.core.lib.clock import today
+from lifeos.core.lib.dates import list_dates
+from lifeos.core.lib.format import format_elapsed
+from lifeos.core.lib.ids import short
 
 from .fragments import STEWARD_BIRTHDAY
 

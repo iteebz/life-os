@@ -3,8 +3,8 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-from life.lib.store import get_db
 from lifeos.core import config
+from lifeos.core.lib.store import get_db
 
 __all__ = ["score"]
 

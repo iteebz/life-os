@@ -4,13 +4,13 @@ import uuid
 from datetime import datetime
 
 from life.comms.events import record as emit_event
-from life.lib import clock
-from life.lib.converters import row_to_task
-from life.lib.format import fmt_time, render_done_row
-from life.lib.fuzzy import find_in_pool, find_in_pool_exact
-from life.lib.store import get_db
 from life.tag import add_tag, hydrate_tags, load_tags_for_tasks
 from lifeos.core.errors import ConflictError, StoreIntegrityError, ValidationError
+from lifeos.core.lib import clock
+from lifeos.core.lib.converters import row_to_task
+from lifeos.core.lib.format import fmt_time, render_done_row
+from lifeos.core.lib.fuzzy import find_in_pool, find_in_pool_exact
+from lifeos.core.lib.store import get_db
 from lifeos.core.models import Task, TaskMutation
 from lifeos.core.types import UNSET, Unset
 

@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from life.lib.store import get_db
 from lifeos.core.errors import StoreIntegrityError
+from lifeos.core.lib.store import get_db
 from lifeos.core.models import Habit, Task, TaskMutation
 from lifeos.core.store.migrations import init as db_init
 

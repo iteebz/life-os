@@ -1,7 +1,7 @@
 from datetime import date, datetime, timedelta
 
 import lifeos.core.config
-from life.lib.store import get_db
+from lifeos.core.lib.store import get_db
 from tests.conftest import invoke
 
 

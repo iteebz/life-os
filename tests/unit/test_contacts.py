@@ -7,7 +7,7 @@ from life.contacts import (
     get_stale_contacts,
     log_contact,
 )
-from life.lib.store import get_db
+from lifeos.core.lib.store import get_db
 
 
 def test_add_and_list(tmp_life_dir):

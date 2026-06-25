@@ -1,4 +1,4 @@
-from life.lib.ansi import DEFAULT, POOL, Theme, bold, dim, strip, strip_markdown
+from lifeos.core.lib.ansi import DEFAULT, POOL, Theme, bold, dim, strip, strip_markdown
 
 
 def test_theme_defaults():

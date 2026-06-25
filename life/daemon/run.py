@@ -22,10 +22,10 @@ from life.daemon.shared import (
     PEOPLE_DIR,
     log,
 )
-from life.lib.clock import is_quiet_now
-from life.lib.frontmatter import parse as fm_parse
 from life.steward import current_session, hookable_session
 from life.steward.auto import run_autonomous
+from lifeos.core.lib.clock import is_quiet_now
+from lifeos.core.lib.frontmatter import parse as fm_parse
 
 
 def _load_allowed_tg_chats() -> set[int]:

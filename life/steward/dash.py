@@ -3,8 +3,8 @@ from datetime import datetime
 from fncli import cli
 
 from life.improvements import get_improvements
-from life.lib.format import format_elapsed
-from life.lib.ids import short
+from lifeos.core.lib.format import format_elapsed
+from lifeos.core.lib.ids import short
 
 from . import get_observations, get_sessions
 

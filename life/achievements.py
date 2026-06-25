@@ -5,11 +5,11 @@ from difflib import get_close_matches
 
 from fncli import UsageError, cli
 
-from life.lib import ansi
-from life.lib.ansi import POOL, dim, gray, white
-from life.lib.ids import parse_ref, short
-from life.lib.store import get_db
 from lifeos.core.errors import AmbiguousError
+from lifeos.core.lib import ansi
+from lifeos.core.lib.ansi import POOL, dim, gray, white
+from lifeos.core.lib.ids import parse_ref, short
+from lifeos.core.lib.store import get_db
 
 
 @dataclass(frozen=True)

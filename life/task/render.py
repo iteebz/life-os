@@ -2,10 +2,6 @@
 
 from datetime import date, timedelta
 
-from life.lib import clock
-from life.lib.ansi import bold, dim, gold, gray, green, purple, red, theme, white
-from life.lib.dates import upcoming_dates
-from life.lib.format import fmt_time
 from life.task import task_sort_key
 from life.task.rows import (
     RenderCtx,
@@ -28,6 +24,10 @@ from life.task.sections import (
     section_weekly,
     tag_section,
 )
+from lifeos.core.lib import clock
+from lifeos.core.lib.ansi import bold, dim, gold, gray, green, purple, red, theme, white
+from lifeos.core.lib.dates import upcoming_dates
+from lifeos.core.lib.format import fmt_time
 from lifeos.core.models import Habit, Task, TaskMutation, Weekly
 
 __all__ = [

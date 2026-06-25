@@ -6,10 +6,10 @@ from life.dash import (
     get_today_completed,
 )
 from life.habit import add_habit, get_habits, toggle_check
-from life.lib.ansi import theme
-from life.lib.store import get_db
 from life.task import add_task, check_task, get_tasks
 from life.task.render import render_dashboard
+from lifeos.core.lib.ansi import theme
+from lifeos.core.lib.store import get_db
 
 
 def test_pending_empty(tmp_life_dir):

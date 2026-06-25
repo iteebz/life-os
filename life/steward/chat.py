@@ -9,7 +9,7 @@ from pathlib import Path
 
 from fncli import cli
 
-from life.lib.providers.claude import build_env
+from lifeos.core.lib.providers.claude import build_env
 
 from . import (
     get_sessions,
@@ -159,7 +159,7 @@ def _launch(
 
 
 def _lookup_session_id(provider_session_id: str) -> int | None:
-    from life.lib.store import get_db
+    from lifeos.core.lib.store import get_db
 
     with get_db() as conn:
         row = conn.execute(

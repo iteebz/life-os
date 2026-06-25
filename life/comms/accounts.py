@@ -1,7 +1,7 @@
 import uuid
 from typing import Any
 
-from life.lib.store import get_db
+from lifeos.core.lib.store import get_db
 
 from .config import add_account as config_add_account
 

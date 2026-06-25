@@ -6,9 +6,9 @@ from difflib import get_close_matches
 
 from fncli import UsageError, cli
 
-from life.lib import ansi, clock
-from life.lib.format import print_info, print_ok
-from life.lib.store import get_db
+from lifeos.core.lib import ansi, clock
+from lifeos.core.lib.format import print_info, print_ok
+from lifeos.core.lib.store import get_db
 
 _COLS = "id, name, cadence_days, last_contact_at, created_at"
 _ACTIVE = "deleted_at IS NULL"

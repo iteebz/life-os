@@ -1,6 +1,6 @@
 """Tests for claude provider env builder."""
 
-from life.lib.providers.claude import build_env
+from lifeos.core.lib.providers.claude import build_env
 
 
 def test_auto_env_disables_claude_features():

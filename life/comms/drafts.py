@@ -1,8 +1,8 @@
 import uuid
 from datetime import datetime
 
-from life.lib.clock import now_iso
-from life.lib.store import get_db
+from lifeos.core.lib.clock import now_iso
+from lifeos.core.lib.store import get_db
 
 from .models import Draft
 

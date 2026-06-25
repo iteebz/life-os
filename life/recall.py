@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from fncli import cli
 
 from life import utterances as utter
-from life.lib.format import print_info
+from lifeos.core.lib.format import print_info
 
 
 @cli("life", flags={"query": [], "limit": ["-n", "--limit"]})

@@ -9,11 +9,11 @@ from life.comms.messages import telegram as tg
 from life.daemon.claude import run_claude
 from life.daemon.commands import handle_command
 from life.daemon.shared import TG_SESSION_TIMEOUT, log
-from life.lib.clock import is_quiet_now
-from life.lib.resolve import resolve_people_field
-from life.lib.store import get_db
 from life.steward import close_session, create_session, set_session_pid
 from lifeos.core.config import get_user_name
+from lifeos.core.lib.clock import is_quiet_now
+from lifeos.core.lib.resolve import resolve_people_field
+from lifeos.core.lib.store import get_db
 
 
 def load_memory() -> str:

@@ -6,10 +6,10 @@ from pathlib import Path
 import fncli
 import pytest
 
-import life.lib.clock as clock
 import lifeos.core.config as life_config
-from life.lib.store import configure as configure_store
+import lifeos.core.lib.clock as clock
 from lifeos.core.errors import LifeError
+from lifeos.core.lib.store import configure as configure_store
 from lifeos.core.store.connection import reset_for_testing
 from lifeos.core.store.migrations import init as db_init
 

@@ -9,8 +9,8 @@ from dataclasses import dataclass
 
 from fncli import cli
 
-from life.lib import ansi
-from life.lib.store import get_db
+from lifeos.core.lib import ansi
+from lifeos.core.lib.store import get_db
 
 SOURCES = {"auto", "chat", "tg", "cli", "daemon"}
 

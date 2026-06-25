@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 
 from fncli import cli
 
-from life.lib.store import get_db
+from lifeos.core.lib.store import get_db
 
 
 def send(message: str) -> int:

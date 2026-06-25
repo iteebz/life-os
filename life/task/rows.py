@@ -5,11 +5,11 @@ from collections.abc import Sequence
 from datetime import date, timedelta
 
 from life.habit import get_subhabits
-from life.lib import clock
-from life.lib.ansi import NAMED_COLORS, POOL, dim, gray, green, purple, red, theme
-from life.lib.format import fmt_time
-from life.lib.tags import load_tag_groups, load_tag_overrides
 from life.task import task_sort_key
+from lifeos.core.lib import clock
+from lifeos.core.lib.ansi import NAMED_COLORS, POOL, dim, gray, green, purple, red, theme
+from lifeos.core.lib.format import fmt_time
+from lifeos.core.lib.tags import load_tag_groups, load_tag_overrides
 from lifeos.core.models import Habit, Task
 
 _DEFAULT_TAG_ORDER = ["finance", "legal", "janice", "comms", "home", "income"]

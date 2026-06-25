@@ -2,7 +2,7 @@
 
 import json
 
-from life.lib.store import get_db
+from lifeos.core.lib.store import get_db
 
 
 def _extract_body(payload: str) -> str | None:

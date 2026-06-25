@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 
 from life.habit import get_habits
-from life.lib.converters import row_to_task
-from life.lib.fuzzy import find_in_pool
-from life.lib.store import get_db
 from life.task import get_tasks
+from lifeos.core.lib.converters import row_to_task
+from lifeos.core.lib.fuzzy import find_in_pool
+from lifeos.core.lib.store import get_db
 
 
 @dataclass(frozen=True)

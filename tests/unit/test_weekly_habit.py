@@ -1,11 +1,11 @@
 from datetime import date, datetime, time, timedelta
 
-import life.lib.clock as clock
+import lifeos.core.lib.clock as clock
 from life.feedback import build_feedback_snapshot
 from life.habit import add_habit, check_habit, get_habits, get_streak
-from life.lib.store import get_db
 from life.momentum import weekly_momentum
 from life.task import get_all_tasks, get_tasks
+from lifeos.core.lib.store import get_db
 
 
 def test_add_weekly_habit(tmp_life_dir):

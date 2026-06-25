@@ -7,7 +7,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime
 
-from life.lib.store import get_db
+from lifeos.core.lib.store import get_db
 
 
 @dataclass

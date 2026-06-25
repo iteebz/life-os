@@ -2,7 +2,7 @@ from pathlib import Path
 
 from fncli import cli
 
-from life.lib.frontmatter import parse
+from lifeos.core.lib.frontmatter import parse
 
 
 def _collect(path: Path) -> list[Path]:

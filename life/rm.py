@@ -7,12 +7,12 @@ from fncli import UsageError, cli
 
 from life.habit import delete_habit
 from life.improvements import delete_improvement, get_improvements
-from life.lib import ansi
-from life.lib.ids import resolve_prefix
 from life.resolve import resolve_item_any
 from life.steward import delete_observation, get_observations
 from life.task import delete_task
 from lifeos.core.errors import NotFoundError
+from lifeos.core.lib import ansi
+from lifeos.core.lib.ids import resolve_prefix
 
 
 @cli("life", name="rm")

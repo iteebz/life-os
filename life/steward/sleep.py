@@ -6,11 +6,11 @@ from pathlib import Path
 
 from fncli import cli
 
-from life.lib import ansi
-from life.lib.dates import parse_due_date
-from life.lib.format import format_elapsed, print_info
-from life.lib.ids import short
-from life.lib.store import get_db
+from lifeos.core.lib import ansi
+from lifeos.core.lib.dates import parse_due_date
+from lifeos.core.lib.format import format_elapsed, print_info
+from lifeos.core.lib.ids import short
+from lifeos.core.lib.store import get_db
 
 from . import (
     add_observation,

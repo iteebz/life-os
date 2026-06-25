@@ -11,13 +11,13 @@ from fncli import cli
 
 from life.feedback import build_feedback_snapshot, render_feedback_snapshot
 from life.habit import get_habits
-from life.lib.clock import today
-from life.lib.providers import claude
 from life.loop import load_loop_state, require_real_world_closure, save_loop_state, update_loop_state
 from life.steward._stream import StreamParser, ansi_strip, format_entry
 from life.task import get_all_tasks, get_tasks
 from lifeos.core.config import auto_sessions_enabled, set_auto_sessions
 from lifeos.core.errors import LifeError
+from lifeos.core.lib.clock import today
+from lifeos.core.lib.providers import claude
 from lifeos.core.models import Task
 
 from . import close_session, create_session, messages_since_last_auto_session

@@ -4,7 +4,7 @@ from datetime import datetime
 
 from fncli import cli
 
-from life.lib.store import get_db
+from lifeos.core.lib.store import get_db
 
 VALID_ENTITY_TYPES = {"task", "habit", "habit_check", "observation", "improvement", "mood"}
 

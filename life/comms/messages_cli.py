@@ -21,8 +21,8 @@ from fncli import cli
 from life.comms.messages import signal
 from life.comms.messages import telegram as _tg
 from life.comms.messages.telegram_sync import save_credentials, sync
-from life.lib.store import get_db
 from lifeos.core.errors import LifeError, ValidationError
+from lifeos.core.lib.store import get_db
 
 _CHANNEL_ALIASES = {"tg": "telegram", "tel": "telegram", "sig": "signal"}
 

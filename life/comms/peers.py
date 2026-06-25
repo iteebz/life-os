@@ -1,6 +1,6 @@
 """Peer resolution. Channel-native address → stable peer identity."""
 
-from life.lib.store import get_db
+from lifeos.core.lib.store import get_db
 
 
 def resolve_or_create(channel: str, address: str, display_name: str | None = None) -> int:

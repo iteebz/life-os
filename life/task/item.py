@@ -12,11 +12,6 @@ from life.habit import (
     toggle_check,
     uncheck_habit,
 )
-from life.lib import ansi
-from life.lib.clock import today
-from life.lib.dates import parse_due_date
-from life.lib.format import render_done_row, render_row, render_uncheck_row
-from life.lib.parsing import parse_due_datetime, validate_content
 from life.resolve import resolve_item, resolve_item_any, resolve_task
 from life.task import (
     add_task,
@@ -26,6 +21,11 @@ from life.task import (
     uncheck_task,
 )
 from lifeos.core.errors import NotFoundError, ValidationError
+from lifeos.core.lib import ansi
+from lifeos.core.lib.clock import today
+from lifeos.core.lib.dates import parse_due_date
+from lifeos.core.lib.format import render_done_row, render_row, render_uncheck_row
+from lifeos.core.lib.parsing import parse_due_datetime, validate_content
 from lifeos.core.models import Task
 
 

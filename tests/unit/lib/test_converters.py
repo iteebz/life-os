@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from life.lib.converters import (
+from lifeos.core.lib.converters import (
     _parse_date,
     _parse_datetime,
     _parse_datetime_optional,

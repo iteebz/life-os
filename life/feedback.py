@@ -2,8 +2,8 @@ import dataclasses
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
-from life.lib.store import get_db
 from lifeos.core.config import get_partner_tag
+from lifeos.core.lib.store import get_db
 from lifeos.core.models import Habit, Task
 
 DISCOMFORT_TAGS = {"finance", "legal", "janice"}

@@ -16,7 +16,7 @@ from telethon import TelegramClient
 from telethon.tl.types import MessageMediaPhoto, User
 
 from life.comms import events
-from life.lib.store import get_db
+from lifeos.core.lib.store import get_db
 
 SESSION_DIR = Path.home() / ".life" / "telegram"
 SESSION_PATH = SESSION_DIR / "user"

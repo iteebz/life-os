@@ -2,8 +2,8 @@ from pathlib import Path
 
 from fncli import cli
 
-from life.lib import ansi
-from life.lib import frontmatter as fm
+from lifeos.core.lib import ansi
+from lifeos.core.lib import frontmatter as fm
 
 _DIR = Path.home() / "life" / "notes" / "steward" / "patterns"
 

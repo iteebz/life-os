@@ -3,10 +3,10 @@ from typing import Any, TypeVar
 
 from fncli import cli
 
-from life.lib import ansi
-from life.lib.converters import hydrate_tags_onto, row_to_habit, row_to_task
-from life.lib.store import get_db
-from life.lib.tags import validate_tag
+from lifeos.core.lib import ansi
+from lifeos.core.lib.converters import hydrate_tags_onto, row_to_habit, row_to_task
+from lifeos.core.lib.store import get_db
+from lifeos.core.lib.tags import validate_tag
 from lifeos.core.models import Habit, Task
 
 T = TypeVar("T", Task, Habit)

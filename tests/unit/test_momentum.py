@@ -1,7 +1,7 @@
 from datetime import datetime, time, timedelta
 
-from life.lib.store import get_db
 from life.momentum import weekly_momentum
+from lifeos.core.lib.store import get_db
 
 
 def test_rolling_7day_window(tmp_life_dir, fixed_today):
