@@ -335,3 +335,10 @@ CREATE TABLE IF NOT EXISTS notes (
 );
 
 CREATE INDEX IF NOT EXISTS idx_notes_entity ON notes(entity_type, entity_id);
+
+CREATE TABLE IF NOT EXISTS pings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    message TEXT NOT NULL,
+    from_session_id INTEGER REFERENCES sessions(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
