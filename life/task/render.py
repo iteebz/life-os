@@ -86,7 +86,9 @@ def _section_done_today(
         return []
 
     entries.sort(key=lambda x: x[0])
-    lines = [f"\n{bold(green(f'DONE ({len(entries)})'))}"]
+    task_count = sum(1 for i in today_items if isinstance(i, Task) and i.completed_at and i.id not in due_today_ids)
+    habit_count = len(entries) - task_count
+    lines = [f"\n{bold(green(f'DONE ({task_count}+{habit_count})'))}"]
     for _, rows in entries:
         lines.extend(rows)
     return lines
