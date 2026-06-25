@@ -2,6 +2,7 @@
 
 import ast
 import re
+from functools import cache
 from pathlib import Path
 
 LIFE_ROOT = Path(__file__).parent.parent / "life"
@@ -15,6 +16,58 @@ EXEMPTIONS = {
     # circular dep noqa'd separately; alias is load-bearing for fncli dispatch
     ("task/cli.py", "add", "_add"),
 }
+
+# Barrel re-export ratchet.
+# `from .foo import Bar` in __init__.py destroys import traceability and causes
+# circular import hell. Budget covers all life/ __init__.py files. Drive to zero.
+# Known violators: task/__init__.py (23), lib/providers/__init__.py (1). Shrink only.
+_BARREL_REEXPORT_BUDGET = 24
+
+
+@cache
+def _barrel_exports() -> dict[str, list[str]]:
+    """Return {module: [exported_names]} for all __init__.py barrel re-exports."""
+    exports: dict[str, list[str]] = {}
+    for init in sorted(LIFE_ROOT.rglob("__init__.py")):
+        try:
+            tree = ast.parse(init.read_text())
+        except SyntaxError:
+            continue
+        rel = init.relative_to(LIFE_ROOT)
+        module = "life." + ".".join(rel.parts[:-1]) if rel.parts[:-1] else "life"
+        imported: list[str] = []
+        for node in ast.iter_child_nodes(tree):
+            if not isinstance(node, ast.ImportFrom):
+                continue
+            is_relative = node.level and node.level > 0
+            is_intra = not is_relative and node.module and node.module.startswith(module + ".")
+            if is_relative or is_intra:
+                for alias in node.names:
+                    name = alias.asname or alias.name
+                    if not name.startswith("_") and name != "*":
+                        imported.append(name)
+        if imported:
+            exports[module] = imported
+    return exports
+
+
+def test_no_new_barrel_reexports():
+    """Ratchet: barrel re-exports in __init__.py destroy import traceability.
+
+    Import from where things live: `from life.task.domain import add_task`,
+    not `from life.task import add_task`. Budget only goes down.
+    """
+    all_exports = _barrel_exports()
+    total = sum(len(names) for names in all_exports.values())
+    violations = [
+        f"  {mod}: {len(names)} re-exports ({', '.join(names[:5])}{'...' if len(names) > 5 else ''})"
+        for mod, names in sorted(all_exports.items())
+    ]
+    assert total <= _BARREL_REEXPORT_BUDGET, (
+        f"Barrel re-exports: {total} (budget: {_BARREL_REEXPORT_BUDGET})\n"
+        + "\n".join(violations)
+        + "\n\nFix: import from the defining module, not the package __init__."
+    )
 
 
 def _noise_aliases(path: Path) -> list[tuple[int, str]]:
