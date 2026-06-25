@@ -127,7 +127,7 @@ def _launch(
         "--append-system-prompt",
         _build_system_prompt(source, raw or resume),
         "--name",
-        "steward",
+        f"steward ({model})",
         "--settings",
         _build_hook_settings_json(),
     ]
