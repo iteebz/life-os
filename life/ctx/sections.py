@@ -21,13 +21,13 @@ from life.habit import get_habits
 from life.improvements import get_improvements
 from life.mood import get_recent_moods
 from life.skills import list_skills
-from life.steward import get_observations, get_sessions
-from life.steward.trails import trail_index
 from life.task import get_all_tasks, get_tasks
 from lifeos.core.lib.clock import today
 from lifeos.core.lib.dates import list_dates
 from lifeos.core.lib.format import format_elapsed
 from lifeos.core.lib.ids import short
+from lifeos.steward import get_observations, get_sessions
+from lifeos.steward.trails import trail_index
 
 from .fragments import STEWARD_BIRTHDAY
 
@@ -162,6 +162,26 @@ def render_observations() -> str:
             rel = format_elapsed(o.logged_at, now)
         tag_str = f" #{o.tag}" if o.tag else ""
         out.append(f"  {rel:<10}  {o.body}{tag_str}")
+    return "\n".join(out)
+
+
+def render_patterns() -> str:
+    """Load pattern files and surface names + watch signals for boot context."""
+    patterns_dir = Path.home() / "life" / "notes" / "steward" / "patterns"
+    files = sorted(patterns_dir.glob("*.md"))
+    if not files:
+        return ""
+    out = ["PATTERNS (active behavioral dynamics):"]
+    for f in files:
+        text = f.read_text()
+        name = f.stem
+        watch = ""
+        for line in text.splitlines():
+            if line.startswith("watch:"):
+                watch = line.split(":", 1)[1].strip()
+                break
+        watch_str = f"  ⚑ {watch}" if watch else ""
+        out.append(f"  {name}{watch_str}")
     return "\n".join(out)
 
 

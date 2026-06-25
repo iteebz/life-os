@@ -31,6 +31,7 @@ WAKE_ORDER = [
     sections.render_observatory,
     sections.render_last_session,
     sections.render_contracts,
+    sections.render_patterns,
     sections.render_observations,
     sections.render_dates,
     sections.render_skills,
