@@ -8,7 +8,7 @@ import fncli
 from fncli import cli
 
 from life.ctx.assemble import CONSTITUTION, WAKE_ORDER
-from life.store.migrations import init
+from lifeos.core.store.migrations import init
 
 BUDGET_CHARS = 100_000
 

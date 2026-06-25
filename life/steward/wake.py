@@ -5,7 +5,7 @@ import sys
 import fncli
 from fncli import cli
 
-from life.store.migrations import init
+from lifeos.core.store.migrations import init
 
 
 @cli("life")

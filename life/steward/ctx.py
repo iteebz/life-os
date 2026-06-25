@@ -6,7 +6,7 @@ from datetime import datetime
 from fncli import cli
 
 from life.lib.store import get_db
-from life.store.migrations import init
+from lifeos.core.store.migrations import init
 
 CTX_MAX_CHARS = 100_000
 
