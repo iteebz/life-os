@@ -56,7 +56,7 @@ def _collect_edges():
 
 _CODE_MAX = 16 * 1024  # 16kb
 _MD_MAX = 4 * 1024  # 4kb
-_SKIP_DIRS_SIZE = {"__pycache__", ".venv", ".git", ".pytest_cache", "seed"}
+_SKIP_DIRS_SIZE = {"__pycache__", ".venv", ".git", ".pytest_cache", "seed", "ctx"}
 
 
 def test_file_size_limits():

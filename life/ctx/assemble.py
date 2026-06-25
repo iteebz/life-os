@@ -1,7 +1,8 @@
 """Assemble sections into prompt strings.
 
 build_wake() — full wake snapshot, used by `steward wake` CLI and daemon sessions.
-build_chat_prompt() — wake + constitution for chat --append-system-prompt.
+build_chat_prompt() — fragments + constitution + wake for chat --append-system-prompt.
+render() — named (name, content) pairs → XML blocks.
 """
 
 from pathlib import Path
@@ -10,6 +11,7 @@ from . import sections
 
 LIFE_DIR = Path.home() / "life"
 STEWARD_DIR = LIFE_DIR / "notes" / "steward"
+CTX_DIR = LIFE_DIR / "life-os" / "ctx"
 
 CONSTITUTION = [
     ("geometry", STEWARD_DIR / "geometry.md"),
@@ -42,6 +44,25 @@ WAKE_ORDER = [
 ]
 
 
+def render(frags: list[tuple[str, str]], sep: str = "\n\n") -> str:
+    """Render named (name, content) pairs into XML blocks."""
+    return sep.join(f"<{name}>\n{content}\n</{name}>" for name, content in frags)
+
+
+def load_manifest(mode: str) -> list[tuple[str, str]]:
+    """Load fragments listed in ctx/{mode}.md. Returns (name, content) pairs."""
+    manifest = CTX_DIR / f"{mode}.md"
+    if not manifest.exists():
+        return []
+    names = [n.strip() for n in manifest.read_text().splitlines() if n.strip()]
+    frags = []
+    for name in names:
+        path = CTX_DIR / "fragments" / f"{name}.md"
+        if path.exists():
+            frags.append((name, path.read_text().strip()))
+    return frags
+
+
 def build_wake() -> str:
     """Compose all wake sections into a single string."""
     parts: list[str] = []
@@ -56,8 +77,11 @@ def build_wake() -> str:
 
 
 def build_chat_prompt() -> str:
-    """Wake snapshot + constitution markdowns for system-prompt injection."""
+    """Fragments + constitution markdowns + wake for system-prompt injection."""
     parts: list[str] = []
+    frags = load_manifest("chat")
+    if frags:
+        parts.append(render(frags))
     for tag, path in CONSTITUTION:
         if path.exists():
             text = path.read_text().strip()

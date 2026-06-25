@@ -1,6 +1,10 @@
+import pytest
+
 from life.steward import close_session, create_session
 from life.task import add_task
 from tests.conftest import invoke
+
+pytestmark = pytest.mark.timeout(30)
 
 
 def test_observe_write_retrieve_roundtrip(tmp_life_dir):

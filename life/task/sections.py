@@ -292,14 +292,25 @@ def section_backlog(
 
     tag_order = get_tag_order()
     tag_labels = dict(load_tag_groups())
+
+    # tags.toml [groups] is the viability contract — unknown tags collapse into OTHER
+    known = set(tag_order)
+    other: list[Task] = []
+    for tag in list(groups):
+        if tag and tag not in known:
+            other.extend(groups.pop(tag))
+    if "" in groups:
+        other.extend(groups.pop(""))
+    if other:
+        groups[""] = sorted(other, key=lambda t: t.content.lower())
+
     sections = [t for t in tag_order if t in groups]
-    sections += sorted(k for k in groups if k and k not in tag_order)
     if "" in groups:
         sections.append("")
 
     lines: list[str] = []
     for tag in sections:
-        label = tag_labels.get(tag, tag.upper()) if tag else "BACKLOG"
+        label = tag_labels.get(tag, tag.upper()) if tag else "OTHER"
         color = ctx.tag_colors.get(tag, theme.white) if tag else theme.white
         lines.append(f"\n{theme.bold}{color}{label} ({len(groups[tag])}){_R}")
         for task in groups[tag]:
