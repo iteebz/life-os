@@ -7,6 +7,7 @@ from life.core.models import Habit, Task
 from life.lib import ansi
 from life.lib.converters import hydrate_tags_onto, row_to_habit, row_to_task
 from life.lib.store import get_db
+from life.lib.tags import validate_tag
 
 T = TypeVar("T", Task, Habit)
 
@@ -27,6 +28,7 @@ __all__ = [
 def add_tag(task_id: str | None, habit_id: str | None, tag: str, conn=None) -> None:
     if (task_id is None and habit_id is None) or (task_id is not None and habit_id is not None):
         raise ValueError("Exactly one of (task_id, habit_id) must be not None")
+    validate_tag(tag)
 
     def _insert(c: Any) -> None:
         c.execute(
