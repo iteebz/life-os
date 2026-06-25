@@ -1,6 +1,5 @@
 """Tests for steward env module — mirrors spacebrr's test_launch_env.py."""
 
-
 from life.lib.env import build_base_env, is_auto, is_chat, is_interactive, is_tg, mode
 
 

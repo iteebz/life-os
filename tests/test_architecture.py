@@ -85,6 +85,90 @@ def test_file_size_limits():
         warnings.warn("known size violations still open:\n" + "\n".join(violations), stacklevel=1)
 
 
+# ~/life/ markdown size guard. Same 4kb ceiling as life-os, applied across the whole tree.
+# Ratchet: shrink a file, remove it from _LIFE_MD_KNOWN. New violations fail hard.
+_LIFE_ROOT = LIFE_ROOT.parent.parent
+_LIFE_SKIP_DIRS = {
+    "__pycache__",
+    ".venv",
+    ".git",
+    ".pytest_cache",
+    "seed",
+    "node_modules",
+    "archive",
+    "human",  # human/ is tyson's writing, off-limits
+}
+_LIFE_MD_KNOWN = {
+    "steward/tyson/operating-manual.md",
+    "steward/people/janice-manual.md",
+    "CLAUDE.md",
+    "taxing/docs/architecture.md",
+    "taxing/docs/phases.md",
+    "taxing/docs/audit.md",
+    "taxing/README.md",
+    "steward/arch/ctx-layering.md",
+    "steward/tyson/traumas.md",
+    "taxing/docs/cli.md",
+    "steward/tyson/cognition.md",
+    "steward/initiatives/prompt-layering.md",
+    "tynice/cosmo-house-rules.md",
+    "taxing/docs/tax.md",
+    "steward/arch/rsi.md",
+    "steward/arch/memory.md",
+    "taxing/docs/mining.md",
+    "steward/initiatives/financial-position-dashboard.md",
+}
+
+# ~/life/ python size guard. Same 16kb ceiling as life-os, applied across the whole tree.
+_LIFE_PY_KNOWN = {
+    "life-os/life/task/render.py",
+    "life-os/life/hook.py",
+    "taxing/tests/unit/core/test_mining.py",
+    "taxing/tests/unit/core/test_trades.py",
+    "taxing/taxing/core/mining.py",
+}
+
+
+def test_life_markdown_size_limits():
+    """No markdown file in ~/life/ > 4kb. Known violators grandfathered, ratchet down."""
+    if not (_LIFE_ROOT / "LIFE.md").exists():
+        return  # not running inside ~/life checkout
+    violations = []
+    for path in sorted(_LIFE_ROOT.rglob("*.md")):
+        if any(p in _LIFE_SKIP_DIRS for p in path.parts):
+            continue
+        if path.suffix != ".md":
+            continue
+        size = path.stat().st_size
+        if size <= _MD_MAX:
+            continue
+        rel = str(path.relative_to(_LIFE_ROOT))
+        violations.append((rel, size))
+    new = [f"  {r}  {s // 1024}kb (max 4kb)" for r, s in violations if r not in _LIFE_MD_KNOWN]
+    assert not new, "new ~/life/ markdown size violations:\n" + "\n".join(new)
+    stale = _LIFE_MD_KNOWN - {r for r, _ in violations}
+    assert not stale, "files in _LIFE_MD_KNOWN no longer violate — remove from set:\n  " + "\n  ".join(sorted(stale))
+
+
+def test_life_python_size_limits():
+    """No python file in ~/life/ > 16kb. Known violators grandfathered, ratchet down."""
+    if not (_LIFE_ROOT / "LIFE.md").exists():
+        return
+    violations = []
+    for path in sorted(_LIFE_ROOT.rglob("*.py")):
+        if any(p in _LIFE_SKIP_DIRS for p in path.parts):
+            continue
+        size = path.stat().st_size
+        if size <= _CODE_MAX:
+            continue
+        rel = str(path.relative_to(_LIFE_ROOT))
+        violations.append((rel, size))
+    new = [f"  {r}  {s // 1024}kb (max 16kb)" for r, s in violations if r not in _LIFE_PY_KNOWN]
+    assert not new, "new ~/life/ python size violations:\n" + "\n".join(new)
+    stale = _LIFE_PY_KNOWN - {r for r, _ in violations}
+    assert not stale, "files in _LIFE_PY_KNOWN no longer violate — remove from set:\n  " + "\n  ".join(sorted(stale))
+
+
 def test_markdown_has_description_frontmatter():
     """All tracked markdown files must have YAML frontmatter with a description field."""
     repo_root = LIFE_ROOT.parent

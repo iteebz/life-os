@@ -315,7 +315,7 @@ def delete_observation(prefix: str, hard: bool = False) -> bool:
 add_session = create_session
 
 
-from . import auto, chat, ctx, dash, improve, inbox, initiatives, log, notes, sleep, wake  # noqa: E402
+from . import auto, chat, ctx, dash, improve, inbox, initiatives, log, notes, sleep, trails, wake  # noqa: E402
 
 __all__ = [
     "Observation",
@@ -344,6 +344,7 @@ __all__ = [
     "set_session_pid",
     "sleep",
     "touch_session",
+    "trails",
     "update_session_claude_id",
     "update_session_followups",
     "update_session_summary",

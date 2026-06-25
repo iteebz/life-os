@@ -26,6 +26,7 @@ def invoke(argv: list[str]) -> fncli.Result:
 
     if not _discovered:
         import life.cli  # noqa: PLC0415, F401 — side-effect: registers CLI commands; deferred to avoid circular
+
         fncli.autodiscover(Path(__file__).parent.parent / "life", "life")
         _discovered = True
 

@@ -27,6 +27,7 @@ from life.mood import get_recent_moods
 from life.skills import list_skills
 from life.steward import get_observations, get_sessions
 from life.steward.initiatives import initiative_index
+from life.steward.trails import trail_index
 from life.task import get_all_tasks, get_tasks
 
 from .fragments import STEWARD_BIRTHDAY
@@ -200,6 +201,17 @@ def render_initiatives() -> str:
     for _slug, status, title, desc in active:
         suffix = f"  —  {desc}" if desc else ""
         out.append(f"  [{status:<7}]  {title}{suffix}")
+    return "\n".join(out)
+
+
+def render_trails() -> str:
+    items = trail_index()
+    if not items:
+        return ""
+    out = ["TRAILS (steward/trails/):"]
+    for _slug, title, desc in items:
+        suffix = f"  —  {desc}" if desc else ""
+        out.append(f"  {title}{suffix}")
     return "\n".join(out)
 
 
