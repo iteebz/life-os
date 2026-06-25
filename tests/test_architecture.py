@@ -121,9 +121,6 @@ _LIFE_MD_KNOWN = {
     "steward/tyson/operating-manual.md",
     "steward/tyson/traumas.md",
     # new paths (post-notes/ rename)
-    "notes/steward/lib/arch/ctx-layering.md",
-    "notes/steward/lib/arch/memory.md",
-    "notes/steward/lib/arch/rsi.md",
     "notes/steward/model/tyson/operating-manual.md",
     "notes/steward/model/tyson/traumas.md",
     "notes/steward/model/tyson/cognition.md",
@@ -134,7 +131,6 @@ _LIFE_MD_KNOWN = {
 
 # ~/life/ python size guard. Same 16kb ceiling as life-os, applied across the whole tree.
 _LIFE_PY_KNOWN = {
-    "life-os/life/task/render.py",
     "life-os/life/hook.py",
     "taxing/tests/unit/core/test_mining.py",
     "taxing/tests/unit/core/test_trades.py",

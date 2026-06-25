@@ -1,3 +1,7 @@
+import contextlib
+import json
+import logging
+import re
 import shutil
 import sqlite3
 from collections.abc import Callable
@@ -5,6 +9,8 @@ from datetime import datetime
 from pathlib import Path
 
 from life.core import config
+
+logger = logging.getLogger(__name__)
 
 MIGRATIONS_TABLE = "_migrations"
 
@@ -62,16 +68,90 @@ _LEGACY_MIGRATIONS = {
     "045_unified_messages",
 }
 
+_MAX_MIGRATION_BACKUPS = 32
+_SELECT_STAR_RE = re.compile(r"INSERT\s+INTO\s+\w+\s+SELECT\s+\*\s+FROM", re.IGNORECASE)
+_DESTRUCTIVE_RE = re.compile(r"\b(DROP\s+TABLE|ALTER\s+TABLE\s+\w+\s+RENAME)\b", re.IGNORECASE)
+
 
 def _schema_sql() -> str:
     return (Path(__file__).parent.parent / "schema.sql").read_text()
 
 
+def _poison_path(db_path: Path) -> Path:
+    return db_path.parent / "migration_poison.json"
+
+
+def _breadcrumb_path(db_path: Path) -> Path:
+    return db_path.parent / "migration_error.json"
+
+
+def _write_poison(db_path: Path, name: str, error: str) -> None:
+    p = _poison_path(db_path)
+    p.write_text(json.dumps({"migration": name, "detail": error[:500], "timestamp": datetime.now().isoformat()}))
+
+
+def _write_breadcrumb(db_path: Path, name: str, error: str) -> None:
+    p = _breadcrumb_path(db_path)
+    p.write_text(json.dumps({"migration": name, "detail": error[:500], "timestamp": datetime.now().isoformat()}))
+
+
+def _check_and_restore_breadcrumb(db_path: Path) -> None:
+    """On boot, if a prior migration left a breadcrumb (process died mid-restore), auto-restore."""
+    crumb = _breadcrumb_path(db_path)
+    if not crumb.exists():
+        return
+    try:
+        data = json.loads(crumb.read_text())
+    except (json.JSONDecodeError, OSError):
+        return
+
+    backup_dir = config.BACKUP_DIR / "migrations"
+    backups = (
+        sorted(backup_dir.glob(f"{db_path.stem}.*.backup"), key=lambda p: p.stat().st_mtime, reverse=True)
+        if backup_dir.exists()
+        else []
+    )
+    if not backups:
+        logger.warning(
+            "migration breadcrumb found (migration=%s) but no backups — cannot auto-restore", data.get("migration")
+        )
+        return
+
+    latest = backups[0]
+    logger.warning("migration breadcrumb found (migration=%s) — restoring from %s", data.get("migration"), latest)
+    _restore_backup(latest, db_path)
+    crumb.unlink(missing_ok=True)
+    logger.warning("auto-restored %s from backup and cleared breadcrumb", db_path)
+
+
+def _check_ghost_db(db_path: Path) -> None:
+    """Refuse to init a fresh DB when backups exist with data — silent data loss prevention."""
+    if not db_path or not db_path.exists():
+        return
+    backup_dir = config.BACKUP_DIR / "migrations"
+    if not backup_dir.exists():
+        return
+    backups = sorted(backup_dir.glob(f"{db_path.stem}.*.backup"), key=lambda p: p.stat().st_mtime, reverse=True)
+    for backup in backups[:3]:
+        try:
+            with sqlite3.connect(backup, timeout=5) as bconn:
+                row = bconn.execute(
+                    "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name != '_migrations'"
+                ).fetchone()
+                if row and row[0] > 5:
+                    raise SystemExit(
+                        f"FATAL: {db_path} appears fresh but backup at {backup} "
+                        f"contains {row[0]} tables. Refusing to overwrite — restore from backup first."
+                    )
+        except (sqlite3.Error, OSError):
+            continue
+
+
 def _create_backup(db_path: Path) -> Path:
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     mig_dir = config.BACKUP_DIR / "migrations"
     mig_dir.mkdir(parents=True, exist_ok=True)
-    backup_path = mig_dir / f"life.{timestamp}.backup"
+    backup_path = mig_dir / f"{db_path.stem}.{timestamp}.backup"
     src = sqlite3.connect(db_path, timeout=30)
     dst = sqlite3.connect(backup_path)
     try:
@@ -85,11 +165,25 @@ def _create_backup(db_path: Path) -> Path:
     else:
         dst.close()
         src.close()
+    _prune_backups(mig_dir, db_path.stem)
     return backup_path
 
 
+def _prune_backups(backup_dir: Path, stem: str, keep: int = _MAX_MIGRATION_BACKUPS) -> None:
+    backups = sorted(backup_dir.glob(f"{stem}.*.backup"))
+    for stale in backups[:-keep]:
+        with contextlib.suppress(OSError):
+            stale.unlink()
+
+
 def _restore_backup(backup_path: Path, db_path: Path) -> None:
-    shutil.copy2(backup_path, db_path)
+    tmp = db_path.parent / f".{db_path.stem}.restore.tmp"
+    try:
+        shutil.copy2(backup_path, tmp)
+        tmp.replace(db_path)
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
 
 
 def _table_count(conn: sqlite3.Connection, table: str) -> int:
@@ -113,7 +207,7 @@ def _check_data_loss(conn: sqlite3.Connection, before: dict[str, int], exempt: s
         if exempt and table in exempt:
             continue
         if not _table_exists(conn, table):
-            continue  # intentionally dropped — not data loss
+            continue
         after = _table_count(conn, table)
         if after < count:
             raise ValueError(f"migration data loss: {table} had {count} rows, now {after}")
@@ -133,6 +227,14 @@ def load_migrations() -> list[Migration]:
     return [(sql_file.stem, sql_file.read_text()) for sql_file in sorted(migrations_dir.glob("[0-9]*.sql"))]
 
 
+def _reject_destructive_sql(name: str, sql: str) -> None:
+    if _DESTRUCTIVE_RE.search(sql):
+        raise ValueError(
+            f"Migration '{name}' contains DROP TABLE or ALTER TABLE RENAME in a string migration. "
+            "Use a callable migration (def up(conn)) with explicit transactions."
+        )
+
+
 def _apply_migrations(conn: sqlite3.Connection, db_path: Path) -> None:
     conn.execute(
         f"CREATE TABLE IF NOT EXISTS {MIGRATIONS_TABLE} "
@@ -142,6 +244,7 @@ def _apply_migrations(conn: sqlite3.Connection, db_path: Path) -> None:
     conn.commit()
 
     if _is_fresh(conn):
+        _check_ghost_db(db_path)
         conn.executescript(_schema_sql())
         for name in _LEGACY_MIGRATIONS:
             conn.execute(f"INSERT OR IGNORE INTO {MIGRATIONS_TABLE} (name) VALUES (?)", (name,))  # noqa: S608
@@ -149,6 +252,9 @@ def _apply_migrations(conn: sqlite3.Connection, db_path: Path) -> None:
             conn.execute(f"INSERT OR IGNORE INTO {MIGRATIONS_TABLE} (name) VALUES (?)", (name,))  # noqa: S608
         conn.commit()
         return
+
+    # Check and heal breadcrumb from a prior crash mid-restore
+    _check_and_restore_breadcrumb(db_path)
 
     applied = {row[0] for row in conn.execute(f"SELECT name FROM {MIGRATIONS_TABLE}").fetchall()}  # noqa: S608
 
@@ -163,40 +269,70 @@ def _apply_migrations(conn: sqlite3.Connection, db_path: Path) -> None:
     if not pending:
         return
 
-    backup_path: Path | None = None
-
-    for name, migration in pending:
-        if db_path.exists() and backup_path is None:
-            backup_path = _create_backup(db_path)
-
-        tables = [
-            row[0]
-            for row in conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name != ? AND name NOT LIKE '%_fts%'",
-                (MIGRATIONS_TABLE,),
-            ).fetchall()
-        ]
-        before = {t: _table_count(conn, t) for t in tables}
-
+    # Check poison — a previously failed migration that must not retry without human intervention
+    poison = _poison_path(db_path)
+    if poison.exists():
         try:
-            if callable(migration):
-                migration(conn)
-                exempt = None
-            else:
-                conn.executescript(migration)
-                exempt = None
+            data = json.loads(poison.read_text())
+            poisoned_name = data.get("migration")
+            if poisoned_name and any(n == poisoned_name for n, _ in pending):
+                raise SystemExit(
+                    f"FATAL: migration '{poisoned_name}' previously failed and is poisoned. "
+                    f"Detail: {data.get('detail', 'unknown')}. "
+                    f"Fix the migration, then delete {poison} to retry."
+                )
+        except (json.JSONDecodeError, OSError):
+            pass
 
-            _check_data_loss(conn, before, exempt=exempt)
-            conn.execute(f"INSERT OR IGNORE INTO {MIGRATIONS_TABLE} (name) VALUES (?)", (name,))  # noqa: S608
-            conn.commit()
-        except Exception:
-            conn.rollback()
-            if backup_path and db_path:
-                _restore_backup(backup_path, db_path)
-            raise
+    # One backup for the whole batch — not one per migration
+    backup_path: Path | None = None
+    if db_path.exists():
+        backup_path = _create_backup(db_path)
 
-    if backup_path and backup_path.exists():
-        backup_path.unlink()
+    try:
+        for name, migration in pending:
+            tables = [
+                row[0]
+                for row in conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name != ? AND name NOT LIKE '%_fts%'",
+                    (MIGRATIONS_TABLE,),
+                ).fetchall()
+            ]
+            before = {t: _table_count(conn, t) for t in tables}
+
+            try:
+                if callable(migration):
+                    _guard_msg = f"Migration '{name}' uses INSERT INTO ... SELECT * — positional column mismatch risk. Use explicit column names."
+
+                    def _guard(sql: str, _msg: str = _guard_msg) -> None:
+                        if _SELECT_STAR_RE.search(sql):
+                            raise ValueError(_msg)
+
+                    conn.set_trace_callback(_guard)
+                    try:
+                        migration(conn)
+                    finally:
+                        conn.set_trace_callback(None)
+                else:
+                    _reject_destructive_sql(name, migration)
+                    conn.executescript(migration)
+
+                _check_data_loss(conn, before)
+                conn.execute(f"INSERT OR IGNORE INTO {MIGRATIONS_TABLE} (name) VALUES (?)", (name,))  # noqa: S608
+                conn.commit()
+            except Exception as e:
+                conn.rollback()
+                if backup_path and db_path.exists():
+                    _write_breadcrumb(db_path, name, str(e))
+                    _restore_backup(backup_path, db_path)
+                    _breadcrumb_path(db_path).unlink(missing_ok=True)
+                    _write_poison(db_path, name, str(e))
+                logger.error("migration '%s' failed — db restored, migration poisoned: %s", name, e)
+                raise
+    finally:
+        # Clean up successful batch backup
+        if backup_path and backup_path.exists():
+            backup_path.unlink()
 
 
 def init(db_path: Path | None = None) -> None:
