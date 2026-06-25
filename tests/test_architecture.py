@@ -80,7 +80,9 @@ def test_file_size_limits():
         "life/task/render.py",
     }
     new_violations = [v for v in violations if not any(k in v for k in known)]
-    assert not new_violations, "files exceed size limits:\n" + "\n".join(new_violations)
+    assert not new_violations, "files exceed size limits (split by module or extract helpers):\n" + "\n".join(
+        new_violations
+    )
     if violations:
         warnings.warn("known size violations still open:\n" + "\n".join(violations), stacklevel=1)
 
@@ -99,24 +101,35 @@ _LIFE_SKIP_DIRS = {
     "human",  # human/ is tyson's writing, off-limits
 }
 _LIFE_MD_KNOWN = {
-    "steward/tyson/operating-manual.md",
-    "steward/people/janice-manual.md",
     "CLAUDE.md",
     "taxing/docs/architecture.md",
     "taxing/docs/phases.md",
     "taxing/docs/audit.md",
     "taxing/README.md",
-    "steward/arch/ctx-layering.md",
-    "steward/tyson/traumas.md",
     "taxing/docs/cli.md",
-    "steward/tyson/cognition.md",
-    "steward/initiatives/prompt-layering.md",
-    "tynice/cosmo-house-rules.md",
     "taxing/docs/tax.md",
-    "steward/arch/rsi.md",
-    "steward/arch/memory.md",
     "taxing/docs/mining.md",
+    "tynice/cosmo-house-rules.md",
+    # old paths (pre-notes/ rename)
+    "steward/arch/ctx-layering.md",
+    "steward/arch/memory.md",
+    "steward/arch/rsi.md",
     "steward/initiatives/financial-position-dashboard.md",
+    "steward/initiatives/prompt-layering.md",
+    "steward/people/janice-manual.md",
+    "steward/tyson/cognition.md",
+    "steward/tyson/operating-manual.md",
+    "steward/tyson/traumas.md",
+    # new paths (post-notes/ rename)
+    "notes/steward/lib/arch/ctx-layering.md",
+    "notes/steward/lib/arch/memory.md",
+    "notes/steward/lib/arch/rsi.md",
+    "notes/steward/model/tyson/operating-manual.md",
+    "notes/steward/model/tyson/traumas.md",
+    "notes/steward/model/tyson/cognition.md",
+    "notes/steward/model/people/janice-manual.md",
+    "notes/steward/work/initiatives/prompt-layering.md",
+    "notes/steward/work/initiatives/financial-position-dashboard.md",
 }
 
 # ~/life/ python size guard. Same 16kb ceiling as life-os, applied across the whole tree.
@@ -145,7 +158,7 @@ def test_life_markdown_size_limits():
         rel = str(path.relative_to(_LIFE_ROOT))
         violations.append((rel, size))
     new = [f"  {r}  {s // 1024}kb (max 4kb)" for r, s in violations if r not in _LIFE_MD_KNOWN]
-    assert not new, "new ~/life/ markdown size violations:\n" + "\n".join(new)
+    assert not new, "new ~/life/ markdown size violations (split by topic):\n" + "\n".join(new)
     stale = _LIFE_MD_KNOWN - {r for r, _ in violations}
     assert not stale, "files in _LIFE_MD_KNOWN no longer violate — remove from set:\n  " + "\n  ".join(sorted(stale))
 
@@ -164,7 +177,7 @@ def test_life_python_size_limits():
         rel = str(path.relative_to(_LIFE_ROOT))
         violations.append((rel, size))
     new = [f"  {r}  {s // 1024}kb (max 16kb)" for r, s in violations if r not in _LIFE_PY_KNOWN]
-    assert not new, "new ~/life/ python size violations:\n" + "\n".join(new)
+    assert not new, "new ~/life/ python size violations (split by module or extract helpers):\n" + "\n".join(new)
     stale = _LIFE_PY_KNOWN - {r for r, _ in violations}
     assert not stale, "files in _LIFE_PY_KNOWN no longer violate — remove from set:\n  " + "\n  ".join(sorted(stale))
 
