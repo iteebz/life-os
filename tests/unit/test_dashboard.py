@@ -9,7 +9,7 @@ from life.habit import add_habit, get_habits, toggle_check
 from life.lib.ansi import theme
 from life.lib.store import get_db
 from life.task import add_task, check_task, get_tasks
-from life.task.render import render_dashboard, render_timeline
+from life.task.render import render_dashboard
 
 
 def test_pending_empty(tmp_life_dir):
@@ -176,10 +176,10 @@ def test_render_timed_habits_sort_first_in_daily(tmp_life_dir, monkeypatch):
     assert output.index("aaa timed") < output.index("zzz no time")
 
 
-def test_render_timeline_now_marker_present(tmp_life_dir, monkeypatch):
+def test_render_dashboard_now_marker_present(tmp_life_dir, monkeypatch):
     _make_render_ctx(monkeypatch, datetime(2025, 10, 30, 9, 0))
     items = get_tasks() + get_habits()
-    output = render_timeline(items)
+    output = render_dashboard(items, (0, 0, 0, 0))
     assert "▸" in output
 
 

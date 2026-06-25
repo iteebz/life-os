@@ -11,9 +11,9 @@ from pathlib import Path
 
 from fncli import cli
 
-from life.core.errors import NotFoundError
 from life.lib.frontmatter import _RE as _FM_RE
 from life.lib.frontmatter import field
+from lifeos.core.errors import NotFoundError
 
 SKILLS_DIR = Path.home() / "life" / "notes" / "steward" / "skills"
 

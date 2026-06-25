@@ -19,7 +19,7 @@ SCOPES = [
     "https://www.googleapis.com/auth/gmail.modify",
 ]
 SERVICE_NAME = "comms-cli/gmail"
-TOKEN_KEY_SUFFIX = "/token"  # noqa: S105
+TOKEN_KEY_SUFFIX = "/token"
 CREDENTIALS_PATH = Path.home() / ".life/comms/gmail_credentials.json"
 
 

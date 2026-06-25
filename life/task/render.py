@@ -17,6 +17,7 @@ from life.task.rows import (
 )
 from life.task.sections import (
     section_backlog,
+    section_daily,
     section_done,
     section_header,
     section_hobbies,
@@ -157,6 +158,8 @@ def render_dashboard(
         lines += overdue_lines
         scheduled_ids |= overdue_ids
 
+    untimed_habits = [h for h in all_habits if not h.scheduled_time]
+    lines += section_daily(untimed_habits, checked_ids, ctx)
     lines += tag_section(all_habits, checked_ids, ctx, "love", "LOVE", theme.pink)
     lines += tag_section(all_habits, checked_ids, ctx, "admin", "LIFE", theme.yellow)
     lines += tag_section(all_habits, checked_ids, ctx, "chore", "CHORES", theme.cyan)

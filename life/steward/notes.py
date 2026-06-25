@@ -65,7 +65,7 @@ def _commits_for_day(since: datetime, until: datetime) -> list[tuple[str, str, s
                 ts, author, subject = parts
                 dt = datetime.fromtimestamp(int(ts))
                 results.append((dt, label, author.strip(), subject.strip()))
-        except Exception:  # noqa: S110
+        except Exception:
             pass
 
     results.sort(key=lambda x: x[0])

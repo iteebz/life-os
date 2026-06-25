@@ -8,7 +8,7 @@ from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
-from life.core import config
+from lifeos.core import config
 
 logger = logging.getLogger(__name__)
 
@@ -188,7 +188,7 @@ def _restore_backup(backup_path: Path, db_path: Path) -> None:
 
 def _table_count(conn: sqlite3.Connection, table: str) -> int:
     try:
-        return conn.execute(f'SELECT COUNT(*) FROM "{table}"').fetchone()[0]  # noqa: S608
+        return conn.execute(f'SELECT COUNT(*) FROM "{table}"').fetchone()[0]
     except sqlite3.OperationalError:
         return 0
 
@@ -247,23 +247,23 @@ def _apply_migrations(conn: sqlite3.Connection, db_path: Path) -> None:
         _check_ghost_db(db_path)
         conn.executescript(_schema_sql())
         for name in _LEGACY_MIGRATIONS:
-            conn.execute(f"INSERT OR IGNORE INTO {MIGRATIONS_TABLE} (name) VALUES (?)", (name,))  # noqa: S608
+            conn.execute(f"INSERT OR IGNORE INTO {MIGRATIONS_TABLE} (name) VALUES (?)", (name,))
         for name, _ in load_migrations():
-            conn.execute(f"INSERT OR IGNORE INTO {MIGRATIONS_TABLE} (name) VALUES (?)", (name,))  # noqa: S608
+            conn.execute(f"INSERT OR IGNORE INTO {MIGRATIONS_TABLE} (name) VALUES (?)", (name,))
         conn.commit()
         return
 
     # Check and heal breadcrumb from a prior crash mid-restore
     _check_and_restore_breadcrumb(db_path)
 
-    applied = {row[0] for row in conn.execute(f"SELECT name FROM {MIGRATIONS_TABLE}").fetchall()}  # noqa: S608
+    applied = {row[0] for row in conn.execute(f"SELECT name FROM {MIGRATIONS_TABLE}").fetchall()}
 
     for name in _LEGACY_MIGRATIONS:
         if name not in applied:
-            conn.execute(f"INSERT OR IGNORE INTO {MIGRATIONS_TABLE} (name) VALUES (?)", (name,))  # noqa: S608
+            conn.execute(f"INSERT OR IGNORE INTO {MIGRATIONS_TABLE} (name) VALUES (?)", (name,))
     conn.commit()
 
-    applied = {row[0] for row in conn.execute(f"SELECT name FROM {MIGRATIONS_TABLE}").fetchall()}  # noqa: S608
+    applied = {row[0] for row in conn.execute(f"SELECT name FROM {MIGRATIONS_TABLE}").fetchall()}
     pending = [(n, m) for n, m in load_migrations() if n not in applied]
 
     if not pending:
@@ -318,7 +318,7 @@ def _apply_migrations(conn: sqlite3.Connection, db_path: Path) -> None:
                     conn.executescript(migration)
 
                 _check_data_loss(conn, before)
-                conn.execute(f"INSERT OR IGNORE INTO {MIGRATIONS_TABLE} (name) VALUES (?)", (name,))  # noqa: S608
+                conn.execute(f"INSERT OR IGNORE INTO {MIGRATIONS_TABLE} (name) VALUES (?)", (name,))
                 conn.commit()
             except Exception as e:
                 conn.rollback()

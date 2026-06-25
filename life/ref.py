@@ -31,7 +31,7 @@ def _resolve_and_print(ref: str) -> bool:
 
 
 def _print_notes(entity_type: str, entity_id: str) -> None:
-    from life.note import get_notes  # noqa: PLC0415
+    from life.note import get_notes
 
     notes = get_notes(entity_type, entity_id)
     # also try 8-char prefix — life note stores whatever the user typed
@@ -44,11 +44,11 @@ def _print_notes(entity_type: str, entity_id: str) -> None:
 
 
 def _try_task(ref: str) -> bool:
-    from life.task.domain import get_mutations, get_subtasks, get_task  # noqa: PLC0415
-    from life.task.render import render_task_detail  # noqa: PLC0415
+    from life.task.domain import get_mutations, get_subtasks, get_task
+    from life.task.render import render_task_detail
 
     try:
-        from life.resolve import resolve_task  # noqa: PLC0415
+        from life.resolve import resolve_task
 
         t = resolve_task(ref)
     except Exception:
@@ -68,8 +68,8 @@ def _try_task(ref: str) -> bool:
 
 
 def _try_obs(fragment: str) -> bool:
-    from life.lib.ids import resolve_prefix  # noqa: PLC0415
-    from life.steward import get_observations  # noqa: PLC0415
+    from life.lib.ids import resolve_prefix
+    from life.steward import get_observations
 
     obs = resolve_prefix(fragment, get_observations(limit=500))
     if not obs:
@@ -85,8 +85,8 @@ def _try_obs(fragment: str) -> bool:
 
 
 def _try_imp(fragment: str) -> bool:
-    from life.improvements import get_improvements  # noqa: PLC0415
-    from life.lib.ids import resolve_prefix  # noqa: PLC0415
+    from life.improvements import get_improvements
+    from life.lib.ids import resolve_prefix
 
     imp = resolve_prefix(fragment, get_improvements(done=True))
     if not imp:
@@ -100,7 +100,7 @@ def _try_imp(fragment: str) -> bool:
 
 
 def _try_session(fragment: str) -> bool:
-    from life.steward import get_sessions  # noqa: PLC0415
+    from life.steward import get_sessions
 
     sessions = get_sessions(limit=500)
     target = next((s for s in sessions if str(s.id) == fragment), None)

@@ -5,7 +5,6 @@ Lives at root (above the layer DAG) so it can import freely from any package.
 
 from fncli import UsageError, cli
 
-from life.core.errors import NotFoundError
 from life.habit import delete_habit
 from life.improvements import delete_improvement, get_improvements
 from life.lib import ansi
@@ -13,6 +12,7 @@ from life.lib.ids import resolve_prefix
 from life.resolve import resolve_item_any
 from life.steward import delete_observation, get_observations
 from life.task import delete_task
+from lifeos.core.errors import NotFoundError
 
 
 @cli("life", name="rm")

@@ -3,8 +3,8 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-from life.core import config
 from life.lib.store import get_db
+from lifeos.core import config
 
 __all__ = ["score"]
 
@@ -29,7 +29,7 @@ def _check_fts_integrity(conn: sqlite3.Connection) -> list[str]:
     corrupted = []
     for table in FTS_TABLES:
         try:
-            conn.execute(f"SELECT * FROM {table} LIMIT 1")  # noqa: S608
+            conn.execute(f"SELECT * FROM {table} LIMIT 1")
         except sqlite3.DatabaseError:
             corrupted.append(table)
     return corrupted
@@ -112,9 +112,7 @@ def score() -> dict[str, Any]:
                 issues.append(f"FTS corrupted: {', '.join(fts_corrupted)}")
 
             for table in _core_tables(conn):
-                table_counts[table] = conn.execute(
-                    f'SELECT COUNT(*) FROM "{table}"'  # noqa: S608
-                ).fetchone()[0]
+                table_counts[table] = conn.execute(f'SELECT COUNT(*) FROM "{table}"').fetchone()[0]
 
     except Exception as e:
         return {"ok": False, "detail": f"db error: {e}", "issues": [str(e)]}

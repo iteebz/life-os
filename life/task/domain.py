@@ -4,15 +4,15 @@ import uuid
 from datetime import datetime
 
 from life.comms.events import record as emit_event
-from life.core.errors import ConflictError, StoreIntegrityError, ValidationError
-from life.core.models import Task, TaskMutation
-from life.core.types import UNSET, Unset
 from life.lib import clock
 from life.lib.converters import row_to_task
 from life.lib.format import fmt_time, render_done_row
 from life.lib.fuzzy import find_in_pool, find_in_pool_exact
 from life.lib.store import get_db
 from life.tag import add_tag, hydrate_tags, load_tags_for_tasks
+from lifeos.core.errors import ConflictError, StoreIntegrityError, ValidationError
+from lifeos.core.models import Task, TaskMutation
+from lifeos.core.types import UNSET, Unset
 
 __all__ = [
     "add_task",
@@ -49,7 +49,7 @@ _TASK_COLS = (
 
 def fetch_tasks(conn, where: str, params: tuple[object, ...] = ()) -> list[Task]:
     cursor = conn.execute(
-        f"SELECT {_TASK_COLS} FROM tasks WHERE deleted_at IS NULL AND ({where})",  # noqa: S608
+        f"SELECT {_TASK_COLS} FROM tasks WHERE deleted_at IS NULL AND ({where})",
         params,
     )
     tasks = [row_to_task(row) for row in cursor.fetchall()]
@@ -146,7 +146,7 @@ def add_task(
 def get_task(task_id: str) -> Task | None:
     with get_db() as conn:
         cursor = conn.execute(
-            f"SELECT {_TASK_COLS} FROM tasks WHERE id = ? AND deleted_at IS NULL",  # noqa: S608
+            f"SELECT {_TASK_COLS} FROM tasks WHERE id = ? AND deleted_at IS NULL",
             (task_id,),
         )
         row = cursor.fetchone()
@@ -224,7 +224,7 @@ def update_task(
         with get_db() as conn:
             try:
                 conn.execute(
-                    f"UPDATE tasks SET {', '.join(set_clauses)} WHERE id = ?",  # noqa: S608
+                    f"UPDATE tasks SET {', '.join(set_clauses)} WHERE id = ?",
                     tuple(values),
                 )
             except StoreIntegrityError as e:

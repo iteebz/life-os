@@ -1,6 +1,6 @@
 from datetime import date, datetime, timedelta
 
-import life.core.config
+import lifeos.core.config
 from life.lib.store import get_db
 from tests.conftest import invoke
 
@@ -18,7 +18,7 @@ def test_status_shows_feedback_metrics(tmp_life_dir):
 
 
 def test_status_flags_relationship_and_stuck_task(tmp_life_dir):
-    life.core.config._config._data["partner_tag"] = "janice"
+    lifeos.core.config._config._data["partner_tag"] = "janice"
     invoke(["task", "wedding vids", "--tag", "janice"])
     invoke(["task", "call bank", "--tag", "finance"])
 

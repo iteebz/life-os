@@ -21,8 +21,8 @@ from fncli import cli
 from life.comms.messages import signal
 from life.comms.messages import telegram as _tg
 from life.comms.messages.telegram_sync import save_credentials, sync
-from life.core.errors import LifeError, ValidationError
 from life.lib.store import get_db
+from lifeos.core.errors import LifeError, ValidationError
 
 _CHANNEL_ALIASES = {"tg": "telegram", "tel": "telegram", "sig": "signal"}
 
@@ -101,7 +101,7 @@ def _query(
 
     if limit > 0:
         sql = (
-            f"SELECT * FROM ("  # noqa: S608
+            f"SELECT * FROM ("
             f"SELECT id, channel, direction, peer, peer_name, body, timestamp, image_path "
             f"FROM messages {where} ORDER BY timestamp DESC LIMIT ?"
             f") sub ORDER BY timestamp ASC"
@@ -109,7 +109,7 @@ def _query(
         params.append(limit)
     else:
         sql = (
-            f"SELECT id, channel, direction, peer, peer_name, body, timestamp, image_path "  # noqa: S608
+            f"SELECT id, channel, direction, peer, peer_name, body, timestamp, image_path "
             f"FROM messages {where} ORDER BY timestamp ASC"
         )
 

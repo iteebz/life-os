@@ -3,9 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from typing import Any
 
-from life.core.errors import NotFoundError
-from life.core.types import Conn
 from life.store.connection import DataclassInstance, from_row
+from lifeos.core.errors import NotFoundError
+from lifeos.core.types import Conn
 
 
 @dataclass(slots=True)
@@ -50,7 +50,7 @@ class Query[T: DataclassInstance]:
         return self.where("deleted_at IS NULL")
 
     def build(self) -> tuple[str, list[Any]]:
-        parts = [f"SELECT {self._select} FROM {self._table}"]  # noqa: S608
+        parts = [f"SELECT {self._select} FROM {self._table}"]
         params = list(self._params or [])
         if self._joins:
             parts.extend(self._joins)

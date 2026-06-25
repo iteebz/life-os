@@ -129,10 +129,6 @@ def _render(hits: list[_Hit], f: _Filter, total_seen: int) -> None:
 
 
 @cli(
-    "life",
-    flags={"words": [], "limit": ["-n", "--limit"], "since": ["--since"]},
-)
-@cli(
     "life steward",
     flags={"words": [], "limit": ["-n", "--limit"], "since": ["--since"]},
 )

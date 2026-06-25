@@ -6,7 +6,7 @@ from datetime import datetime
 
 from fncli import cli
 
-from life.core.errors import LifeError, NotFoundError, ValidationError
+from lifeos.core.errors import LifeError, NotFoundError, ValidationError
 
 from . import claude, services
 from . import drafts as drafts_module

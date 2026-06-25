@@ -7,7 +7,7 @@ from pathlib import Path
 
 from fncli import cli
 
-from life.core.config import Config, get_partner_tag, get_user_name
+from lifeos.core.config import Config, get_partner_tag, get_user_name
 
 LIFE_HOME = Path.home() / "life"
 SEED_DIR = Path(__file__).parent / "ctx" / "seed"

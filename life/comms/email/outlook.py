@@ -15,9 +15,9 @@ SCOPES = ["https://graph.microsoft.com/Mail.ReadWrite", "https://graph.microsoft
 GRAPH_API = "https://graph.microsoft.com/v1.0"
 
 SERVICE_NAME = "comms-cli/outlook"
-TOKEN_KEY_SUFFIX = "/token"  # noqa: S105
+TOKEN_KEY_SUFFIX = "/token"
 CLIENT_ID_SUFFIX = "/client_id"
-CLIENT_SECRET_SUFFIX = "/client_secret"  # noqa: S105
+CLIENT_SECRET_SUFFIX = "/client_secret"
 
 
 def _set_token_cache(email: str, cache_data: str):

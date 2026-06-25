@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fncli import cli
 
-from life.core.errors import AmbiguousError, LifeError, NotFoundError, ValidationError
+from lifeos.core.errors import AmbiguousError, LifeError, NotFoundError, ValidationError
 
 from . import accounts as accts_module
 from .email import gmail, outlook

@@ -4,8 +4,6 @@ from typing import Any
 
 from fncli import UsageError, cli
 
-from life.core.errors import ConflictError, ValidationError
-from life.core.types import UNSET
 from life.habit import update_habit
 from life.lib import ansi, clock
 from life.lib.clock import today
@@ -14,6 +12,8 @@ from life.lib.parsing import parse_due_and_item
 from life.resolve import resolve_item, resolve_task
 from life.task.item import add as add_item
 from life.task.render import render_task_detail
+from lifeos.core.errors import ConflictError, ValidationError
+from lifeos.core.types import UNSET
 
 from .domain import (
     cancel_task,

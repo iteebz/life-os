@@ -5,10 +5,10 @@ from datetime import datetime
 
 import pytest
 
-from life.core.errors import NotFoundError, StoreIntegrityError
-from life.core.models import Task
 from life.store.connection import ensure, from_row, transaction
 from life.store.query import query
+from lifeos.core.errors import NotFoundError, StoreIntegrityError
+from lifeos.core.models import Task
 
 
 def test_ensure_returns_cached_connection(tmp_life_dir):

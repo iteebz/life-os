@@ -67,9 +67,7 @@ def doctor() -> int:
                     _fail(f"{event} unset")
                     failures += 1
                     continue
-                rc = subprocess.run(  # noqa: S602 — executing user-configured hook command
-                    cmd, shell=True, input="{}", capture_output=True, text=True, timeout=15
-                ).returncode
+                rc = subprocess.run(cmd, shell=True, input="{}", capture_output=True, text=True, timeout=15).returncode
                 (_ok if rc == 0 else _fail)(f"{event}: {cmd} (rc={rc})")
                 if rc != 0:
                     failures += 1
@@ -100,7 +98,7 @@ def doctor() -> int:
     print("\ndb:")
     if DB.exists():
         _ok(f"db at {DB}")
-        from life.health import score  # noqa: PLC0415
+        from life.health import score
 
         result = score()
         if result["ok"]:

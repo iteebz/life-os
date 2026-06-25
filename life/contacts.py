@@ -62,9 +62,7 @@ def log_contact(name: str, date: str | None = None) -> Contact | None:
 
 def get_contacts() -> list[Contact]:
     with get_db() as conn:
-        rows = conn.execute(
-            f"SELECT {_COLS} FROM contacts WHERE {_ACTIVE} ORDER BY name"  # noqa: S608
-        ).fetchall()
+        rows = conn.execute(f"SELECT {_COLS} FROM contacts WHERE {_ACTIVE} ORDER BY name").fetchall()
     return [_row_to_contact(r) for r in rows]
 
 
@@ -85,7 +83,7 @@ def get_stale_contacts() -> list[tuple[Contact, int | None]]:
 def _get_contact_by_id(contact_id: int) -> Contact | None:
     with get_db() as conn:
         row = conn.execute(
-            f"SELECT {_COLS} FROM contacts WHERE id = ? AND {_ACTIVE}",  # noqa: S608
+            f"SELECT {_COLS} FROM contacts WHERE id = ? AND {_ACTIVE}",
             (contact_id,),
         ).fetchone()
     return _row_to_contact(row) if row else None

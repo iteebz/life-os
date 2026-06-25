@@ -16,10 +16,10 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, ClassVar, Literal, Protocol, get_args, get_origin
 
-from life.core.errors import StoreError, StoreIntegrityError
-from life.core.types import Conn
 from life.store.migrations import _apply_migrations
 from life.store.sqlite import connect
+from lifeos.core.errors import StoreError, StoreIntegrityError
+from lifeos.core.types import Conn
 
 logger = logging.getLogger(__name__)
 

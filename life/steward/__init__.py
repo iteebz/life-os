@@ -115,7 +115,7 @@ def close_session(
         params.append(welfare)
     params.append(session_id)
     with get_db() as conn:
-        conn.execute(f"UPDATE sessions SET {', '.join(sets)} WHERE id = ?", params)  # noqa: S608
+        conn.execute(f"UPDATE sessions SET {', '.join(sets)} WHERE id = ?", params)
 
 
 TG_WARM_WINDOW_SECONDS = 55 * 60  # 55m — stays within 1hr cache window
@@ -278,7 +278,7 @@ def get_observations(limit: int = 20, tag: str | None = None, search: str | None
         where = " AND ".join(conditions)
         params.append(limit)
         query = (
-            "SELECT id, body, tag, logged_at, about_date FROM observations WHERE "  # noqa: S608
+            "SELECT id, body, tag, logged_at, about_date FROM observations WHERE "
             + where
             + " ORDER BY logged_at DESC LIMIT ?"
         )
@@ -315,7 +315,7 @@ def delete_observation(prefix: str, hard: bool = False) -> bool:
 add_session = create_session
 
 
-from . import auto, chat, ctx, dash, improve, inbox, log, notes, recall, sleep, trails, wake  # noqa: E402
+from . import auto, chat, ctx, dash, improve, inbox, log, notes, recall, sleep, trails, wake
 
 __all__ = [
     "Observation",

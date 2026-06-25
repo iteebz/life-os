@@ -41,7 +41,7 @@ def drain_inbox() -> list[tuple[int, str, str, str, int]]:
         ids = [r[0] for r in rows]
         placeholders = ",".join("?" for _ in ids)
         conn.execute(
-            f"UPDATE events SET payload = json_set(payload, '$.surfaced_at', strftime('%s','now')) "  # noqa: S608
+            f"UPDATE events SET payload = json_set(payload, '$.surfaced_at', strftime('%s','now')) "
             f"WHERE id IN ({placeholders})",
             ids,
         )

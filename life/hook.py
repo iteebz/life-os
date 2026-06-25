@@ -18,7 +18,6 @@ from pathlib import Path
 from typing import Any
 
 from life.comms import events
-from life.core.config import get_user_name
 from life.habit import get_habits
 from life.lib import frontmatter as fm
 from life.lib.clock import today
@@ -27,6 +26,7 @@ from life.mood import get_recent_moods
 from life.steward.sleep import _push_repos
 from life.store.migrations import init
 from life.task import get_tasks
+from lifeos.core.config import get_user_name
 
 # Hook state file — throttle map persisted per session.
 # Keyed by STEWARD_SESSION_ID (falls back to PID).
@@ -78,7 +78,7 @@ def _inbox_signal(state: dict[str, str], parts: list[str]) -> None:
 
 
 def _ping_signal(state: dict[str, str], parts: list[str]) -> None:
-    from life.steward.ping import drain  # noqa: PLC0415
+    from life.steward.ping import drain
 
     last = int(state.get("last_ping_id", "0"))
     with contextlib.suppress(Exception):

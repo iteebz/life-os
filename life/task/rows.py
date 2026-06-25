@@ -4,13 +4,13 @@ import dataclasses
 from collections.abc import Sequence
 from datetime import date, timedelta
 
-from life.core.models import Habit, Task
 from life.habit import get_subhabits
 from life.lib import clock
 from life.lib.ansi import NAMED_COLORS, POOL, dim, gray, green, purple, red, theme
 from life.lib.format import fmt_time
 from life.lib.tags import load_tag_groups, load_tag_overrides
 from life.task import task_sort_key
+from lifeos.core.models import Habit, Task
 
 _DEFAULT_TAG_ORDER = ["finance", "legal", "janice", "comms", "home", "income"]
 
@@ -65,9 +65,9 @@ def get_direct_tags(task: Task, pending: list[Task]) -> list[str]:
 
 
 def _tag_hash(tag: str) -> int:
-    import hashlib  # noqa: PLC0415
+    import hashlib
 
-    return int(hashlib.md5(tag.encode()).hexdigest(), 16)  # noqa: S324
+    return int(hashlib.md5(tag.encode()).hexdigest(), 16)
 
 
 def build_tag_colors(items: Sequence[Task | Habit]) -> dict[str, str]:

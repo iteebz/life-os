@@ -2,11 +2,11 @@ from datetime import datetime
 
 from fncli import cli
 
-from life.core.errors import NotFoundError
 from life.improvements import Improvement, add_improvement, get_improvements, mark_improvement_done, promote_improvement
 from life.lib import ansi
 from life.lib.format import format_elapsed, print_info, print_ok
 from life.lib.ids import short
+from lifeos.core.errors import NotFoundError
 
 
 def _print_improvements(items: list[Improvement], show_done: bool = False) -> None:

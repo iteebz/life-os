@@ -186,7 +186,7 @@ def _mark_read(msg_ids: list[str]) -> None:
     with contextlib.suppress(Exception), get_db() as conn:
         placeholders = ",".join("?" for _ in msg_ids)
         conn.execute(
-            f"UPDATE events SET payload = json_set(payload, '$.read_at', datetime('now')) "  # noqa: S608
+            f"UPDATE events SET payload = json_set(payload, '$.read_at', datetime('now')) "
             f"WHERE kind = 'inbound' "
             f"AND json_extract(payload, '$.raw_id') IN ({placeholders})",
             msg_ids,

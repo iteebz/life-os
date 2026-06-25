@@ -2,8 +2,8 @@ from collections.abc import Sequence
 from difflib import get_close_matches
 from typing import TypeVar
 
-from life.core.errors import AmbiguousError
-from life.core.models import Habit, Task
+from lifeos.core.errors import AmbiguousError
+from lifeos.core.models import Habit, Task
 
 __all__ = ["find_in_pool", "find_in_pool_exact"]
 

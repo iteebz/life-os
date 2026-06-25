@@ -79,7 +79,7 @@ def _build_system_prompt(source: str, raw: bool) -> str:
     """Compose --append-system-prompt: wake context (unless raw) + session meta."""
     parts = []
     if not raw:
-        from life.ctx.assemble import build_chat_prompt  # noqa: PLC0415, I001 — cycle: steward.chat→ctx.assemble→ctx.sections→life.steward→steward.chat
+        from life.ctx.assemble import build_chat_prompt  # noqa: I001 — cycle: steward.chat→ctx.assemble→ctx.sections→life.steward→steward.chat
 
         wake = build_chat_prompt()
         if wake:
@@ -159,7 +159,7 @@ def _launch(
 
 
 def _lookup_session_id(provider_session_id: str) -> int | None:
-    from life.lib.store import get_db  # noqa: PLC0415
+    from life.lib.store import get_db
 
     with get_db() as conn:
         row = conn.execute(

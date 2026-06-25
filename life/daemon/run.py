@@ -38,7 +38,7 @@ def _load_allowed_tg_chats() -> set[int]:
             tg_id = fm.get("telegram")
             if tg_id:
                 chat_ids.add(int(tg_id))
-        except Exception:  # noqa: S112
+        except Exception:
             continue
     return chat_ids
 

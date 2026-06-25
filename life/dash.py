@@ -3,8 +3,9 @@ from datetime import date, datetime, timedelta
 
 from fncli import UsageError, cli
 
-from .core.config import get_partner_tag
-from .core.models import Habit, Task
+from lifeos.core.config import get_partner_tag
+from lifeos.core.models import Habit, Task
+
 from .feedback import build_feedback_snapshot, render_feedback_snapshot
 from .habit import get_habits
 from .lib import ansi, clock
@@ -14,7 +15,7 @@ from .lib.format import format_elapsed
 from .lib.store import get_db
 from .momentum import weekly_momentum
 from .task import fetch_tasks, get_all_tasks, get_completed_today, get_tasks, last_completion
-from .task.render import render_dashboard, render_day_summary, render_momentum, render_timeline
+from .task.render import render_dashboard, render_day_summary, render_momentum
 
 # --- dashboard queries (inlined from dashboard.py) ---
 
@@ -109,14 +110,6 @@ def dashboard() -> None:
     today_items = get_today_completed()
     today_breakdown = get_today_breakdown()
     print(render_dashboard(items, today_breakdown, today_items=today_items))
-
-
-@cli("life")
-def time() -> None:
-    """Chronological view — timed habits + today's tasks with now-marker"""
-    items = get_tasks() + get_habits()
-    today_items = get_today_completed()
-    print(render_timeline(items, today_items=today_items))
 
 
 @cli("life")

@@ -2,8 +2,6 @@ from datetime import date as date_type
 
 from fncli import UsageError, cli
 
-from life.core.errors import NotFoundError, ValidationError
-from life.core.models import Task
 from life.habit import (
     add_habit,
     check_habit,
@@ -27,6 +25,8 @@ from life.task import (
     rename_task,
     uncheck_task,
 )
+from lifeos.core.errors import NotFoundError, ValidationError
+from lifeos.core.models import Task
 
 
 @cli("life", name="done", flags={"date": ["-d", "--date"], "time": ["-t", "--time"]})

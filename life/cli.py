@@ -5,7 +5,8 @@ from pathlib import Path
 
 import fncli
 
-from .core.errors import LifeError
+from lifeos.core.errors import LifeError
+
 from .steward import get_sessions
 from .steward.chat import DEFAULT_MODEL, _launch, chat
 from .store import migrations as db
@@ -23,7 +24,7 @@ def _smart_resume() -> int:
         last_touch = target.last_active_at or target.started_at or target.logged_at
         if (datetime.now() - last_touch).total_seconds() < _RESUME_WINDOW_SECONDS:
             sid = target.provider_session_id
-            assert sid is not None  # noqa: S101 — guaranteed by resumable filter
+            assert sid is not None
             m = target.model or DEFAULT_MODEL
             source = os.environ.get("STEWARD_SOURCE", "cli")
             print(f"resuming {target.id} → {sid[:8]}  model={m}  source={source}")
@@ -33,16 +34,16 @@ def _smart_resume() -> int:
 
 
 def _watch() -> None:
-    import time  # noqa: PLC0415
+    import time
 
-    from rich.console import Console  # noqa: PLC0415
-    from rich.live import Live  # noqa: PLC0415
-    from rich.text import Text  # noqa: PLC0415
+    from rich.console import Console
+    from rich.live import Live
+    from rich.text import Text
 
-    from .dash import get_habits, get_tasks, get_today_breakdown, get_today_completed  # noqa: PLC0415
-    from .lib import clock  # noqa: PLC0415
-    from .lib.ansi import theme  # noqa: PLC0415
-    from .task.render import render_dashboard  # noqa: PLC0415
+    from .dash import get_habits, get_tasks, get_today_breakdown, get_today_completed
+    from .lib import clock
+    from .lib.ansi import theme
+    from .task.render import render_dashboard
 
     def _render() -> Text:
         items = get_tasks() + get_habits()
@@ -77,7 +78,7 @@ def main():
         user_args = [aliases[user_args[0]], *user_args[1:]]
     # life steward (bare) → new session
     if user_args == ["steward"]:
-        from .steward.chat import chat  # noqa: PLC0415
+        from .steward.chat import chat
 
         sys.exit(chat() or 0)
     # life steward continue / life steward chat → smart resume
@@ -88,14 +89,14 @@ def main():
         user_args = ["steward", "chat", *user_args[1:]]
     # life t/abc123, life o/abc, life i/abc, life s/201 → resolve ref directly
     if len(user_args) == 1 and "/" in user_args[0] and not user_args[0].startswith("-"):
-        from .ref import _resolve_and_print  # noqa: PLC0415
+        from .ref import _resolve_and_print
 
         if not _resolve_and_print(user_args[0]):
             sys.stderr.write(f"nothing found: '{user_args[0]}'\n")
             sys.exit(1)
         return
     if user_args[0] == "hook":
-        from .hook import main as hook_main  # noqa: PLC0415
+        from .hook import main as hook_main
 
         sys.argv = ["life", *user_args]
         hook_main()

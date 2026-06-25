@@ -1,6 +1,7 @@
 from fncli import cli
 
-from .core.errors import ValidationError
+from lifeos.core.errors import ValidationError
+
 from .lib.dates import add_date, list_dates, remove_date
 from .lib.format import print_ok
 

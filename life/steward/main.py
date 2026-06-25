@@ -22,12 +22,12 @@ def main():
     fncli.alias_namespace("life steward", "steward")
     # steward (bare) → new session
     if not args:
-        from life.steward.chat import chat  # noqa: PLC0415
+        from life.steward.chat import chat
 
         sys.exit(chat() or 0)
     # steward continue / steward chat → smart resume
     if args[0] in ("continue", "chat") and len(args) == 1:
-        from life.cli import _smart_resume  # noqa: PLC0415
+        from life.cli import _smart_resume
 
         sys.exit(_smart_resume())
     # steward --opus / --sonnet → new session with that model (unless already in session)

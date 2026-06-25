@@ -13,7 +13,7 @@ from life.lib.resolve import resolve_people_field
 from life.lib.store import get_db
 
 SERVICE = "life-cli-telegram"
-TOKEN_KEY = "bot_token"  # noqa: S105
+TOKEN_KEY = "bot_token"
 API = "https://api.telegram.org/bot{token}"
 
 _cached_token: str | None = None
@@ -170,7 +170,7 @@ def get_history(chat_id: int | None = None, limit: int = 50, hours: int | None =
     params.append(limit)
     with get_db() as conn:
         rows = conn.execute(
-            f"SELECT id, direction, peer, peer_name, body, timestamp, image_path "  # noqa: S608
+            f"SELECT id, direction, peer, peer_name, body, timestamp, image_path "
             f"FROM messages WHERE {where} ORDER BY timestamp DESC LIMIT ?",
             params,
         ).fetchall()

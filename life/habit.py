@@ -5,8 +5,6 @@ from datetime import date, datetime, timedelta
 
 from fncli import UsageError, cli
 
-from life.core.errors import NotFoundError, StoreIntegrityError, ValidationError
-from life.core.models import Habit
 from life.lib import ansi, clock
 from life.lib.converters import row_to_habit
 from life.lib.format import fmt_time, render_done_row, render_row
@@ -14,6 +12,8 @@ from life.lib.fuzzy import find_in_pool, find_in_pool_exact
 from life.lib.store import get_db
 from life.lib.tags import validate_tag
 from life.tag import get_tags_for_habit, load_tags_for_habits
+from lifeos.core.errors import NotFoundError, StoreIntegrityError, ValidationError
+from lifeos.core.models import Habit
 
 __all__ = [
     "add_habit",
@@ -54,7 +54,7 @@ def _get_habit_checks(conn, habit_id: str) -> list[datetime]:
 def _fetch_habits(conn, where: str, params: tuple[object, ...] = ()) -> list[Habit]:
     """Fetch habits matching a WHERE clause and hydrate checks + tags."""
     cursor = conn.execute(
-        f"SELECT {_HABIT_COLS} FROM habits WHERE {where}",  # noqa: S608
+        f"SELECT {_HABIT_COLS} FROM habits WHERE {where}",
         params,
     )
     rows = cursor.fetchall()
@@ -97,7 +97,7 @@ def add_habit(
 def get_habit(habit_id: str) -> Habit | None:
     with get_db() as conn:
         cursor = conn.execute(
-            f"SELECT {_HABIT_COLS} FROM habits WHERE id = ? AND deleted_at IS NULL",  # noqa: S608
+            f"SELECT {_HABIT_COLS} FROM habits WHERE id = ? AND deleted_at IS NULL",
             (habit_id,),
         )
         row = cursor.fetchone()
@@ -135,7 +135,7 @@ def update_habit(
     with get_db() as conn:
         try:
             conn.execute(
-                f"UPDATE habits SET {', '.join(updates)} WHERE id = ?",  # noqa: S608
+                f"UPDATE habits SET {', '.join(updates)} WHERE id = ?",
                 tuple(params),
             )
         except StoreIntegrityError as e:

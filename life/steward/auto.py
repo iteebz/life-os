@@ -9,9 +9,6 @@ from typing import Any
 
 from fncli import cli
 
-from life.core.config import auto_sessions_enabled, set_auto_sessions
-from life.core.errors import LifeError
-from life.core.models import Task
 from life.feedback import build_feedback_snapshot, render_feedback_snapshot
 from life.habit import get_habits
 from life.lib.clock import today
@@ -19,6 +16,9 @@ from life.lib.providers import claude
 from life.loop import load_loop_state, require_real_world_closure, save_loop_state, update_loop_state
 from life.steward._stream import StreamParser, ansi_strip, format_entry
 from life.task import get_all_tasks, get_tasks
+from lifeos.core.config import auto_sessions_enabled, set_auto_sessions
+from lifeos.core.errors import LifeError
+from lifeos.core.models import Task
 
 from . import close_session, create_session, messages_since_last_auto_session
 
@@ -182,7 +182,7 @@ def _select_required_real_world_task(tasks: list[Any]) -> Task | None:
 
 
 def _build_cmd_env(prompt: str) -> tuple[list[str], dict[str, str]]:
-    from life.steward.chat import _build_hook_settings_json  # noqa: PLC0415
+    from life.steward.chat import _build_hook_settings_json
 
     env = claude.build_env("auto")
     cmd = [

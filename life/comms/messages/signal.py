@@ -10,9 +10,9 @@ import qrcode
 from fncli import cli
 
 from life.comms import events
-from life.core.errors import LifeError, NotFoundError
 from life.lib.resolve import resolve_people_field
 from life.lib.store import get_db
+from lifeos.core.errors import LifeError, NotFoundError
 
 logger = logging.getLogger(__name__)
 

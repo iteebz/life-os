@@ -3,11 +3,11 @@ from typing import Any, TypeVar
 
 from fncli import cli
 
-from life.core.models import Habit, Task
 from life.lib import ansi
 from life.lib.converters import hydrate_tags_onto, row_to_habit, row_to_task
 from life.lib.store import get_db
 from life.lib.tags import validate_tag
+from lifeos.core.models import Habit, Task
 
 T = TypeVar("T", Task, Habit)
 
@@ -115,7 +115,7 @@ def _load_tags_by_column(column: str, ids: list[str], conn: Any | None = None) -
         return {}
 
     placeholders = ",".join("?" * len(ids))
-    query = f"SELECT {column}, tag FROM tags WHERE {column} IN ({placeholders}) ORDER BY tag"  # noqa: S608
+    query = f"SELECT {column}, tag FROM tags WHERE {column} IN ({placeholders}) ORDER BY tag"
 
     def _run(c: Any) -> dict[str, list[str]]:
         cursor = c.execute(query, ids)
@@ -141,7 +141,7 @@ def load_tags_for_habits(habit_ids: list[str], conn: Any | None = None) -> dict[
 @cli("life", name="tag", flags={"remove": ["-r"]})
 def tag_cmd(ref: str, tag_name: str, remove: bool = False) -> None:
     """Add or remove a tag from an item (-r to remove)"""
-    from life.resolve import resolve_item_exact  # noqa: PLC0415 — circular: tag→resolve→task→tag
+    from life.resolve import resolve_item_exact
 
     task, habit = resolve_item_exact(ref)
     if task:

@@ -4,7 +4,7 @@ import os
 import time
 from pathlib import Path
 
-from life.core.config import LIFE_DIR
+from lifeos.core.config import LIFE_DIR
 
 DAEMON_DIR = LIFE_DIR
 LOG_FILE = DAEMON_DIR / "daemon.log"

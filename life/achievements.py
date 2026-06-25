@@ -5,11 +5,11 @@ from difflib import get_close_matches
 
 from fncli import UsageError, cli
 
-from life.core.errors import AmbiguousError
 from life.lib import ansi
 from life.lib.ansi import POOL, dim, gray, white
 from life.lib.ids import parse_ref, short
 from life.lib.store import get_db
+from lifeos.core.errors import AmbiguousError
 
 
 @dataclass(frozen=True)
@@ -141,5 +141,5 @@ def update(ref: list[str], name: str | None = None, tags: str | None = None) -> 
         raise UsageError("nothing to update — use -n for name, -t for tags")
     values.append(a.id)
     with get_db() as conn:
-        conn.execute(f"UPDATE achievements SET {', '.join(fields)} WHERE id = ?", values)  # noqa: S608
+        conn.execute(f"UPDATE achievements SET {', '.join(fields)} WHERE id = ?", values)
     print(f"✓ {name or a.name}")

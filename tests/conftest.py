@@ -6,12 +6,12 @@ from pathlib import Path
 import fncli
 import pytest
 
-import life.core.config as life_config
 import life.lib.clock as clock
-from life.core.errors import LifeError
+import lifeos.core.config as life_config
 from life.lib.store import configure as configure_store
 from life.store.connection import reset_for_testing
 from life.store.migrations import init as db_init
+from lifeos.core.errors import LifeError
 
 _discovered = False
 
@@ -25,12 +25,12 @@ def invoke(argv: list[str]) -> fncli.Result:
     global _discovered
 
     if not _discovered:
-        import life.cli  # noqa: PLC0415, F401 — side-effect: registers CLI commands; deferred to avoid circular
+        import life.cli  # noqa: F401 — side-effect: registers CLI commands; deferred to avoid circular
 
         fncli.autodiscover(Path(__file__).parent.parent / "life", "life")
         _discovered = True
 
-    from life.dash import dashboard  # noqa: PLC0415 — same circular as above
+    from life.dash import dashboard
 
     _dashboard = getattr(dashboard, "__wrapped__", dashboard)
 
@@ -79,13 +79,13 @@ def tmp_life_dir(monkeypatch, tmp_path):
     ):
         monkeypatch.delenv(var, raising=False)
 
-    monkeypatch.setattr("life.core.config.LIFE_DIR", tmp_path)
-    monkeypatch.setattr("life.core.config.DB_PATH", db_path)
-    monkeypatch.setattr("life.core.config.CONFIG_PATH", cfg_path)
-    monkeypatch.setattr("life.core.config.BACKUP_DIR", tmp_path / "backups")
+    monkeypatch.setattr("lifeos.core.config.LIFE_DIR", tmp_path)
+    monkeypatch.setattr("lifeos.core.config.DB_PATH", db_path)
+    monkeypatch.setattr("lifeos.core.config.CONFIG_PATH", cfg_path)
+    monkeypatch.setattr("lifeos.core.config.BACKUP_DIR", tmp_path / "backups")
 
     life_config.Config._instance = None
-    monkeypatch.setattr("life.core.config._config", life_config.Config())
+    monkeypatch.setattr("lifeos.core.config._config", life_config.Config())
 
     configure_store(db_path)
     db_init(db_path=db_path)

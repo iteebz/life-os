@@ -2,7 +2,6 @@
 
 from datetime import date, timedelta
 
-from life.core.models import Habit, Task
 from life.lib import clock
 from life.lib.ansi import bold, dim, gold, gray, green, purple, red, theme, white
 from life.lib.format import fmt_time
@@ -19,6 +18,7 @@ from life.task.rows import (
     row_task,
     row_vice,
 )
+from lifeos.core.models import Habit, Task
 
 _R = theme.reset
 _GREY = theme.muted

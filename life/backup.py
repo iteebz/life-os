@@ -7,8 +7,8 @@ from typing import Any
 
 from fncli import cli
 
-from .core import config
-from .core.errors import LifeError
+from lifeos.core import config
+from lifeos.core.errors import LifeError
 
 _SKIP_TABLES = {"_migrations"}
 _MIN_ROW_RATIO = 0.5
@@ -48,7 +48,7 @@ def _row_counts(db_path: Path) -> dict[str, int]:
             counts = {}
             for table in tables:
                 with contextlib.suppress(sqlite3.OperationalError):
-                    counts[table] = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]  # noqa: S608
+                    counts[table] = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
             return counts
         finally:
             conn.close()

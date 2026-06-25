@@ -6,10 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from life.core.errors import StoreIntegrityError
-from life.core.models import Habit, Task, TaskMutation
 from life.lib.store import get_db
 from life.store.migrations import init as db_init
+from lifeos.core.errors import StoreIntegrityError
+from lifeos.core.models import Habit, Task, TaskMutation
 
 
 def test_init_creates_schema(tmp_life_dir):
