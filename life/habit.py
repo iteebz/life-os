@@ -36,7 +36,7 @@ __all__ = [
 ]
 
 
-_HABIT_COLS = "id, content, created, archived_at, parent_id, private, cadence, scheduled_time"
+_HABIT_COLS = "id, content, created, archived_at, parent_id, private, cadence"
 
 
 def _hydrate_habit(habit: Habit, checks: list[datetime], tags: list[str]) -> Habit:

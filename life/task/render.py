@@ -164,7 +164,7 @@ def render_dashboard(
     total_habits = len({h.id for h in habits if "vice" not in (h.tags or [])})
 
     upcoming_by_date: dict[date, list[dict[str, object]]] = {}
-    for ev in upcoming_dates(within_days=14):
+    for ev in upcoming_dates(within_days=7):
         ev_date = ctx.today + timedelta(days=ev["days_until"])
         upcoming_by_date.setdefault(ev_date, []).append(ev)
 
