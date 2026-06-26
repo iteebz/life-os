@@ -101,7 +101,6 @@ _LIFE_SKIP_DIRS = {
     "human",  # human/ is tyson's writing, off-limits
 }
 _LIFE_MD_KNOWN = {
-    "CLAUDE.md",
     "taxing/docs/architecture.md",
     "taxing/docs/phases.md",
     "taxing/docs/audit.md",

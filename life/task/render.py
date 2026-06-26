@@ -13,16 +13,12 @@ from life.task.rows import (
 )
 from life.task.sections import (
     section_backlog,
-    section_daily,
     section_done,
+    section_habit_summary,
     section_header,
-    section_hobbies,
     section_overdue,
     section_schedule,
-    section_untagged,
     section_vices,
-    section_weekly,
-    tag_section,
 )
 from lifeos.core.lib import clock
 from lifeos.core.lib.ansi import bold, dim, gold, gray, green, purple, red, theme, white
@@ -183,13 +179,7 @@ def render_dashboard(
         lines += overdue_lines
         scheduled_ids |= overdue_ids
 
-    lines += section_daily(all_habits, checked_ids, ctx)
-    lines += tag_section(all_habits, checked_ids, ctx, "love", "LOVE", theme.pink)
-    lines += tag_section(all_habits, checked_ids, ctx, "admin", "LIFE", theme.yellow)
-    lines += tag_section(all_habits, checked_ids, ctx, "chore", "CHORES", theme.cyan)
-    lines += section_hobbies(all_habits, checked_ids, ctx)
-    lines += section_weekly(all_habits, checked_ids, ctx)
-    lines += section_untagged(all_habits, checked_ids, ctx)
+    lines += section_habit_summary(all_habits, checked_ids, ctx)
     lines += section_vices(all_habits, checked_ids, ctx)
 
     for offset in range(1, 15):

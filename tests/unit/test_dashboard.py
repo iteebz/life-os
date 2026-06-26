@@ -158,7 +158,7 @@ def test_render_past_due_habit_shows_not_red(tmp_life_dir, monkeypatch):
     add_habit("brush", tags=["self"])
     items = get_tasks() + get_habits()
     output = render_dashboard(items, (0, 0, 0, 0))
-    assert "brush" in output
+    assert "HABITS" in output
     assert theme.red not in output
 
 
@@ -176,5 +176,4 @@ def test_render_checked_habit_not_red(tmp_life_dir, monkeypatch):
     items = get_tasks() + get_habits()
     completed = get_today_completed()
     output = render_dashboard(items, (1, 0, 0, 0), today_items=completed)
-    daily_section = output.split("DAILY")[1] if "DAILY" in output else ""
-    assert theme.red not in daily_section
+    assert theme.red not in output

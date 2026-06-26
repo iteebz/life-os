@@ -20,10 +20,11 @@ def test_dashboard_shows_index_key_for_task_and_habit(tmp_life_dir):
     habit_id = add_habit("index key habit")
 
     dash_result = invoke([])
+    habit_result = invoke(["habit"])
 
     assert dash_result.exit_code == 0
     assert f"[{task_id[:8]}]" in dash_result.stdout
-    assert f"[{habit_id[:8]}]" in dash_result.stdout
+    assert f"[{habit_id[:8]}]" in habit_result.stdout
 
 
 def test_habits_matrix_shows_index_key(tmp_life_dir):

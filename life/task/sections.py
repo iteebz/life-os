@@ -262,6 +262,65 @@ def section_untagged(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx)
     return lines
 
 
+def section_habit_summary(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) -> list[str]:
+    """Single compact summary line replacing all habit sections."""
+    week_start = ctx.today - timedelta(days=ctx.today.weekday())
+
+    def _done(h: Habit) -> bool:
+        if h.id in checked_ids:
+            return True
+        if h.cadence == "weekly":
+            return any(week_start <= dt.date() <= ctx.today for dt in h.checks)
+        return False
+
+    categories: list[tuple[str, str, list[str]]] = [
+        ("love", theme.pink, []),
+        ("admin", theme.yellow, []),
+        ("chore", theme.cyan, []),
+        ("hobby", theme.green, []),
+        ("hygiene", theme.purple, []),
+        ("health", theme.green, []),
+    ]
+    cat_tags = {tag for tag, _, _ in categories}
+
+    buckets: dict[str, list[Habit]] = {tag: [] for tag, _, _ in categories}
+    other: list[Habit] = []
+
+    for h in habits:
+        if h.private or h.parent_id or "vice" in (h.tags or []):
+            continue
+        tags = set(h.tags or [])
+        matched = False
+        for tag, _, _ in categories:
+            if tag in tags:
+                buckets[tag].append(h)
+                matched = True
+                break
+        if not matched and not (tags & cat_tags):
+            other.append(h)
+
+    parts: list[str] = []
+    for tag, color, _ in categories:
+        bucket = buckets[tag]
+        if not bucket:
+            continue
+        done = sum(1 for h in bucket if _done(h))
+        parts.append(f"{color}{tag} {done}/{len(bucket)}{_R}")
+
+    if other:
+        done = sum(1 for h in other if _done(h))
+        parts.append(f"{theme.purple}other {done}/{len(other)}{_R}")
+
+    if not parts:
+        return []
+
+    total = sum(len(b) for b in buckets.values()) + len(other)
+    total_done = sum(sum(1 for h in b if _done(h)) for b in buckets.values()) + sum(1 for h in other if _done(h))
+    header = f"{theme.bold}{theme.purple}HABITS ({total_done}/{total}){_R}"
+    sep = gray(" · ")
+    return [f"\n{header}  {sep.join(parts)}"]
+
+
 def section_vices(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) -> list[str]:
     vices = [h for h in habits if not h.private and not h.parent_id and "vice" in (h.tags or [])]
     if not vices:
