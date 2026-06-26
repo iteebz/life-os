@@ -4,14 +4,13 @@ from typing import Any
 
 from fncli import UsageError, cli
 
-from life.habit import update_habit
 from life.resolve import resolve_item, resolve_task
 from life.task.item import add as add_item
 from life.task.render import render_task_detail
 from lifeos.core.errors import ConflictError, ValidationError
 from lifeos.core.lib import ansi, clock
 from lifeos.core.lib.clock import today
-from lifeos.core.lib.format import format_status, format_task, render_row
+from lifeos.core.lib.format import format_task, render_row
 from lifeos.core.lib.parsing import parse_due_and_item
 from lifeos.core.types import UNSET
 
@@ -52,13 +51,11 @@ def _schedule(args: list[str], remove: bool = False) -> None:
             raise UsageError(str(e)) from e
         task, habit = resolve_item(item_name)
         if habit:
-            update_habit(habit.id, clear_time=True)
-            print(format_status("\u25a1", habit.content, habit.id))
-        else:
-            if not task:
-                raise UsageError(f"item not found: {item_name}")
-            update_task(task.id, scheduled_date=None, scheduled_time=None, is_deadline=False)
-            render_row(task.content, task.tags, task.id)
+            raise UsageError("Habits don't support scheduling")
+        if not task:
+            raise UsageError(f"item not found: {item_name}")
+        update_task(task.id, scheduled_date=None, scheduled_time=None, is_deadline=False)
+        render_row(task.content, task.tags, task.id)
         return
     try:
         date_str, time_str, item_name = parse_due_and_item(list(args))
