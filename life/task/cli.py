@@ -68,11 +68,7 @@ def _schedule(args: list[str], remove: bool = False) -> None:
         raise UsageError("Schedule spec required: today, tomorrow, day name, YYYY-MM-DD, HH:MM, or 'now'")
     task, habit = resolve_item(item_name)
     if habit:
-        if not time_str:
-            raise UsageError("Habits only support time scheduling: life schedule 07:30 <habit>")
-        update_habit(habit.id, scheduled_time=time_str)
-        print(format_status(ansi.muted(time_str), habit.content, habit.id))
-        return
+        raise UsageError("Habits don't support scheduling — use tasks instead")
     if not task:
         raise UsageError(f"item not found: {item_name}")
     updates: dict[str, Any] = {"is_deadline": False}

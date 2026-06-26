@@ -149,11 +149,8 @@ def section_daily(habits: list[Habit], checked_ids: set[str], ctx: RenderCtx) ->
     remaining = [h for h in matching if h.id not in checked_ids]
     done = [h for h in matching if h.id in checked_ids]
 
-    def _daily_sort(h: Habit) -> tuple[int, str]:
-        return (0 if h.scheduled_time else 1, h.scheduled_time or h.content.lower())
-
     if remaining or done:
-        for habit in sorted(remaining, key=_daily_sort) + sorted(done, key=_daily_sort):
+        for habit in sorted(remaining, key=lambda h: h.content.lower()) + sorted(done, key=lambda h: h.content.lower()):
             lines.extend(row_daily_habit(habit, checked_ids, ctx))
     else:
         lines.append(f"  {gray('all done.')}")

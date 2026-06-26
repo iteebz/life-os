@@ -214,14 +214,13 @@ def row_habit(habit: Habit, checked_ids: set[str], ctx: RenderCtx, indent: str =
     id_str = f" {dim('[' + habit.id[:8] + ']')}"
     count_p1, count_p2 = habit_counts(habit, ctx.today)
     trend = "↗" if count_p1 > count_p2 else "↘" if count_p1 < count_p2 else "→"
-    time_str = f" {gray(fmt_time(habit.scheduled_time))}" if habit.scheduled_time else ""
     notes_marker = f" {dim('»')}" if habit.id in ctx.noted_ids else ""
     if habit.id in checked_ids:
         label = f"{gray(habit.content.lower())}{tags_str}"
-        lines = [f"{indent}{purple('●')} {gray(trend)} {label}{time_str}{id_str}{notes_marker}"]
+        lines = [f"{indent}{purple('●')} {gray(trend)} {label}{id_str}{notes_marker}"]
     else:
         label = f"{habit.content.lower()}{tags_str}"
-        lines = [f"{indent}{purple('○')} {gray(trend)} {label}{time_str}{id_str}{notes_marker}"]
+        lines = [f"{indent}{purple('○')} {gray(trend)} {label}{id_str}{notes_marker}"]
     for sub in get_subhabits(habit.id):
         lines.extend(row_habit(sub, checked_ids, ctx, indent="   └ "))
     return lines
@@ -236,13 +235,12 @@ def row_vice(habit: Habit, checked_ids: set[str], ctx: RenderCtx) -> list[str]:
         trend_str = green("↘")
     else:
         trend_str = gray("→")
-    time_str = f" {gray(fmt_time(habit.scheduled_time))}" if habit.scheduled_time else ""
     if habit.id in checked_ids:
         label = f"{red(habit.content.lower())}"
-        lines = [f"  {red('●')} {trend_str} {label}{time_str}{id_str}"]
+        lines = [f"  {red('●')} {trend_str} {label}{id_str}"]
     else:
         label = f"{gray(habit.content.lower())}"
-        lines = [f"  {green('○')} {trend_str} {label}{time_str}{id_str}"]
+        lines = [f"  {green('○')} {trend_str} {label}{id_str}"]
     return lines
 
 
@@ -252,33 +250,19 @@ def row_daily_habit(habit: Habit, checked_ids: set[str], ctx: RenderCtx) -> list
     count_p1, count_p2 = habit_counts(habit, ctx.today)
     trend = "↗" if count_p1 > count_p2 else "↘" if count_p1 < count_p2 else "→"
 
-    now_hhmm = clock.now().strftime("%H:%M")
     is_checked = habit.id in checked_ids
-    past_due = bool(habit.scheduled_time and not is_checked and habit.scheduled_time <= now_hhmm)
-
-    if habit.scheduled_time:
-        if past_due:
-            time_str = f"{theme.red}{fmt_time(habit.scheduled_time)}{_R} "
-        else:
-            time_str = f"{theme.gray}{fmt_time(habit.scheduled_time)}{_R} "
-    else:
-        time_str = ""
-
     notes_marker = f" {dim('»')}" if habit.id in ctx.noted_ids else ""
 
     if is_checked:
         label = f"{gray(habit.content.lower())}{tags_str}"
-        lines = [f"  {purple('●')} {gray(trend)} {time_str}{label}{id_str}{notes_marker}"]
-    elif past_due:
-        label = f"{habit.content.lower()}{tags_str}"
-        lines = [f"  {red('○')} {gray(trend)} {time_str}{label}{id_str}{notes_marker}"]
+        lines = [f"  {purple('●')} {gray(trend)} {label}{id_str}{notes_marker}"]
     else:
         label = f"{habit.content.lower()}{tags_str}"
-        lines = [f"  {purple('○')} {gray(trend)} {time_str}{label}{id_str}{notes_marker}"]
+        lines = [f"  {purple('○')} {gray(trend)} {label}{id_str}{notes_marker}"]
     for sub in get_subhabits(habit.id):
         lines.extend(row_daily_habit(sub, checked_ids, ctx))
     return lines
 
 
-def habit_sort_key(h: Habit) -> tuple[int, str]:
-    return (1 if h.scheduled_time else 0, h.scheduled_time or h.content.lower())
+def habit_sort_key(h: Habit) -> str:
+    return h.content.lower()

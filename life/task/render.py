@@ -9,7 +9,6 @@ from life.task.rows import (
     fmt_tags,
     get_direct_tags,
     get_trend,
-    row_daily_habit,
     row_task,
 )
 from life.task.sections import (
@@ -78,8 +77,8 @@ def _section_done_today(
             continue
         day_checks = [c for c in habit.checks if c.date() == ctx.today]
         check_dt = max(day_checks) if day_checks else None
-        t_str = check_dt.strftime("%H:%M") if check_dt else (habit.scheduled_time or now_time)
-        t_disp = fmt_time(check_dt) if check_dt else (habit.scheduled_time or now_time)
+        t_str = check_dt.strftime("%H:%M") if check_dt else now_time
+        t_disp = fmt_time(check_dt) if check_dt else now_time
         tags_str = fmt_tags(habit.tags, ctx.tag_colors)
         id_str = f" {dim('[' + habit.id[:8] + ']')}"
         notes_marker = f" {dim('»')}" if habit.id in ctx.noted_ids else ""
@@ -112,13 +111,6 @@ def _section_today_outstanding(
 
     timed: list[tuple[str, int, list[str]]] = []
     scheduled_ids: set[str] = set()
-
-    for habit in all_habits:
-        if habit.private or habit.parent_id or "vice" in (habit.tags or []):
-            continue
-        if habit.id in checked_ids or not habit.scheduled_time:
-            continue
-        timed.append((_pad_hm(habit.scheduled_time), 1, row_daily_habit(habit, checked_ids, ctx)))
 
     due_today = [t for t in ctx.pending if t.scheduled_date and t.scheduled_date.isoformat() == today_str]
     for task in due_today:
@@ -191,8 +183,7 @@ def render_dashboard(
         lines += overdue_lines
         scheduled_ids |= overdue_ids
 
-    untimed_habits = [h for h in all_habits if not h.scheduled_time]
-    lines += section_daily(untimed_habits, checked_ids, ctx)
+    lines += section_daily(all_habits, checked_ids, ctx)
     lines += tag_section(all_habits, checked_ids, ctx, "love", "LOVE", theme.pink)
     lines += tag_section(all_habits, checked_ids, ctx, "admin", "LIFE", theme.yellow)
     lines += tag_section(all_habits, checked_ids, ctx, "chore", "CHORES", theme.cyan)

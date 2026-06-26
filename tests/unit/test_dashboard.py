@@ -153,30 +153,13 @@ def _make_render_ctx(monkeypatch, fixed_now: datetime):
     monkeypatch.setattr(core_clock, "now", lambda: fixed_now)
 
 
-def test_render_past_due_habit_shows_red(tmp_life_dir, monkeypatch):
+def test_render_past_due_habit_shows_not_red(tmp_life_dir, monkeypatch):
     _make_render_ctx(monkeypatch, datetime(2025, 10, 30, 10, 0))
-    add_habit("brush", tags=["self"], scheduled_time="08:00")
+    add_habit("brush", tags=["self"])
     items = get_tasks() + get_habits()
     output = render_dashboard(items, (0, 0, 0, 0))
-    assert theme.red in output
     assert "brush" in output
-
-
-def test_render_future_habit_not_red(tmp_life_dir, monkeypatch):
-    _make_render_ctx(monkeypatch, datetime(2025, 10, 30, 7, 0))
-    add_habit("brush", tags=["self"], scheduled_time="08:00")
-    items = get_tasks() + get_habits()
-    output = render_dashboard(items, (0, 0, 0, 0))
     assert theme.red not in output
-
-
-def test_render_timed_habits_sort_first_in_daily(tmp_life_dir, monkeypatch):
-    _make_render_ctx(monkeypatch, datetime(2025, 10, 30, 7, 0))
-    add_habit("zzz no time", tags=["self"])
-    add_habit("aaa timed", tags=["self"], scheduled_time="06:00")
-    items = get_tasks() + get_habits()
-    output = render_dashboard(items, (0, 0, 0, 0))
-    assert output.index("aaa timed") < output.index("zzz no time")
 
 
 def test_render_dashboard_now_marker_present(tmp_life_dir, monkeypatch):
@@ -188,11 +171,10 @@ def test_render_dashboard_now_marker_present(tmp_life_dir, monkeypatch):
 
 def test_render_checked_habit_not_red(tmp_life_dir, monkeypatch):
     _make_render_ctx(monkeypatch, datetime(2025, 10, 30, 10, 0))
-    hid = add_habit("brush", tags=["self"], scheduled_time="08:00")
+    hid = add_habit("brush", tags=["self"])
     toggle_check(hid)
     items = get_tasks() + get_habits()
     completed = get_today_completed()
     output = render_dashboard(items, (1, 0, 0, 0), today_items=completed)
-    # checked habit should not be red even if past scheduled time
     daily_section = output.split("DAILY")[1] if "DAILY" in output else ""
     assert theme.red not in daily_section

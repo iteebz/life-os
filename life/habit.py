@@ -71,14 +71,13 @@ def add_habit(
     parent_id: str | None = None,
     private: bool = False,
     cadence: str = "daily",
-    scheduled_time: str | None = None,
 ) -> str:
     habit_id = str(uuid.uuid4())
     with get_db() as conn:
         try:
             conn.execute(
-                "INSERT INTO habits (id, content, parent_id, private, cadence, scheduled_time) VALUES (?, ?, ?, ?, ?, ?)",
-                (habit_id, content, parent_id, int(private), cadence, scheduled_time),
+                "INSERT INTO habits (id, content, parent_id, private, cadence) VALUES (?, ?, ?, ?, ?)",
+                (habit_id, content, parent_id, int(private), cadence),
             )
         except StoreIntegrityError as e:
             raise ValueError(f"Failed to add habit: {e}") from e
@@ -113,8 +112,6 @@ def get_habit(habit_id: str) -> Habit | None:
 def update_habit(
     habit_id: str,
     content: str | None = None,
-    scheduled_time: str | None = None,
-    clear_time: bool = False,
 ) -> Habit | None:
     updates: list[str] = []
     params: list[object] = []
@@ -122,11 +119,6 @@ def update_habit(
     if content is not None:
         updates.append("content = ?")
         params.append(content)
-    if clear_time:
-        updates.append("scheduled_time = NULL")
-    elif scheduled_time is not None:
-        updates.append("scheduled_time = ?")
-        params.append(scheduled_time)
 
     if not updates:
         return get_habit(habit_id)
@@ -378,10 +370,7 @@ def _render_habit_matrix(habits: list[Habit]) -> str:
         header = "habit           " + " ".join(day_names) + "   key"
         lines += [header, "-" * len(header)]
 
-        def _habit_sort_key(h: Habit) -> tuple[int, str]:
-            return (1 if h.scheduled_time else 0, h.scheduled_time or h.content.lower())
-
-        for h in sorted(daily, key=_habit_sort_key):
+        for h in sorted(daily, key=lambda h: h.content.lower()):
             check_dates = {dt.date() for dt in h.checks}
             is_vice = "vice" in (h.tags or [])
             indicators = [
@@ -423,34 +412,13 @@ def habits() -> None:
     print(_render_habit_matrix(get_habits()))
 
 
-def _parse_time(value: str) -> str:
-    """Validate HH:MM and normalize to zero-padded form."""
-    try:
-        parsed = datetime.strptime(value, "%H:%M")
-    except ValueError as e:
-        raise UsageError(f"invalid time: {value!r} — use HH:MM") from e
-    return parsed.strftime("%H:%M")
-
-
-@cli("life", flags={"ref": [], "at": ["-a", "--at"]})
-def habit_set(ref: list[str], at: str | None = None) -> None:
-    """Set scheduled time on an existing habit: `life habit-set <ref> -a HH:MM`"""
-    name = " ".join(ref)
-    h = resolve_habit(name)
-    scheduled_time = _parse_time(at) if at else None
-    update_habit(h.id, scheduled_time=scheduled_time, clear_time=at is None)
-    time_str = scheduled_time or "cleared"
-    print(f"  {ansi.purple('○')} {h.content.lower()}  {ansi.dim(time_str)}")
-
-
-@cli("life", flags={"ref": [], "tag": ["-t", "--tag"], "at": ["-a", "--at"]})
+@cli("life", flags={"ref": [], "tag": ["-t", "--tag"]})
 def habit(
     ref: list[str] | None = None,
     tag: list[str] | None = None,
     weekly: bool = False,
-    at: str | None = None,
 ) -> None:
-    """List habits, or create one: `life habit "name" -t tag [-a HH:MM]`"""
+    """List habits, or create one: `life habit "name" -t tag`"""
     if not ref:
         print(_render_habit_matrix(get_habits()))
         return
@@ -460,8 +428,6 @@ def habit(
         return
     name = " ".join(ref)
     cadence = "weekly" if weekly else "daily"
-    scheduled_time = _parse_time(at) if at else None
-    habit_id = add_habit(name, tags=tag, cadence=cadence, scheduled_time=scheduled_time)
+    habit_id = add_habit(name, tags=tag, cadence=cadence)
     cadence_suffix = f" {ansi.dim('(weekly)')}" if weekly else ""
-    time_suffix = f" {ansi.dim(scheduled_time)}" if scheduled_time else ""
-    render_row(f"{name.lower()}{cadence_suffix}{time_suffix}", tag, habit_id, symbol=ansi.purple("○"))
+    render_row(f"{name.lower()}{cadence_suffix}", tag, habit_id, symbol=ansi.purple("○"))
