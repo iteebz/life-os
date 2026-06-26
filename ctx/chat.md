@@ -7,7 +7,6 @@ watch
 rsi
 protocols
 boot
-close
 tasks
 workspace
 code
