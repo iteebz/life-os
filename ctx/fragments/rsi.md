@@ -5,4 +5,4 @@ two lists. be explicit about which gets what:
 `life observe "..." --tag <tag>` — something learned about Tyson. ambient context, not a list.
 `life improve --done "..."` / `life improve --done i/abcd1234` — mark improvement done.
 
-initiatives (`steward/initiatives/`) are canonical for multi-step projects. no parallel TODO files.
+trails (`notes/steward/work/trails/`) are canonical for any thread of work — exploratory or committed. graduate (integrate learnings into durable surfaces, git rm) or die. no parallel TODO files.
