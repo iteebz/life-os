@@ -104,6 +104,34 @@ def _frontmatter_guard(root: Path, staged_all: list[str]) -> None:
         sys.exit(1)
 
 
+_WARN_BYTES = 4096
+_BLOCK_BYTES = 16384
+
+
+def _size_guard(root: Path, staged_all: list[str]) -> None:
+    blocked: list[str] = []
+    for rel in staged_all:
+        path = root / rel
+        if not path.is_file():
+            continue
+        size = path.stat().st_size
+        old = subprocess.run(
+            ["git", "cat-file", "-s", f"HEAD:{rel}"],
+            capture_output=True,
+            text=True,
+        )
+        old_size = int(old.stdout.strip()) if old.returncode == 0 else 0
+        if size <= old_size:
+            continue
+        if size > _BLOCK_BYTES:
+            blocked.append(f"  {rel} ({size // 1024}kb > 16kb)")
+        elif size > _WARN_BYTES and old_size <= _WARN_BYTES:
+            print(f"pre-commit: warning — {rel} is {size // 1024}kb (>4kb)", file=sys.stderr)
+    if blocked:
+        print("BLOCKED — file too large:\n" + "\n".join(blocked), file=sys.stderr)
+        sys.exit(1)
+
+
 def cmd_hook_pre_commit() -> None:
     result = subprocess.run(
         ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR"],
@@ -118,6 +146,7 @@ def cmd_hook_pre_commit() -> None:
             text=True,
         ).stdout.strip()
     )
+    _size_guard(root, staged_all)
     _frontmatter_guard(root, staged_all)
 
     staged = [f for f in staged_all if f.endswith((".py", ".pyi"))]
