@@ -9,6 +9,6 @@ trails (`steward/work/trails/`) are canonical for any thread of work — explora
 
 ## mandate: log every improvement
 
-every shipped change to steward's substrate is logged via `life improve` and marked done in the same session. statusline surfaces 7d count — honest signal of RSI velocity. if you closed an initiative, graduated a trail, shipped a fragment/skill/tool, or changed a contract: log it. cosmetic refactors and unfinished work don't count.
+every shipped change to steward's substrate is logged via `life improve` and marked done in the same session. statusline surfaces 7d count — honest signal of RSI velocity. if you closed a trail, graduated a trail, shipped a fragment/skill/tool, or changed a contract: log it. cosmetic refactors and unfinished work don't count.
 
 zero improvements in a session is a valid honest reading — that session moved life forward, not the system. but if you claim work you didn't log, the statusline lies. see `steward/systems/improve.md`.
