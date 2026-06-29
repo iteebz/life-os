@@ -13,7 +13,7 @@ class Improvement:
     logged_at: datetime
     done_at: datetime | None = None
     promoted_at: datetime | None = None
-    initiative: str | None = None
+    trail: str | None = None
 
 
 def add_improvement(body: str) -> str:
@@ -30,7 +30,7 @@ def _row_to_improvement(row: tuple[str, str, str, str | None, str | None, str | 
         logged_at=datetime.fromisoformat(row[2]),
         done_at=datetime.fromisoformat(row[3]) if row[3] else None,
         promoted_at=datetime.fromisoformat(row[4]) if row[4] else None,
-        initiative=row[5],
+        trail=row[5],
     )
 
 
@@ -38,25 +38,25 @@ def get_improvements(done: bool = False, include_promoted: bool = False) -> list
     with get_db() as conn:
         if done:
             rows = conn.execute(
-                "SELECT id, body, logged_at, done_at, promoted_at, initiative "
+                "SELECT id, body, logged_at, done_at, promoted_at, trail "
                 "FROM improvements WHERE deleted_at IS NULL ORDER BY logged_at DESC"
             ).fetchall()
         elif include_promoted:
             rows = conn.execute(
-                "SELECT id, body, logged_at, done_at, promoted_at, initiative "
+                "SELECT id, body, logged_at, done_at, promoted_at, trail "
                 "FROM improvements WHERE done_at IS NULL AND deleted_at IS NULL "
                 "ORDER BY logged_at DESC"
             ).fetchall()
         else:
             rows = conn.execute(
-                "SELECT id, body, logged_at, done_at, promoted_at, initiative "
+                "SELECT id, body, logged_at, done_at, promoted_at, trail "
                 "FROM improvements WHERE done_at IS NULL AND promoted_at IS NULL AND deleted_at IS NULL "
                 "ORDER BY logged_at DESC"
             ).fetchall()
         return [_row_to_improvement(row) for row in rows]
 
 
-def promote_improvement(query: str, initiative: str) -> Improvement | None:
+def promote_improvement(query: str, trail: str) -> Improvement | None:
     improvements = get_improvements(include_promoted=True)
     imp = resolve_prefix(query, improvements)
     if not imp:
@@ -67,8 +67,8 @@ def promote_improvement(query: str, initiative: str) -> Improvement | None:
         return None
     with get_db() as conn:
         conn.execute(
-            "UPDATE improvements SET promoted_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now'), initiative = ? WHERE id = ?",
-            (initiative, imp.id),
+            "UPDATE improvements SET promoted_at = STRFTIME('%Y-%m-%dT%H:%M:%S', 'now'), trail = ? WHERE id = ?",
+            (trail, imp.id),
         )
     return imp
 

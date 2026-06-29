@@ -21,8 +21,8 @@ def _print_improvements(items: list[Improvement], show_done: bool = False) -> No
             print(f"  {label}  {rel:<12}  {marker}  {ansi.muted(i.body)}")
         elif i.promoted_at:
             label = ansi.muted(f"[{tag}]")
-            initiative_str = f"  → {i.initiative}" if i.initiative else ""
-            print(f"  {label}  {rel:<12}  {ansi.muted('↑')}  {ansi.muted(i.body)}{ansi.muted(initiative_str)}")
+            trail_str = f"  → {i.trail}" if i.trail else ""
+            print(f"  {label}  {rel:<12}  {ansi.muted('↑')}  {ansi.muted(i.body)}{ansi.muted(trail_str)}")
         else:
             label = ansi.muted(f"[{tag}]")
             print(f"  {label}  {rel:<12}  {i.body}")
@@ -48,10 +48,10 @@ def improve(
         return
 
     if promote is not None:
-        initiative = to or ""
-        target = promote_improvement(promote, initiative)
+        trail = to or ""
+        target = promote_improvement(promote, trail)
         if target:
-            suffix = f" → {initiative}" if initiative else ""
+            suffix = f" → {trail}" if trail else ""
             print_ok(f"promoted: {target.body}{suffix}")
         else:
             raise NotFoundError(f"no improvement matching '{promote}'")

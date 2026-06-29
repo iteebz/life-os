@@ -224,7 +224,21 @@ def load_migrations() -> list[Migration]:
     migrations_dir = Path(__file__).parent / "migrations"
     if not migrations_dir.exists():
         return []
-    return [(sql_file.stem, sql_file.read_text()) for sql_file in sorted(migrations_dir.glob("[0-9]*.sql"))]
+    files = sorted(f for pat in ("[0-9]*.sql", "[0-9]*.py") for f in migrations_dir.glob(pat))
+    result: list[Migration] = []
+    for f in files:
+        if f.suffix == ".sql":
+            result.append((f.stem, f.read_text()))
+        elif f.suffix == ".py":
+            import importlib.util
+
+            spec = importlib.util.spec_from_file_location(f.stem, f)
+            if spec and spec.loader:
+                mod = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(mod)  # type: ignore[arg-type]
+                if callable(getattr(mod, "up", None)):
+                    result.append((f.stem, mod.up))
+    return result
 
 
 def _reject_destructive_sql(name: str, sql: str) -> None:
