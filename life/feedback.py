@@ -43,6 +43,7 @@ class FeedbackSnapshot:
     habit_checked: int
     habit_possible: int
     overdue_resets: int
+    improvements_done: int
     flags: list[str]
     momentum: str = "≈"
     partner_tag: str | None = None
@@ -91,6 +92,17 @@ def _count_overdue_resets(window_start: date, window_end: date) -> int:
         return row[0] if row else 0
 
 
+def _count_improvements_done(window_start: date, window_end: date) -> int:
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) FROM improvements "
+            "WHERE done_at IS NOT NULL AND deleted_at IS NULL "
+            "AND date(done_at) >= ? AND date(done_at) <= ?",
+            (window_start.isoformat(), window_end.isoformat()),
+        ).fetchone()
+        return row[0] if row else 0
+
+
 def _is_top_level(t: Task) -> bool:
     return t.parent_id is None
 
@@ -121,6 +133,7 @@ def build_feedback_snapshot(
 
     defer_count = _count_defers(window_start, today)
     overdue_resets = _count_overdue_resets(window_start, today)
+    improvements_done = _count_improvements_done(window_start, today)
 
     daily_habits = [h for h in habits if h.cadence == "daily"]
     weekly_habits = [h for h in habits if h.cadence == "weekly"]
@@ -176,6 +189,7 @@ def build_feedback_snapshot(
         habit_checked=habit_checked,
         habit_possible=habit_possible,
         overdue_resets=overdue_resets,
+        improvements_done=improvements_done,
         flags=flags,
         momentum=momentum,
         partner_tag=ptag,
@@ -199,6 +213,7 @@ def render_feedback_snapshot(snapshot: FeedbackSnapshot) -> list[str]:
         f"  habits:   {snapshot.habit_rate:.0%} ({snapshot.habit_checked}/{snapshot.habit_possible})",
         f"  dodges:   {snapshot.defer_count}",
         f"  slips:    {snapshot.overdue_resets}",
+        f"  improve:  {snapshot.improvements_done}",
     ]
     if snapshot.flags:
         lines.append("  flags:  " + ", ".join(snapshot.flags))
@@ -213,6 +228,7 @@ def render_feedback_headline(snapshot: FeedbackSnapshot) -> str:
     parts.append(f"habits {snapshot.habit_rate:.0%}")
     if snapshot.partner_tag and partner_total:
         parts.append(f"partner {_format_ratio(snapshot.partner_done, partner_total)}")
+    parts.append(f"improve {snapshot.improvements_done}")
     if snapshot.flags:
         parts.append("⚑ " + ", ".join(snapshot.flags))
     return "  ".join(parts)
