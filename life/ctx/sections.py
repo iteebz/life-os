@@ -167,7 +167,7 @@ def render_observations() -> str:
 
 def render_patterns() -> str:
     """Load pattern files and surface names + watch signals for boot context."""
-    patterns_dir = Path.home() / "life" / "notes" / "patterns"
+    patterns_dir = Path.home() / "life" / "patterns"
     files = sorted(patterns_dir.glob("*.md"))
     if not files:
         return ""

@@ -108,15 +108,33 @@ _WARN_BYTES = 4096
 _BLOCK_BYTES = 16384
 
 
+def _rename_map(root: Path) -> dict[str, str]:
+    """Map new path → old path for staged renames."""
+    result = subprocess.run(
+        ["git", "diff", "--cached", "--name-status", "-M", "--diff-filter=R"],
+        capture_output=True,
+        text=True,
+        cwd=root,
+    )
+    out: dict[str, str] = {}
+    for line in result.stdout.splitlines():
+        parts = line.split("\t")
+        if len(parts) >= 3 and parts[0].startswith("R"):
+            out[parts[2]] = parts[1]
+    return out
+
+
 def _size_guard(root: Path, staged_all: list[str]) -> None:
+    renames = _rename_map(root)
     blocked: list[str] = []
     for rel in staged_all:
         path = root / rel
         if not path.is_file():
             continue
         size = path.stat().st_size
+        head_rel = renames.get(rel, rel)
         old = subprocess.run(
-            ["git", "cat-file", "-s", f"HEAD:{rel}"],
+            ["git", "cat-file", "-s", f"HEAD:{head_rel}"],
             capture_output=True,
             text=True,
         )

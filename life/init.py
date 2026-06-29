@@ -83,7 +83,7 @@ def init(force: bool = False, github: str | None = None):
             print(f"  exists:  {rel}")
 
     # steward/{user}/ placeholder
-    user_dir = LIFE_HOME / "notes" / "steward" / user
+    user_dir = LIFE_HOME / "steward" / user
     user_dir.mkdir(parents=True, exist_ok=True)
 
     _setup_git(github)

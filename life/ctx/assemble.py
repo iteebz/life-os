@@ -10,7 +10,7 @@ from pathlib import Path
 from . import sections
 
 LIFE_DIR = Path.home() / "life"
-STEWARD_DIR = LIFE_DIR / "notes" / "steward"
+STEWARD_DIR = LIFE_DIR / "steward"
 CTX_DIR = LIFE_DIR / "life-os" / "ctx"
 
 CONSTITUTION = [

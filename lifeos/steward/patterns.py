@@ -5,7 +5,7 @@ from fncli import cli
 from lifeos.core.lib import ansi
 from lifeos.core.lib import frontmatter as fm
 
-_DIR = Path.home() / "life" / "notes" / "steward" / "patterns"
+_DIR = Path.home() / "life" / "patterns"
 
 
 def _parse(path: Path) -> tuple[str, str, str]:
