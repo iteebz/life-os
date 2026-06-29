@@ -101,9 +101,26 @@ def cmd_hook_session_end() -> None:
         _push_repos()
 
 
+_BLOCKED_BASH = [
+    (re.compile(r"(?:^|[;&|]\s*)git\s+stash\b"), "git stash is destructive when interleaved with rebases"),
+]
+
+
 def cmd_hook_tool() -> None:
     init()
-    sys.stdin.read()
+    raw = sys.stdin.read()
+    data = {}
+    with contextlib.suppress(Exception):
+        data = json.loads(raw) if raw.strip() else {}
+
+    tool = data.get("tool_name", "")
+    if tool == "Bash":
+        cmd = (data.get("tool_input") or {}).get("command", "")
+        for pattern, reason in _BLOCKED_BASH:
+            if pattern.search(cmd):
+                print(f"BLOCKED — {reason}", file=sys.stderr)
+                sys.exit(2)
+
     session_id = os.environ.get("STEWARD_SESSION_ID", "unknown")
     with contextlib.suppress(Exception):
         session.surface_session_meta(session_id)
