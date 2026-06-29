@@ -18,6 +18,7 @@ CTX_MID = "\x1b[33m"         # yellow  — ctx 50–80%
 CTX_HI  = "\x1b[31m"         # red     — ctx > 80%
 MUTED   = "\x1b[38;5;240m"   # dark gray — separators, labels
 TIME    = "\x1b[38;5;141m"   # purple  — last-active timestamp
+IMPROVE = "\x1b[38;5;215m"   # orange  — steward improvements
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -77,6 +78,11 @@ def main():
         WHERE deleted_at IS NULL
         AND date(completed_at, 'localtime') = date('now', 'localtime')
     """) or [0])[0]
+    improvements_today = (q(conn, """
+        SELECT COUNT(*) FROM improvements
+        WHERE deleted_at IS NULL
+        AND date(done_at, 'localtime') = date('now', 'localtime')
+    """) or [0])[0]
 
     conn.close()
 
@@ -99,7 +105,7 @@ def main():
     if last:
         parts.append(f"{DIM}last{R} {TIME}{last}{R}")
 
-    parts.append(f"{DIM}done{R} {TASKS}{tasks_done}{R}{MUTED}+{R}{HABITS}{habits_done}{R}")
+    parts.append(f"{DIM}done{R} {TASKS}{tasks_done}{R}{MUTED}+{R}{HABITS}{habits_done}{R}{MUTED}+{R}{IMPROVE}{improvements_today}{R}")
 
     print("  ".join(parts), end="")
 

@@ -109,21 +109,15 @@ _LIFE_MD_KNOWN = {
     "taxing/docs/tax.md",
     "taxing/docs/mining.md",
     "tynice/cosmo-house-rules.md",
-    # old paths (pre-notes/ rename)
     "steward/arch/ctx-layering.md",
     "steward/arch/memory.md",
     "steward/arch/rsi.md",
-    "steward/people/janice-manual.md",
-    "steward/tyson/cognition.md",
-    "steward/tyson/operating-manual.md",
-    "steward/tyson/traumas.md",
-    # new paths (post-notes/ rename)
-    "notes/steward/model/tyson/operating-manual.md",
-    "notes/steward/model/tyson/traumas.md",
-    "notes/steward/model/tyson/cognition.md",
-    "notes/steward/model/people/janice-manual.md",
-    "notes/steward/work/trails/prompt-layering.md",
-    "notes/steward/work/trails/financial-position-dashboard.md",
+    "steward/model/tyson/operating-manual.md",
+    "steward/model/tyson/traumas.md",
+    "steward/model/tyson/cognition.md",
+    "steward/model/people/janice-manual.md",
+    "steward/work/trails/prompt-layering.md",
+    "steward/work/trails/financial-position-dashboard.md",
 }
 
 # ~/life/ python size guard. Same 16kb ceiling as life-os, applied across the whole tree.
@@ -147,7 +141,7 @@ def test_life_markdown_size_limits():
         size = path.stat().st_size
         rel = str(path.relative_to(_LIFE_ROOT))
         # tighter limit for pattern files
-        limit = _PATTERN_MAX if "notes/patterns/" in rel else _MD_MAX
+        limit = _PATTERN_MAX if "patterns/" in rel else _MD_MAX
         if size <= limit:
             continue
         violations.append((rel, size, limit))

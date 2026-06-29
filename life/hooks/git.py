@@ -27,7 +27,7 @@ _VALID_TYPES = {
 }
 
 _FRONTMATTER_SCHEMAS: dict[str, tuple[str, set[str] | None]] = {
-    "notes/steward/trails/": ("description", None),
+    "steward/trails/": ("description", None),
 }
 
 
