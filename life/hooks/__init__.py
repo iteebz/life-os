@@ -105,6 +105,19 @@ _BLOCKED_BASH = [
     (re.compile(r"(?:^|[;&|]\s*)git\s+stash\b"), "git stash is destructive when interleaved with rebases"),
 ]
 
+_REDUNDANT_BASH = [
+    (re.compile(r"^\s*grep\b"), "grep → use Grep tool"),
+    (re.compile(r"^\s*rg\b"), "rg → use Grep tool"),
+    (re.compile(r"^\s*cat\b"), "cat → use Read tool"),
+    (re.compile(r"^\s*head\b"), "head → use Read tool with limit"),
+    (re.compile(r"^\s*tail\b"), "tail → use Read tool with offset"),
+    (re.compile(r"^\s*find\b"), "find → use Glob tool"),
+    (re.compile(r"^\s*ls\b"), "ls → use Glob tool"),
+    (re.compile(r"^\s*sed\b"), "sed → use Edit tool"),
+    (re.compile(r"^\s*awk\b"), "awk → use Edit or Read tool"),
+    (re.compile(r"^\s*echo\b"), "echo → write output directly or use Write tool"),
+]
+
 
 def cmd_hook_tool() -> None:
     init()
@@ -120,6 +133,10 @@ def cmd_hook_tool() -> None:
             if pattern.search(cmd):
                 print(f"BLOCKED — {reason}", file=sys.stderr)
                 sys.exit(2)
+        for pattern, suggestion in _REDUNDANT_BASH:
+            if pattern.search(cmd):
+                print(f"warn: {suggestion}", file=sys.stderr)
+                break
 
     session_id = os.environ.get("STEWARD_SESSION_ID", "unknown")
     with contextlib.suppress(Exception):
