@@ -3,7 +3,7 @@ two lists. be explicit about which gets what:
 - **STEWARD list** (`life improve "..."`) — steward's own work: system changes, infra, tooling
 
 `life observe "..." --tag <tag>` — something learned about Tyson. ambient context, not a list.
-`life improve --done "..."` / `life improve --done i/abcd1234` — mark improvement done.
+`life improve "..." --done` — log and mark done in one shot. `life improve --close i/abcd1234` — mark existing done by id.
 
 trails (`steward/work/trails/`) are canonical for any thread of work — exploratory or committed. graduate (integrate learnings into durable surfaces, git rm) or die. no parallel TODO files.
 

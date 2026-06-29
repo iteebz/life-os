@@ -44,5 +44,6 @@ life initiatives                    # list open
 life steward initiatives new "name" # scaffold new file
 life improve "..."                  # log a single improvement
 life improve list                   # show open improvements
-life improve --done i/abcd1234      # mark done
+life improve --close i/abcd1234     # mark done by id
+life improve "..." --done           # log and mark done in one shot
 ```

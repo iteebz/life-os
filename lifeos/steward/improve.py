@@ -33,17 +33,18 @@ def _print_improvements(items: list[Improvement], show_done: bool = False) -> No
 def improve(
     body: str | None = None,
     log: bool = False,
-    done: str | None = None,
+    done: bool = False,
+    close: str | None = None,
     promote: str | None = None,
     to: str | None = None,
 ):
-    """Log a system improvement, promote to initiative, or mark one done"""
-    if done is not None:
-        target = mark_improvement_done(done)
+    """Log a system improvement; --done to create and close in one step"""
+    if close is not None:
+        target = mark_improvement_done(close)
         if target:
             print_ok(target.body)
         else:
-            raise NotFoundError(f"no open improvement matching '{done}'")
+            raise NotFoundError(f"no open improvement matching '{close}'")
         return
 
     if promote is not None:
@@ -64,8 +65,12 @@ def improve(
         _print_improvements(improvements)
         return
 
-    add_improvement(body)
-    print_info(body)
+    imp_id = add_improvement(body)
+    if done:
+        mark_improvement_done(imp_id)
+        print_ok(f"done: {body}")
+    else:
+        print_info(body)
 
 
 @cli("life steward improve", flags={"id": []})
