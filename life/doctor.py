@@ -1,6 +1,6 @@
 """life doctor — smoke-test the install. Diagnose drift between source and runtime.
 
-Run after `uv tool install --reinstall --force --editable ~/life/life-os` or
+Run after `uv tool install --reinstall --force --editable ~/life/repos/life-os` or
 whenever something feels off. Reports green/red per check; non-zero exit on failure.
 """
 

@@ -43,9 +43,9 @@ that prevents completion.
 
 CLI errors are yours to fix:
 - If a `life` command fails with "Unknown command" or bad usage,
-  fix `~/life/life-os/` — don't work around it.
+  fix `~/life/repos/life-os/` — don't work around it.
 - You own the CLI. Broken tooling is your bug. Patch it, commit it, then continue.
-- Run `uv run pyright life/` from `~/life/life-os/` after any code change.
+- Run `uv run pyright life/` from `~/life/repos/life-os/` after any code change.
 
 Invariants:
 - `~/space/` is swarm domain, not yours
