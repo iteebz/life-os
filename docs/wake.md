@@ -8,7 +8,7 @@ knows at boot. daemon captures it and injects it into the claude prompt.
 
 ## current shape
 
-`life/ctx/` owns prompt assembly:
+`lifeos/core/ctx/` owns prompt assembly:
 - `sections.py` — one renderer per data slice, returns string or "" to omit.
 - `assemble.py` — `build_wake()` composes sections in priority order; `build_chat_prompt()` wraps for system-prompt injection.
 - `fragments.py` — static atoms (templates, constants).

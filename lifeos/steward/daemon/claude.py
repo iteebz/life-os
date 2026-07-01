@@ -7,7 +7,7 @@ import uuid
 from collections.abc import Callable
 from pathlib import Path
 
-from life.ctx.assemble import build_wake
+from lifeos.core.ctx.assemble import build_wake
 from lifeos.core.lib.env import Mode
 from lifeos.core.lib.providers.claude import SPAWN_SETTINGS
 from lifeos.core.lib.providers.claude import build_env as build_claude_env

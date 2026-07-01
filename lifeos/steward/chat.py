@@ -9,7 +9,7 @@ from pathlib import Path
 
 from fncli import cli
 
-from life.ctx.assemble import build_chat_prompt
+from lifeos.core.ctx.assemble import build_chat_prompt
 from lifeos.core.lib.providers.claude import build_env
 from lifeos.core.lib.store import get_db
 

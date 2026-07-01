@@ -5,7 +5,7 @@ import sys
 import fncli
 from fncli import cli
 
-from life.ctx.assemble import build_wake
+from lifeos.core.ctx.assemble import build_wake
 from lifeos.core.store.migrations import init
 
 

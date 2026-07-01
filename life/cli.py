@@ -63,6 +63,7 @@ def _watch() -> None:
 def main():
     db.init()
     fncli.autodiscover(Path(__file__).parent, "life")
+    fncli.autodiscover(Path(__file__).resolve().parent.parent / "lifeos", "lifeos")
 
     user_args = sys.argv[1:]
     if not user_args or user_args == ["-v"] or user_args == ["--verbose"]:
