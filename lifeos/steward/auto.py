@@ -9,6 +9,7 @@ from typing import Any
 
 from fncli import cli
 
+from life.backup import run_backup
 from life.feedback import build_feedback_snapshot, render_feedback_snapshot
 from life.habit import get_habits
 from life.loop import load_loop_state, require_real_world_closure, save_loop_state, update_loop_state
@@ -205,6 +206,8 @@ def _build_cmd_env(prompt: str) -> tuple[list[str], dict[str, str]]:
 
 
 def run_autonomous() -> None:
+    run_backup()  # guaranteed backup at spawn start — sleep() may never run if the spawn crashes or the gate fails
+
     ts_label = datetime.now().strftime("%b %d %H:%M").lstrip("0").lower()
     db_session_id = create_session("(active)", name=f"auto {ts_label}", model="claude", source="auto")
 
