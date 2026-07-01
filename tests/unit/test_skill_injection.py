@@ -1,6 +1,19 @@
 from life.hooks import signals, skills
 
 
+def test_records_skill_loaded_event(tmp_path, monkeypatch):
+    _isolate_state(tmp_path, monkeypatch)
+    monkeypatch.setattr(skills, "_SKILLS_DIR", tmp_path)
+    (tmp_path / "sell.md").write_text("---\nkeywords: [sell]\n---\n\n# sell\n")
+
+    recorded = []
+    monkeypatch.setattr(skills.events, "record", lambda kind, **kw: recorded.append((kind, kw)))
+
+    skills.inject_matching_skills("sell this", "sess1")
+
+    assert recorded == [("skill.loaded", {"payload": {"name": "sell", "source": "keyword"}})]
+
+
 def _isolate_state(tmp_path, monkeypatch):
     monkeypatch.setattr(signals, "_state_path", lambda: tmp_path / "state")
 

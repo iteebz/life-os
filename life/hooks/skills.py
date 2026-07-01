@@ -1,8 +1,10 @@
 """Keyword-triggered skill injection — fires on UserPromptSubmit, no `life skill <name>` needed."""
 
+import contextlib
 import re
 from pathlib import Path
 
+from life.comms import events
 from life.hooks import signals
 from lifeos.core.lib.frontmatter import field
 
@@ -38,6 +40,8 @@ def inject_matching_skills(prompt: str, session_id: str) -> list[str]:
             continue
         state[flag] = "1"
         injected.append(f"[skill: {path.stem}]\n{text}\n[/skill]")
+        with contextlib.suppress(Exception):
+            events.record("skill.loaded", payload={"name": path.stem, "source": "keyword"})
 
     if injected:
         signals.save_state(state)

@@ -6,11 +6,13 @@ indexed in wake; body fetched via `life skill <name>`.
 
 from __future__ import annotations
 
+import contextlib
 from dataclasses import dataclass
 from pathlib import Path
 
 from fncli import cli
 
+from life.comms import events
 from lifeos.core.errors import NotFoundError
 from lifeos.core.lib.frontmatter import _RE as _FM_RE
 from lifeos.core.lib.frontmatter import field
@@ -63,4 +65,6 @@ def skill(name: str | None = None):
             print(f"  {s.name:<{width}}{when}")
         return
     s = get_skill(name)
+    with contextlib.suppress(Exception):
+        events.record("skill.loaded", payload={"name": name})
     print(s.body)
