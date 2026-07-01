@@ -78,6 +78,7 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None, ima
             image_path=image_path,
             steward_session_id=str(current.id),
             on_pid=lambda pid: set_session_pid(current.id, pid),
+            on_heartbeat=lambda elapsed: tg.send(chat_id, f"[steward: still working, {elapsed}s elapsed]"),
         )
         tg.send(chat_id, response)
         set_session_idle(current.id)
@@ -104,6 +105,7 @@ def handle(channel: str, sender: str, body: str, chat_id: int | None = None, ima
             image_path=image_path,
             steward_session_id=str(db_sid),
             on_pid=lambda pid: set_session_pid(db_sid, pid),
+            on_heartbeat=lambda elapsed: tg.send(chat_id, f"[steward: still working, {elapsed}s elapsed]"),
         )
         tg.send(chat_id, response)
         set_session_idle(db_sid)
@@ -171,7 +173,12 @@ def catch_up(chat_id: int) -> str:
         name="catch-up",
     )
     log(f"[catch-up] {len(rows)} unread message(s), session {sid}")
-    response = run_claude(prompt, steward_session_id=str(sid), on_pid=lambda pid: set_session_pid(sid, pid))
+    response = run_claude(
+        prompt,
+        steward_session_id=str(sid),
+        on_pid=lambda pid: set_session_pid(sid, pid),
+        on_heartbeat=lambda elapsed: tg.send(chat_id, f"[steward: still working, {elapsed}s elapsed]"),
+    )
     tg.send(chat_id, response)
     set_session_idle(sid)
 

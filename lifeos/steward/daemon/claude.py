@@ -13,6 +13,7 @@ from lifeos.core.lib.providers.claude import SPAWN_SETTINGS
 from lifeos.core.lib.providers.claude import build_env as build_claude_env
 
 MAX_RESPONSE_LEN = 4000
+HEARTBEAT_INTERVAL = 120
 
 
 def _claude_bin() -> str:
@@ -41,12 +42,16 @@ def run_claude(
     resume_session_id: str | None = None,
     steward_session_id: str | None = None,
     on_pid: Callable[[int], None] | None = None,
+    on_heartbeat: Callable[[int], None] | None = None,
     mode: Mode = "tg",
 ) -> str:
     """Spawn claude and return its output.
 
     on_pid: optional callback called with the process PID immediately after spawn,
     before waiting. Used by the daemon to register the session as hookable.
+    on_heartbeat: optional callback called every HEARTBEAT_INTERVAL seconds with
+    elapsed seconds while waiting for a long-running session, so callers can surface
+    liveness (e.g. a telegram "still working" nudge) instead of going silent for 10min.
     mode: steward mode injected into env — 'tg' for telegram sessions, 'auto' for autonomous.
     """
     try:
@@ -83,12 +88,21 @@ def run_claude(
         )
         if on_pid is not None:
             on_pid(proc.pid)
-        try:
-            stdout, stderr = proc.communicate(input=prompt, timeout=timeout)
-        except subprocess.TimeoutExpired:
-            proc.kill()
-            proc.communicate()
-            return f"[steward: timed out ({timeout}s)]"
+        elapsed = 0
+        stdout = stderr = None
+        while True:
+            wait = min(HEARTBEAT_INTERVAL, timeout - elapsed)
+            try:
+                stdout, stderr = proc.communicate(input=prompt if elapsed == 0 else None, timeout=wait)
+                break
+            except subprocess.TimeoutExpired:
+                elapsed += wait
+                if elapsed >= timeout:
+                    proc.kill()
+                    proc.communicate()
+                    return f"[steward: timed out ({timeout}s)]"
+                if on_heartbeat is not None:
+                    on_heartbeat(elapsed)
         output = stdout.strip()
         if not output and stderr:
             return f"[steward error: {stderr[:200]}]"
