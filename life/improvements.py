@@ -1,6 +1,6 @@
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 
 from lifeos.core.lib.ids import resolve_prefix
 from lifeos.core.lib.store import get_db
@@ -53,6 +53,19 @@ def get_improvements(done: bool = False, include_promoted: bool = False) -> list
                 "FROM improvements WHERE done_at IS NULL AND promoted_at IS NULL AND deleted_at IS NULL "
                 "ORDER BY logged_at DESC"
             ).fetchall()
+        return [_row_to_improvement(row) for row in rows]
+
+
+def get_improvements_done_on(on_date: date) -> list[Improvement]:
+    """Improvements closed on a given day — the daily shipped ledger."""
+    day = on_date.isoformat()
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT id, body, logged_at, done_at, promoted_at, trail "
+            "FROM improvements WHERE deleted_at IS NULL AND done_at IS NOT NULL "
+            "AND DATE(done_at) = ? ORDER BY done_at DESC",
+            (day,),
+        ).fetchall()
         return [_row_to_improvement(row) for row in rows]
 
 

@@ -18,7 +18,7 @@ from life.comms.services import get_email_adapter
 from life.contacts import get_stale_contacts
 from life.feedback import build_feedback_snapshot, render_feedback_headline
 from life.habit import get_habits
-from life.improvements import get_improvements
+from life.improvements import get_improvements, get_improvements_done_on
 from life.mood import get_recent_moods
 from life.skills import list_skills
 from life.task import get_all_tasks, get_tasks
@@ -48,6 +48,16 @@ def render_milestones() -> str:
         tag_str = f"  #{m.tags}" if m.tags else ""
         out.append(f"  {m.name}{tag_str}")
     return "\n".join(out)
+
+
+def render_shipped_today() -> str:
+    shipped = get_improvements_done_on(today())
+    if not shipped:
+        return ""
+    lines = [f"SHIPPED TODAY ({len(shipped)}):"]
+    lines.extend(f"  ✓ [{short('i', i.id)}] {i.body}" for i in shipped)
+    lines.append("  ↳ `life improvements --done --date YYYY-MM-DD` for prior days")
+    return "\n".join(lines)
 
 
 def render_steward_tasks() -> str:

@@ -1,8 +1,15 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from fncli import cli
 
-from life.improvements import Improvement, add_improvement, get_improvements, mark_improvement_done, promote_improvement
+from life.improvements import (
+    Improvement,
+    add_improvement,
+    get_improvements,
+    get_improvements_done_on,
+    mark_improvement_done,
+    promote_improvement,
+)
 from lifeos.core.errors import NotFoundError
 from lifeos.core.lib import ansi
 from lifeos.core.lib.format import format_elapsed, print_info, print_ok
@@ -85,9 +92,17 @@ def close(id: str) -> None:
 
 @cli("life")
 @cli("life steward")
-def improvements(done: bool = False, promoted: bool = False) -> None:
-    """Show outstanding (or completed/promoted) improvements"""
-    if done:
+def improvements(done: bool = False, promoted: bool = False, on_date: str | None = None) -> None:
+    """Show outstanding (or completed/promoted) improvements; --on-date YYYY-MM-DD to check a prior day"""
+    if on_date:
+        day = date.fromisoformat(on_date)
+        items = get_improvements_done_on(day)
+        if not items:
+            print(f"nothing shipped on {on_date}")
+            return
+        print(ansi.muted(f"  shipped {on_date} ({len(items)})\n"))
+        _print_improvements(items, show_done=True)
+    elif done:
         items = [i for i in get_improvements(done=True) if i.done_at]
         if not items:
             print("no completed improvements")
