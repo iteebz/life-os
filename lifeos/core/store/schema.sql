@@ -40,7 +40,7 @@ CREATE TABLE habit_checks (
     check_date TEXT NOT NULL,
     completed_at TEXT NOT NULL,
     PRIMARY KEY (habit_id, check_date),
-    FOREIGN KEY (habit_id) REFERENCES habits(id) ON DELETE CASCADE,
+    FOREIGN KEY (habit_id) REFERENCES habits(id),
     CHECK (DATE(check_date) IS NOT NULL),
     CHECK (DATETIME(completed_at) IS NOT NULL)
 );
