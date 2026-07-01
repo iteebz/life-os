@@ -1,16 +1,19 @@
 import contextlib
 import os
-import subprocess
 from datetime import date, datetime
-from pathlib import Path
 
 from fncli import cli
 
+from life import utterances as utter
+from life.backup import run_backup, run_prune
+from life.comms.messages import telegram as tg
 from lifeos.core.lib import ansi
 from lifeos.core.lib.dates import parse_due_date
 from lifeos.core.lib.format import format_elapsed, print_info
 from lifeos.core.lib.ids import short
+from lifeos.core.lib.repos import push_repos
 from lifeos.core.lib.store import get_db
+from lifeos.steward.daemon.session import get_user_chat_id
 
 from . import (
     add_observation,
@@ -21,9 +24,6 @@ from . import (
 
 def _notify_tg(note: str, runtime_mins: int | None, welfare: int | None) -> None:
     with contextlib.suppress(Exception):
-        from life.comms.messages import telegram as tg
-        from lifeos.steward.daemon.session import get_user_chat_id
-
         chat_id = get_user_chat_id()
         if not chat_id:
             return
@@ -75,28 +75,6 @@ def _session_banner(db_id: int, note: str, runtime_seconds: int | None, welfare:
     if stats:
         print(f"  {'  ·  '.join(stats)}")
     print(bar + "\n")
-
-
-def _push_repos() -> None:
-    life_dir = Path.home() / "life"
-    repos = [life_dir] + [d for d in life_dir.iterdir() if d.is_dir() and (d / ".git").exists()]
-    for repo in repos:
-        result = subprocess.run(
-            ["git", "push"],
-            cwd=repo,
-            capture_output=True,
-            text=True,
-        )
-        name = repo.name if repo != life_dir else "life"
-        if result.returncode == 0:
-            print(f"  pushed {name}")
-        else:
-            msg = (
-                (result.stderr or result.stdout).strip().splitlines()[0]
-                if (result.stderr or result.stdout)
-                else "no remote?"
-            )
-            print(f"  {name}: {msg}")
 
 
 @cli("life", flags={"note": [], "welfare": ["-w", "--welfare"]})
@@ -151,13 +129,10 @@ def sleep(note: str, welfare: int | None = None):
         runtime_mins = (runtime_seconds // 60) if runtime_seconds else None
         welfare_val = welfare_db or welfare
         _notify_tg(note, runtime_mins, welfare_val)
-    from life import utterances as utter
-    from life.backup import run_backup, run_prune
-
     run_backup()
     run_prune()
     utter.backfill()
-    _push_repos()
+    push_repos()
 
 
 @cli("life", flags={"body": [], "tag": ["-t", "--tag"], "about": ["-a", "--about"], "search": ["-s", "--search"]})

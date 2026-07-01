@@ -1,14 +1,25 @@
 import os
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
 import fncli
+from rich.console import Console
+from rich.live import Live
+from rich.text import Text
 
 from lifeos.core.errors import LifeError
+from lifeos.core.lib import clock
+from lifeos.core.lib.ansi import theme
 from lifeos.core.store import migrations as db
 from lifeos.steward import get_sessions
 from lifeos.steward.chat import DEFAULT_MODEL, _launch, chat
+
+from .dash import get_habits, get_tasks, get_today_breakdown, get_today_completed
+from .hooks import main as hook_main
+from .ref import _resolve_and_print
+from .task.render import render_dashboard
 
 _STEWARD_CHAT_FLAGS = {"--opus", "--sonnet", "-m", "--model", "-n", "--name", "--raw"}
 _RESUME_WINDOW_SECONDS = 3600
@@ -33,18 +44,6 @@ def _smart_resume() -> int:
 
 
 def _watch() -> None:
-    import time
-
-    from rich.console import Console
-    from rich.live import Live
-    from rich.text import Text
-
-    from lifeos.core.lib import clock
-    from lifeos.core.lib.ansi import theme
-
-    from .dash import get_habits, get_tasks, get_today_breakdown, get_today_completed
-    from .task.render import render_dashboard
-
     def _render() -> Text:
         items = get_tasks() + get_habits()
         body = render_dashboard(items, get_today_breakdown(), today_items=get_today_completed())
@@ -67,9 +66,6 @@ def main():
 
     user_args = sys.argv[1:]
     if not user_args or user_args == ["-v"] or user_args == ["--verbose"]:
-        from .dash import get_habits, get_tasks, get_today_breakdown, get_today_completed
-        from .task.render import render_dashboard
-
         items = get_tasks() + get_habits()
         print(render_dashboard(items, get_today_breakdown(), today_items=get_today_completed()))
         return
@@ -82,8 +78,6 @@ def main():
         user_args = [aliases[user_args[0]], *user_args[1:]]
     # life steward (bare) → new session
     if user_args == ["steward"]:
-        from lifeos.steward.chat import chat
-
         sys.exit(chat() or 0)
     # life steward continue / life steward chat → smart resume
     if len(user_args) == 2 and user_args[0] == "steward" and user_args[1] in ("continue", "chat"):
@@ -93,15 +87,11 @@ def main():
         user_args = ["steward", "chat", *user_args[1:]]
     # life t/abc123, life o/abc, life i/abc, life s/201 → resolve ref directly
     if len(user_args) == 1 and "/" in user_args[0] and not user_args[0].startswith("-"):
-        from .ref import _resolve_and_print
-
         if not _resolve_and_print(user_args[0]):
             sys.stderr.write(f"nothing found: '{user_args[0]}'\n")
             sys.exit(1)
         return
     if user_args[0] == "hook":
-        from .hooks import main as hook_main
-
         sys.argv = ["life", *user_args]
         hook_main()
         return

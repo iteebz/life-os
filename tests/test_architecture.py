@@ -199,35 +199,3 @@ def test_no_upward_imports():
             for file, lineno, mod in refs:
                 violations.append(f"  {file}:{lineno}  {src}→{tgt} (layer {src_layer}→{tgt_layer}): {mod}")
     assert not violations, "upward imports violate layer DAG:\n" + "\n".join(violations)
-
-
-# Mid-function imports (PLC0415) are usually laziness, not a real circular-import guard.
-# Ratchet: baseline can only go down. Bump PLC0415 to "error" in pyproject once this hits 0.
-_MID_FILE_IMPORT_MAX = 39
-
-
-def test_mid_file_imports_do_not_increase():
-    """Deferred (non-top-level) imports must not exceed the current baseline. Fix laziness, don't add more."""
-    import subprocess
-
-    repo_root = LIFE_ROOT.parent
-    result = subprocess.run(
-        ["ruff", "check", "--select", "PLC0415", "--no-cache", "--output-format", "json", "life", "lifeos"],
-        cwd=repo_root,
-        capture_output=True,
-        text=True,
-    )
-    import json
-
-    violations = json.loads(result.stdout) if result.stdout else []
-    count = len(violations)
-    assert count <= _MID_FILE_IMPORT_MAX, (
-        f"mid-file imports grew to {count} (max {_MID_FILE_IMPORT_MAX}) — "
-        "move new imports to the top of the file, or justify with `# noqa: PLC0415`:\n"
-        + "\n".join(f"  {v['filename']}:{v['location']['row']}" for v in violations if count > _MID_FILE_IMPORT_MAX)
-    )
-    if count < _MID_FILE_IMPORT_MAX:
-        warnings.warn(
-            f"mid-file imports down to {count} (was {_MID_FILE_IMPORT_MAX}) — lower _MID_FILE_IMPORT_MAX",
-            stacklevel=1,
-        )

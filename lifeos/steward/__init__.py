@@ -1,5 +1,7 @@
+import contextlib
 import json
 import os
+import signal
 import uuid
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -105,11 +107,8 @@ def close_session(
             row = conn.execute("SELECT pid FROM sessions WHERE id = ?", (session_id,)).fetchone()
         pid = row[0] if row else None
         if pid:
-            import contextlib
-            import signal as _signal
-
             with contextlib.suppress(OSError):
-                os.kill(pid, _signal.SIGTERM)
+                os.kill(pid, signal.SIGTERM)
 
     sets = [
         "state = 'closed'",

@@ -6,12 +6,16 @@ from pathlib import Path
 import fncli
 import pytest
 
+import life.cli  # noqa: F401 — side-effect: registers CLI commands
 import lifeos.core.config as life_config
 import lifeos.core.lib.clock as clock
+from life.dash import dashboard
 from lifeos.core.errors import LifeError
 from lifeos.core.lib.store import configure as configure_store
 from lifeos.core.store.connection import reset_for_testing
 from lifeos.core.store.migrations import init as db_init
+
+_dashboard = getattr(dashboard, "__wrapped__", dashboard)
 
 _discovered = False
 
@@ -25,14 +29,8 @@ def invoke(argv: list[str]) -> fncli.Result:
     global _discovered
 
     if not _discovered:
-        import life.cli  # noqa: F401 — side-effect: registers CLI commands; deferred to avoid circular
-
         fncli.autodiscover(Path(__file__).parent.parent / "life", "life")
         _discovered = True
-
-    from life.dash import dashboard
-
-    _dashboard = getattr(dashboard, "__wrapped__", dashboard)
 
     out_buf = io.StringIO()
     err_buf = io.StringIO()

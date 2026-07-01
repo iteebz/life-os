@@ -9,9 +9,9 @@ import time
 
 from life.comms import events
 from life.hooks import git, session, signals, skills
+from lifeos.core.lib.repos import push_repos
 from lifeos.core.lib.store import get_db
 from lifeos.core.store.migrations import init
-from lifeos.steward.sleep import _push_repos
 
 
 def cmd_hook_prompt() -> None:
@@ -100,7 +100,7 @@ def cmd_hook_session_end() -> None:
                     (summary, row[0]),
                 )
     with contextlib.suppress(Exception):
-        _push_repos()
+        push_repos()
 
 
 _BLOCKED_BASH = [

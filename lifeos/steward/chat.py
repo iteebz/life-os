@@ -9,7 +9,9 @@ from pathlib import Path
 
 from fncli import cli
 
+from life.ctx.assemble import build_chat_prompt
 from lifeos.core.lib.providers.claude import build_env
+from lifeos.core.lib.store import get_db
 
 from . import (
     get_sessions,
@@ -79,8 +81,6 @@ def _build_system_prompt(source: str, raw: bool) -> str:
     """Compose --append-system-prompt: wake context (unless raw) + session meta."""
     parts = []
     if not raw:
-        from life.ctx.assemble import build_chat_prompt  # noqa: I001 — cycle: steward.chat→ctx.assemble→ctx.sections→life.steward→steward.chat
-
         wake = build_chat_prompt()
         if wake:
             parts.append(wake)
@@ -159,8 +159,6 @@ def _launch(
 
 
 def _lookup_session_id(provider_session_id: str) -> int | None:
-    from lifeos.core.lib.store import get_db
-
     with get_db() as conn:
         row = conn.execute(
             "SELECT id FROM sessions WHERE provider_session_id = ? ORDER BY id DESC LIMIT 1",

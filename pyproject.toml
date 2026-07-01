@@ -100,7 +100,6 @@ ignore = [
     "S608",     # SQL string — column names not user input
     "S108",     # /tmp usage — acceptable
     "B008",     # mutable default arg — fncli pattern
-    "PLC0415",  # deferred imports — circular guard pattern, intentional
     "S110",     # try-except-pass — suppress patterns, intentional
     "S112",     # try-except-continue — daemon resilience pattern
 ]

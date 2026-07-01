@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from datetime import date, timedelta
 
 from life.habit import get_subhabits
+from life.note import get_noted_ids
 from life.task import task_sort_key
 from lifeos.core.lib import clock
 from lifeos.core.lib.ansi import NAMED_COLORS, POOL, dim, gray, green, purple, red, theme
@@ -105,8 +106,6 @@ class RenderCtx:
         items: Sequence[Task | Habit],
         today_items: Sequence[Task | Habit] | None = None,
     ) -> "RenderCtx":
-        from life.note import get_noted_ids
-
         today = clock.today()
         pending = [i for i in items if isinstance(i, Task)]
         tag_colors = build_tag_colors(list(items) + list(today_items or []))

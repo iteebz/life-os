@@ -3,7 +3,7 @@
 from datetime import date, timedelta
 
 from life.task.rows import RenderCtx, habit_sort_key, row_daily_habit, row_task
-from life.task.sections import section_header, section_overdue, section_schedule, section_vices
+from life.task.sections import section_done_today, section_header, section_overdue, section_schedule, section_vices
 from lifeos.core.lib import clock
 from lifeos.core.lib.ansi import bold, gold, gray, purple, theme
 from lifeos.core.lib.dates import upcoming_dates
@@ -77,8 +77,6 @@ def render_minimal(
     today_items: list[Task | Habit] | None = None,
 ) -> str:
     """Three blocks: DONE timeline, HABITS scannable, TASKS today+tomorrow."""
-    from life.task.render import _section_done_today
-
     habits_today, tasks_today, added_today, deleted_today = today_breakdown
     ctx = RenderCtx.build(items, today_items)
 
@@ -99,7 +97,7 @@ def render_minimal(
 
     lines: list[str] = []
     lines += section_header(ctx.today, tasks_today, habits_today, total_habits, added_today, deleted_today)
-    lines += _section_done_today(ctx, today_items or [], all_habits, checked_ids, due_today_ids)
+    lines += section_done_today(ctx, today_items or [], all_habits, checked_ids, due_today_ids)
     lines += _habits(all_habits, checked_ids, ctx)
     lines += section_vices(all_habits, checked_ids, ctx)
 

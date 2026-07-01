@@ -1,6 +1,7 @@
 """Ambient context signals injected on PreToolUse."""
 
 import contextlib
+import os
 import subprocess
 import time
 from pathlib import Path
@@ -10,16 +11,15 @@ from life.habit import get_habits
 from life.mood import get_recent_moods
 from life.task import get_tasks
 from lifeos.core.lib.clock import today
+from lifeos.steward.ping import drain
 
 _LIFE_ROOT = Path.home() / "life"
 _LIFE_OS_ROOT = _LIFE_ROOT / "life-os"
 
 
 def _state_path() -> Path:
-    import os
-
-    key = os.environ.get("STEWARD_SESSION_ID") or str(__import__("os").getppid())
-    return Path(__import__("os").environ.get("TMPDIR", "/tmp")) / f".life_hook_{key}"
+    key = os.environ.get("STEWARD_SESSION_ID") or str(os.getppid())
+    return Path(os.environ.get("TMPDIR", "/tmp")) / f".life_hook_{key}"
 
 
 def load_state() -> dict[str, str]:
@@ -60,8 +60,6 @@ def inbox_signal(state: dict[str, str], parts: list[str]) -> None:
 
 
 def ping_signal(state: dict[str, str], parts: list[str]) -> None:
-    from lifeos.steward.ping import drain
-
     last = int(state.get("last_ping_id", "0"))
     with contextlib.suppress(Exception):
         pings, max_id = drain(last)

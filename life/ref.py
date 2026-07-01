@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from fncli import UsageError, cli
 
-from lifeos.core.lib.ids import parse_ref
+from life.improvements import get_improvements
+from life.note import get_notes
+from life.resolve import resolve_task
+from life.task.domain import get_mutations, get_subtasks, get_task
+from life.task.render import render_task_detail
+from lifeos.core.lib.ids import parse_ref, resolve_prefix
+from lifeos.steward import get_observations, get_sessions
 
 
 def _resolve_and_print(ref: str) -> bool:
@@ -31,8 +37,6 @@ def _resolve_and_print(ref: str) -> bool:
 
 
 def _print_notes(entity_type: str, entity_id: str) -> None:
-    from life.note import get_notes
-
     notes = get_notes(entity_type, entity_id)
     # also try 8-char prefix — life note stores whatever the user typed
     if not notes and len(entity_id) > 8:
@@ -44,12 +48,7 @@ def _print_notes(entity_type: str, entity_id: str) -> None:
 
 
 def _try_task(ref: str) -> bool:
-    from life.task.domain import get_mutations, get_subtasks, get_task
-    from life.task.render import render_task_detail
-
     try:
-        from life.resolve import resolve_task
-
         t = resolve_task(ref)
     except Exception:
         return False
@@ -68,9 +67,6 @@ def _try_task(ref: str) -> bool:
 
 
 def _try_obs(fragment: str) -> bool:
-    from lifeos.core.lib.ids import resolve_prefix
-    from lifeos.steward import get_observations
-
     obs = resolve_prefix(fragment, get_observations(limit=500))
     if not obs:
         return False
@@ -85,9 +81,6 @@ def _try_obs(fragment: str) -> bool:
 
 
 def _try_imp(fragment: str) -> bool:
-    from life.improvements import get_improvements
-    from lifeos.core.lib.ids import resolve_prefix
-
     imp = resolve_prefix(fragment, get_improvements(done=True))
     if not imp:
         return False
@@ -100,8 +93,6 @@ def _try_imp(fragment: str) -> bool:
 
 
 def _try_session(fragment: str) -> bool:
-    from lifeos.steward import get_sessions
-
     sessions = get_sessions(limit=500)
     target = next((s for s in sessions if str(s.id) == fragment), None)
     if not target:

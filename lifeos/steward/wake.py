@@ -5,6 +5,7 @@ import sys
 import fncli
 from fncli import cli
 
+from life.ctx.assemble import build_wake
 from lifeos.core.store.migrations import init
 
 
@@ -12,8 +13,6 @@ from lifeos.core.store.migrations import init
 @cli("life steward")
 def wake():
     """Load life state and emit sitrep for interactive session start"""
-    from life.ctx.assemble import build_wake  # noqa: I001 — cycle: steward.wake→ctx.assemble→ctx.sections→life.steward→steward.wake
-
     print(build_wake())
 
 

@@ -19,6 +19,7 @@ from lifeos.core.lib.clock import today
 from lifeos.core.lib.providers import claude
 from lifeos.core.models import Task
 from lifeos.steward._stream import StreamParser, ansi_strip, format_entry
+from lifeos.steward.chat import _build_hook_settings_json
 
 from . import close_session, create_session, messages_since_last_auto_session
 
@@ -182,8 +183,6 @@ def _select_required_real_world_task(tasks: list[Any]) -> Task | None:
 
 
 def _build_cmd_env(prompt: str) -> tuple[list[str], dict[str, str]]:
-    from lifeos.steward.chat import _build_hook_settings_json
-
     env = claude.build_env("auto")
     cmd = [
         "claude",

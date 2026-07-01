@@ -14,6 +14,7 @@ from life.task.rows import (
 from life.task.sections import (
     section_backlog,
     section_done,
+    section_done_today,
     section_habit_summary,
     section_header,
     section_overdue,
@@ -43,54 +44,6 @@ def _pad_hm(t: str) -> str:
     if ":" in t and len(t.split(":", 1)[0]) == 1:
         return "0" + t
     return t
-
-
-def _section_done_today(
-    ctx: RenderCtx,
-    today_items: list[Task | Habit],
-    all_habits: list[Habit],
-    checked_ids: set[str],
-    due_today_ids: set[str],
-) -> list[str]:
-    """Chronological log of what got done today — tasks completed + habits checked."""
-    now_time = clock.now().strftime("%H:%M")
-    entries: list[tuple[str, list[str]]] = []
-
-    for task in (i for i in today_items if isinstance(i, Task) and i.completed_at):
-        if task.id in due_today_ids:
-            continue
-        t_sort = task.completed_at.strftime("%H:%M")  # type: ignore[union-attr]
-        t_disp = fmt_time(task.completed_at)  # type: ignore[union-attr]
-        tags_str = fmt_tags(task.tags, ctx.tag_colors)
-        id_str = f" {dim('[' + task.id[:8] + ']')}"
-        notes_marker = f" {dim('»')}" if task.id in ctx.noted_ids else ""
-        entries.append(
-            (t_sort, [f"  {green('✓')} {gray(t_disp)} {task.content.lower()}{tags_str}{id_str}{notes_marker}"])
-        )
-
-    for habit in all_habits:
-        if habit.private or habit.parent_id or "vice" in (habit.tags or []) or habit.id not in checked_ids:
-            continue
-        day_checks = [c for c in habit.checks if c.date() == ctx.today]
-        check_dt = max(day_checks) if day_checks else None
-        t_str = check_dt.strftime("%H:%M") if check_dt else now_time
-        t_disp = fmt_time(check_dt) if check_dt else now_time
-        tags_str = fmt_tags(habit.tags, ctx.tag_colors)
-        id_str = f" {dim('[' + habit.id[:8] + ']')}"
-        notes_marker = f" {dim('»')}" if habit.id in ctx.noted_ids else ""
-        row = f"  {purple('●')} {gray(t_disp)} {habit.content.lower()}{tags_str}{id_str}{notes_marker}"
-        entries.append((_pad_hm(t_str), [row]))
-
-    if not entries:
-        return []
-
-    entries.sort(key=lambda x: x[0])
-    task_count = sum(1 for i in today_items if isinstance(i, Task) and i.completed_at and i.id not in due_today_ids)
-    habit_count = len(entries) - task_count
-    lines = [f"\n{bold(green(f'DONE ({task_count}+{habit_count})'))}"]
-    for _, rows in entries:
-        lines.extend(rows)
-    return lines
 
 
 def _section_today_outstanding(
@@ -165,7 +118,7 @@ def render_dashboard(
 
     today_str = ctx.today.isoformat()
     due_today_ids = {t.id for t in ctx.pending if t.scheduled_date and t.scheduled_date.isoformat() == today_str}
-    lines += _section_done_today(ctx, today_items or [], all_habits, checked_ids, due_today_ids)
+    lines += section_done_today(ctx, today_items or [], all_habits, checked_ids, due_today_ids)
     today_lines, scheduled_ids = _section_today_outstanding(
         ctx, all_habits, checked_ids, today_str, upcoming_by_date.get(ctx.today, [])
     )

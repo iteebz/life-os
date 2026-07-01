@@ -4,8 +4,10 @@ from pathlib import Path
 
 import fncli
 
+from life.cli import _smart_resume
 from life.hooks import main as hook_main
 from lifeos.core.store.migrations import init
+from lifeos.steward.chat import chat
 
 _SESSION_FLAGS = {"--opus", "--sonnet"}
 
@@ -22,13 +24,9 @@ def main():
     fncli.alias_namespace("life steward", "steward")
     # steward (bare) → new session
     if not args:
-        from lifeos.steward.chat import chat
-
         sys.exit(chat() or 0)
     # steward continue / steward chat → smart resume
     if args[0] in ("continue", "chat") and len(args) == 1:
-        from life.cli import _smart_resume
-
         sys.exit(_smart_resume())
     # steward --opus / --sonnet → new session with that model (unless already in session)
     if args[0] in _SESSION_FLAGS and os.environ.get("STEWARD_MODE") != "chat":
