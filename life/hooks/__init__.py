@@ -8,7 +8,7 @@ import sys
 import time
 
 from life.comms import events
-from life.hooks import git, session, signals
+from life.hooks import git, session, signals, skills
 from lifeos.core.lib.store import get_db
 from lifeos.core.store.migrations import init
 from lifeos.steward.sleep import _push_repos
@@ -26,6 +26,8 @@ def cmd_hook_prompt() -> None:
     rows = events.drain_inbox()
     if rows:
         print("\n[new messages received while you were working]\n" + "\n".join(signals.render_inbox(rows)))
+    for skill_body in skills.inject_matching_skills(body, provider_sid):
+        print("\n" + skill_body)
     session.surface_session_meta(provider_sid)
 
 
