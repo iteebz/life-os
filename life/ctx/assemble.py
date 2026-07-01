@@ -68,7 +68,12 @@ _WAKE_BUDGET = 28_000  # chars — stay well under 100k context
 
 
 def build_wake() -> str:
-    """Compose wake sections up to budget. WAKE_ORDER is priority order — drop from the tail."""
+    """Compose wake sections up to budget. WAKE_ORDER is priority order — drop from the tail.
+
+    Each section is wrapped in its own <name> tag (name = renderer without the
+    render_ prefix, matching `life steward inspect`) so the model can reference
+    subparts and per-section content can be diffed across refs.
+    """
     parts: list[str] = []
     total = 0
     for renderer in WAKE_ORDER:
@@ -81,7 +86,8 @@ def build_wake() -> str:
         if total + len(text) > _WAKE_BUDGET:
             parts.append(f"[wake truncated at {total} chars — {_WAKE_BUDGET} budget]")
             break
-        parts.append(text)
+        name = renderer.__name__.removeprefix("render_")
+        parts.append(f"<{name}>\n{text}\n</{name}>")
         total += len(text)
     return "\n\n".join(parts)
 
