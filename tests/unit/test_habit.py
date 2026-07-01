@@ -1,7 +1,9 @@
 from life.habit import (
     add_habit,
     get_checks,
+    get_habit,
     get_habits,
+    merge_habit,
     toggle_check,
 )
 
@@ -43,3 +45,27 @@ def test_check_to_completion(tmp_life_dir):
     habits = get_habits()
     assert len(habits) == 1
     assert habits[0].id == iid
+
+
+def test_merge_habit_moves_checks_and_soft_deletes_source(tmp_life_dir):
+    source_id = add_habit("gym")
+    target_id = add_habit("exercise")
+    toggle_check(source_id)
+
+    merge_habit(get_habit(source_id), get_habit(target_id))
+
+    assert get_habit(source_id) is None
+    target = get_habit(target_id)
+    assert len(target.checks) == 1
+
+
+def test_merge_habit_skips_conflicting_dates(tmp_life_dir):
+    source_id = add_habit("gym")
+    target_id = add_habit("exercise")
+    toggle_check(source_id)
+    toggle_check(target_id)
+
+    merge_habit(get_habit(source_id), get_habit(target_id))
+
+    target = get_habit(target_id)
+    assert len(target.checks) == 1

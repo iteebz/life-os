@@ -28,6 +28,7 @@ __all__ = [
     "get_habits",
     "get_streak",
     "get_subhabits",
+    "merge_habit",
     "rename_habit",
     "resolve_habit",
     "toggle_check",
@@ -318,6 +319,20 @@ def rename_habit(habit: Habit, to_content: str) -> None:
     update_habit(habit.id, content=to_content)
 
 
+def merge_habit(source: Habit, target: Habit) -> None:
+    """Reassign source's check history onto target, then soft-delete source."""
+    if source.id == target.id:
+        raise ValidationError(f"cannot merge '{source.content}' into itself")
+    with get_db() as conn:
+        conn.execute(
+            "UPDATE habit_checks SET habit_id = ? WHERE habit_id = ? "
+            "AND check_date NOT IN (SELECT check_date FROM habit_checks WHERE habit_id = ?)",
+            (target.id, source.id, target.id),
+        )
+        conn.execute("DELETE FROM habit_checks WHERE habit_id = ?", (source.id,))
+    delete_habit(source.id)
+
+
 def check_habit_cmd(habit: Habit, check_time: str | None = None) -> None:
     if check_time:
         check_habit(habit.id, check_time=check_time)
@@ -351,6 +366,15 @@ def archive(ref: str | None = None, list_archived: bool = False) -> None:
     h = resolve_habit(ref)
     archive_habit(h.id)
     print(f"{ansi.dim(h.content)}  archived")
+
+
+@cli("life")
+def merge(source_ref: str, target_ref: str) -> None:
+    """Merge one habit's history into another: `life merge <from> <to>`"""
+    source = resolve_habit(source_ref)
+    target = resolve_habit(target_ref)
+    merge_habit(source, target)
+    print(f"{ansi.dim(source.content)} merged into {target.content.lower()}")
 
 
 def _render_habit_matrix(habits: list[Habit]) -> str:
