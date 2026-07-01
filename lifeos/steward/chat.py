@@ -21,7 +21,7 @@ from . import (
 
 LIFE_DIR = Path.home() / "life"
 TOOLS = "Bash,Read,Write,Edit,Grep,Glob,WebFetch,WebSearch"
-DEFAULT_MODEL = "sonnet"
+DEFAULT_MODEL = "claude-sonnet-5"
 SESSION_TIMEOUT = 3300  # 55m
 SESSION_MAX_CHARS = 100_000
 
@@ -201,7 +201,7 @@ def chat(
     if opus:
         model = "opus"
     elif sonnet:
-        model = "sonnet"
+        model = "claude-sonnet-5"
     model = model or DEFAULT_MODEL
     session_id = str(uuid.uuid4())
     label = name or datetime.now().strftime("%b %d %H:%M").lower()

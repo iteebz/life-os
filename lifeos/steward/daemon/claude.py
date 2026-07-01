@@ -59,7 +59,7 @@ def run_claude(
         "--print",
         "--dangerously-skip-permissions",
         "--model",
-        "claude-sonnet-4-6",
+        "claude-sonnet-5",
         "--settings",
         json.dumps(SPAWN_SETTINGS),
     ]
