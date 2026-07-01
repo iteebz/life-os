@@ -127,7 +127,7 @@ def _launch(
         "--append-system-prompt",
         _build_system_prompt(source, raw or resume),
         "--name",
-        f"steward ({model})",
+        f"steward ({_display_model(model)})",
         "--settings",
         _build_hook_settings_json(),
     ]
@@ -148,6 +148,7 @@ def _launch(
     env["GIT_COMMITTER_NAME"] = "steward"
     env["GIT_COMMITTER_EMAIL"] = "steward@life-os"
 
+    print(f"\033]0;steward ({_display_model(model)})\007", end="", flush=True)
     proc = subprocess.Popen(cmd, cwd=LIFE_DIR, env=env)
     if db_session_id is not None:
         set_session_pid(db_session_id, proc.pid)
@@ -156,6 +157,17 @@ def _launch(
     if resolved_id is not None:
         set_session_idle(resolved_id)
     return rc
+
+
+_MODEL_LABELS = {
+    "opus": "opus-4.6",
+    "sonnet": "sonnet-5",
+    "claude-sonnet-5": "sonnet-5",
+}
+
+
+def _display_model(model: str) -> str:
+    return _MODEL_LABELS.get(model, model)
 
 
 def _lookup_session_id(provider_session_id: str) -> int | None:
