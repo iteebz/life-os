@@ -203,7 +203,7 @@ def test_no_upward_imports():
 
 # Mid-function imports (PLC0415) are usually laziness, not a real circular-import guard.
 # Ratchet: baseline can only go down. Bump PLC0415 to "error" in pyproject once this hits 0.
-_MID_FILE_IMPORT_MAX = 44
+_MID_FILE_IMPORT_MAX = 39
 
 
 def test_mid_file_imports_do_not_increase():

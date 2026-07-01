@@ -11,6 +11,8 @@ from pathlib import Path
 
 from fncli import cli
 
+from life.health import score
+
 LIFE_DIR = Path.home() / "life"
 SETTINGS = LIFE_DIR / ".claude" / "settings.local.json"
 PLIST = Path.home() / "Library" / "LaunchAgents" / "com.life.daemon.plist"
@@ -98,8 +100,6 @@ def doctor() -> int:
     print("\ndb:")
     if DB.exists():
         _ok(f"db at {DB}")
-        from life.health import score
-
         result = score()
         if result["ok"]:
             total = sum(result.get("table_counts", {}).values())

@@ -1,6 +1,7 @@
 """Utterance corpus. Tyson's raw messages, indexed for recall and ICL."""
 
 import json
+import time
 
 from lifeos.core.lib.store import get_db
 
@@ -38,8 +39,6 @@ def backfill() -> int:
 def record(body: str, event_id: int | None = None, session_id: int | None = None, ts: int | None = None) -> int:
     """Insert a single human utterance. Returns new row id."""
     if ts is None:
-        import time
-
         ts = int(time.time())
     with get_db() as conn:
         cur = conn.execute(

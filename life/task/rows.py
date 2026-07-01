@@ -1,6 +1,7 @@
 """Row-level rendering primitives for tasks and habits."""
 
 import dataclasses
+import hashlib
 from collections.abc import Sequence
 from datetime import date, timedelta
 
@@ -65,8 +66,6 @@ def get_direct_tags(task: Task, pending: list[Task]) -> list[str]:
 
 
 def _tag_hash(tag: str) -> int:
-    import hashlib
-
     return int(hashlib.md5(tag.encode()).hexdigest(), 16)
 
 

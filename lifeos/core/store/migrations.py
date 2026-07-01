@@ -1,4 +1,5 @@
 import contextlib
+import importlib.util
 import json
 import logging
 import re
@@ -230,8 +231,6 @@ def load_migrations() -> list[Migration]:
         if f.suffix == ".sql":
             result.append((f.stem, f.read_text()))
         elif f.suffix == ".py":
-            import importlib.util
-
             spec = importlib.util.spec_from_file_location(f.stem, f)
             if spec and spec.loader:
                 mod = importlib.util.module_from_spec(spec)
