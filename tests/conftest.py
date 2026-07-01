@@ -6,7 +6,6 @@ from pathlib import Path
 import fncli
 import pytest
 
-import life.lib.clock as life_clock
 import lifeos.core.config as life_config
 import lifeos.core.lib.clock as clock
 from lifeos.core.errors import LifeError
@@ -99,6 +98,4 @@ def fixed_today(monkeypatch):
     fixed_date = date(2025, 10, 30)
     monkeypatch.setattr(clock, "today", lambda: fixed_date)
     monkeypatch.setattr(clock, "now", lambda: datetime.combine(fixed_date, time.min))
-    monkeypatch.setattr(life_clock, "today", lambda: fixed_date)
-    monkeypatch.setattr(life_clock, "now", lambda: datetime.combine(fixed_date, time.min))
     return fixed_date

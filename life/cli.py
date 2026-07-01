@@ -6,10 +6,9 @@ from pathlib import Path
 import fncli
 
 from lifeos.core.errors import LifeError
+from lifeos.core.store import migrations as db
 from lifeos.steward import get_sessions
 from lifeos.steward.chat import DEFAULT_MODEL, _launch, chat
-
-from .store import migrations as db
 
 _STEWARD_CHAT_FLAGS = {"--opus", "--sonnet", "-m", "--model", "-n", "--name", "--raw"}
 _RESUME_WINDOW_SECONDS = 3600
@@ -40,9 +39,10 @@ def _watch() -> None:
     from rich.live import Live
     from rich.text import Text
 
+    from lifeos.core.lib import clock
+    from lifeos.core.lib.ansi import theme
+
     from .dash import get_habits, get_tasks, get_today_breakdown, get_today_completed
-    from .lib import clock
-    from .lib.ansi import theme
     from .task.render import render_dashboard
 
     def _render() -> Text:

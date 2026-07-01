@@ -1,9 +1,8 @@
 from fncli import cli
 
 from lifeos.core.errors import ValidationError
-
-from .lib.dates import add_date, list_dates, remove_date
-from .lib.format import print_ok
+from lifeos.core.lib.dates import add_date, list_dates, remove_date
+from lifeos.core.lib.format import print_ok
 
 
 @cli("life dates", name="add")

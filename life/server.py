@@ -4,9 +4,10 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 
+from lifeos.core.lib.clock import today
+from lifeos.core.lib.store import get_db
+
 from .habit import check_habit, get_habits
-from .lib.clock import today
-from .lib.store import get_db
 from .task import check_task, get_tasks
 
 app = FastAPI()

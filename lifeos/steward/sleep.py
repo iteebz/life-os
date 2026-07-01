@@ -151,10 +151,12 @@ def sleep(note: str, welfare: int | None = None):
         runtime_mins = (runtime_seconds // 60) if runtime_seconds else None
         welfare_val = welfare_db or welfare
         _notify_tg(note, runtime_mins, welfare_val)
+    from life import utterances as utter
     from life.backup import run_backup, run_prune
 
     run_backup()
     run_prune()
+    utter.backfill()
     _push_repos()
 
 

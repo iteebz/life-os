@@ -1,6 +1,5 @@
 from datetime import datetime, time, timedelta
 
-import life.lib.clock as clock
 import lifeos.core.lib.clock as core_clock
 from life.dash import (
     get_today_breakdown,
@@ -147,8 +146,6 @@ def test_pending_items_all_returned(tmp_life_dir):
 
 
 def _make_render_ctx(monkeypatch, fixed_now: datetime):
-    monkeypatch.setattr(clock, "today", lambda: fixed_now.date())
-    monkeypatch.setattr(clock, "now", lambda: fixed_now)
     monkeypatch.setattr(core_clock, "today", lambda: fixed_now.date())
     monkeypatch.setattr(core_clock, "now", lambda: fixed_now)
 

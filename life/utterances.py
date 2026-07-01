@@ -53,7 +53,8 @@ def record(body: str, event_id: int | None = None, session_id: int | None = None
 def search(query: str, limit: int = 10) -> list[dict]:
     """FTS search over utterances. Returns list of {id, body, ts, session_id}."""
     with get_db() as conn:
-        fts_query = " ".join(query.split())
+        # quote each term so FTS5 special chars (', -, ", etc.) in raw speech don't break MATCH syntax
+        fts_query = " ".join(f'"{w}"' for w in query.split() if w)
         rows = conn.execute(
             "SELECT u.id, u.body, u.ts, u.session_id "
             "FROM utterances_fts f "
