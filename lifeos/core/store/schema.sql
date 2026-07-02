@@ -124,7 +124,7 @@ CREATE TABLE improvements (
     done_at TIMESTAMP,
     deleted_at TIMESTAMP,
     promoted_at TIMESTAMP,
-    initiative TEXT
+    trail TEXT
 );
 
 CREATE TABLE achievements (
