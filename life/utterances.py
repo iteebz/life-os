@@ -1,16 +1,9 @@
 """Utterance corpus. Tyson's raw messages, indexed for recall and ICL."""
 
-import json
 import time
+from typing import Any
 
 from lifeos.core.lib.store import get_db
-
-
-def _extract_body(payload: str) -> str | None:
-    try:
-        return json.loads(payload).get("body")
-    except Exception:
-        return None
 
 
 def backfill() -> int:
@@ -46,10 +39,10 @@ def record(body: str, event_id: int | None = None, session_id: int | None = None
             (event_id, session_id, body, ts),
         )
         conn.commit()
-        return cur.lastrowid  # type: ignore[return-value]
+        return cur.lastrowid
 
 
-def search(query: str, limit: int = 10) -> list[dict]:
+def search(query: str, limit: int = 10) -> list[dict[str, Any]]:
     """FTS search over utterances. Returns list of {id, body, ts, session_id}."""
     with get_db() as conn:
         # quote each term so FTS5 special chars (', -, ", etc.) in raw speech don't break MATCH syntax

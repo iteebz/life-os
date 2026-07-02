@@ -43,7 +43,7 @@ def get_noted_ids(entity_type: str, ids: list[str]) -> set[str]:
             f"SELECT DISTINCT entity_id FROM notes WHERE entity_type = ? AND SUBSTR(entity_id, 1, 8) IN ({placeholders}) AND deleted_at IS NULL",
             (entity_type, *prefixes),
         ).fetchall()
-    return {prefix_to_full.get(r[0][:8], r[0]) for r in rows}
+    return {prefix_to_full.get(str(r[0])[:8], str(r[0])) for r in rows}
 
 
 def get_notes(entity_type: str, entity_id: str) -> list[Note]:
