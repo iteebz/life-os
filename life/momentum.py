@@ -1,3 +1,4 @@
+import json
 import math
 from collections import defaultdict
 from dataclasses import dataclass
@@ -59,8 +60,27 @@ def _tag_weight(tags: set[str]) -> float:
     return max((TAG_WEIGHTS.get(t, DEFAULT_WEIGHT) for t in tags), default=DEFAULT_WEIGHT)
 
 
+def _net_latest(rows: list[tuple]) -> dict:
+    """Collapse (kind, payload) rows ordered by ts into latest-state-per-key.
+
+    rows: (ts, kind, payload_json) ordered ascending by ts. Later rows overwrite
+    earlier ones for the same net key, mirroring "current row state" from a table.
+    """
+    latest: dict[str, tuple[str, dict]] = {}
+    for _ts, kind, payload_json in rows:
+        payload = json.loads(payload_json)
+        key = payload.get("_net_key")
+        latest[key] = (kind, payload)
+    return latest
+
+
 def _load_events(conn) -> list[tuple[datetime, float, set[str]]]:
-    """All scoring events in last WINDOW_HOURS: tasks done + habit checks."""
+    """All scoring events in last WINDOW_HOURS: tasks done + habit checks.
+
+    Derived from the `events` spine (phase 2) instead of joining `tasks` +
+    `habit_checks` directly. Net latest state per task/habit-day, same as
+    reading current table rows would give.
+    """
     task_tags: dict[str, set[str]] = defaultdict(set)
     habit_tags: dict[str, set[str]] = defaultdict(set)
     for tid, tag in conn.execute("SELECT task_id, tag FROM tags WHERE task_id IS NOT NULL"):
@@ -69,23 +89,39 @@ def _load_events(conn) -> list[tuple[datetime, float, set[str]]]:
         habit_tags[hid].add(tag)
 
     events: list[tuple[datetime, float, set[str]]] = []
-    cutoff = (datetime.now(UTC) - timedelta(hours=WINDOW_HOURS + 1)).isoformat()
+    cutoff_ts = int((datetime.now(UTC) - timedelta(hours=WINDOW_HOURS + 1)).timestamp())
 
-    for tid, completed in conn.execute(
-        "SELECT id, completed_at FROM tasks WHERE completed_at IS NOT NULL AND deleted_at IS NULL AND completed_at >= ?",
-        (cutoff,),
-    ):
-        tags = task_tags.get(tid, set())
-        events.append((_parse(completed), _tag_weight(tags), tags))
+    task_rows = conn.execute(
+        "SELECT ts, kind, payload FROM events "
+        "WHERE kind IN ('task.done', 'task.unchecked', 'task.deleted') AND ts >= ? ORDER BY id",
+        (cutoff_ts,),
+    ).fetchall()
+    task_rows = [(ts, kind, _with_net_key(payload, "task_id")) for ts, kind, payload in task_rows]
+    for kind, payload in _net_latest(task_rows).values():
+        if kind != "task.done":
+            continue
+        tags = task_tags.get(payload["task_id"], set())
+        events.append((_parse(payload["completed_at"]), _tag_weight(tags), tags))
 
-    for hid, completed in conn.execute(
-        "SELECT habit_id, completed_at FROM habit_checks WHERE completed_at >= ?",
-        (cutoff,),
-    ):
-        tags = habit_tags.get(hid, set())
-        events.append((_parse(completed), HABIT_SCALE * _tag_weight(tags), tags))
+    habit_rows = conn.execute(
+        "SELECT ts, kind, payload FROM events WHERE kind IN ('habit.checked', 'habit.unchecked') AND ts >= ? ORDER BY id",
+        (cutoff_ts,),
+    ).fetchall()
+    habit_rows = [(ts, kind, _with_net_key(payload, "habit_id", "check_date")) for ts, kind, payload in habit_rows]
+    for kind, payload in _net_latest(habit_rows).values():
+        if kind != "habit.checked":
+            continue
+        tags = habit_tags.get(payload["habit_id"], set())
+        events.append((_parse(payload["completed_at"]), HABIT_SCALE * _tag_weight(tags), tags))
 
     return events
+
+
+def _with_net_key(payload_json: str, *fields: str) -> str:
+    """Stamp a payload with a `_net_key` derived from its identity fields."""
+    payload = json.loads(payload_json)
+    payload["_net_key"] = "|".join(str(payload[f]) for f in fields)
+    return json.dumps(payload)
 
 
 def _stale_count(conn, asof: datetime) -> int:
