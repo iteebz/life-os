@@ -5,6 +5,7 @@ from datetime import date, datetime, timedelta
 
 from fncli import UsageError, cli
 
+from life.comms.events import record as emit_event
 from life.tag import get_tags_for_habit, load_tags_for_habits
 from lifeos.core.errors import NotFoundError, StoreIntegrityError, ValidationError
 from lifeos.core.lib import ansi, clock
@@ -283,6 +284,15 @@ def check_habit(habit_id: str, check_on: date | None = None, check_time: str | N
                 "INSERT INTO habit_checks (habit_id, check_date, completed_at) VALUES (?, ?, ?)",
                 (habit_id, check_date, completed_at),
             )
+    emit_event(
+        "habit.checked",
+        payload={
+            "habit_id": habit_id,
+            "content": habit.content,
+            "check_date": check_date,
+            "completed_at": completed_at,
+        },
+    )
     return get_habit(habit_id)
 
 
@@ -296,6 +306,10 @@ def uncheck_habit(habit_id: str, check_on: date | None = None) -> Habit | None:
             "DELETE FROM habit_checks WHERE habit_id = ? AND check_date = ?",
             (habit_id, check_date),
         )
+    emit_event(
+        "habit.unchecked",
+        payload={"habit_id": habit_id, "content": habit.content, "check_date": check_date},
+    )
     return get_habit(habit_id)
 
 
