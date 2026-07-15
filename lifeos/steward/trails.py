@@ -47,7 +47,7 @@ def trail_index() -> list[tuple[str, str, str | None]]:
 @cli("life")
 @cli("life steward")
 def trails() -> None:
-    """List active trails from steward/trails/"""
+    """List active trails from steward/work/trails/"""
     files = _files()
     if not files:
         print("no trails")

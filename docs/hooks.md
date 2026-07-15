@@ -67,9 +67,9 @@ today there's one schema:
 
 | glob | required field | valid values |
 |------|----------------|--------------|
-| `steward/initiatives/` | `status` | idea, design, active, closed, done |
+| `steward/work/trails/` | `description` | any non-empty |
 
-adding a new schema is one line in `_FRONTMATTER_SCHEMAS` (hook.py). set
+adding a new schema is one line in `_FRONTMATTER_SCHEMAS` (life/hooks/git.py). set
 `valid_values` to `None` if any non-empty value is acceptable. keep the schema
 table small — every entry is a contract you're promising to maintain.
 

@@ -223,7 +223,7 @@ def render_trails() -> str:
     items = trail_index()
     if not items:
         return ""
-    out = ["TRAILS (steward/trails/):"]
+    out = ["TRAILS (steward/work/trails/):"]
     for _slug, title, desc in items:
         suffix = f"  —  {desc}" if desc else ""
         out.append(f"  {title}{suffix}")
