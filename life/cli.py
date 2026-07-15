@@ -21,7 +21,7 @@ from .hooks import main as hook_main
 from .ref import _resolve_and_print
 from .task.render import render_dashboard
 
-_STEWARD_CHAT_FLAGS = {"--opus", "--sonnet", "-m", "--model", "-n", "--name", "--raw"}
+_STEWARD_CHAT_FLAGS = {"--opus", "--sonnet", "--fable", "-m", "--model", "-n", "--name", "--raw"}
 _RESUME_WINDOW_SECONDS = 3600
 
 

@@ -163,6 +163,7 @@ _MODEL_LABELS = {
     "opus": "opus-4.6",
     "sonnet": "sonnet-5",
     "claude-sonnet-5": "sonnet-5",
+    "claude-fable-5": "fable-5",
 }
 
 
@@ -201,17 +202,25 @@ def set_key(key: str):
         "name": ["-n", "--name"],
         "opus": ["--opus"],
         "sonnet": ["--sonnet"],
+        "fable": ["--fable"],
         "raw": ["--raw"],
     },
 )
 def chat(
-    model: str | None = None, name: str | None = None, opus: bool = False, sonnet: bool = False, raw: bool = False
+    model: str | None = None,
+    name: str | None = None,
+    opus: bool = False,
+    sonnet: bool = False,
+    fable: bool = False,
+    raw: bool = False,
 ):
     """Start a tracked interactive steward session"""
     if opus:
         model = "opus"
     elif sonnet:
         model = "claude-sonnet-5"
+    elif fable:
+        model = "claude-fable-5"
     model = model or DEFAULT_MODEL
     session_id = str(uuid.uuid4())
     label = name or datetime.now().strftime("%b %d %H:%M").lower()

@@ -9,7 +9,7 @@ from life.hooks import main as hook_main
 from lifeos.core.store.migrations import init
 from lifeos.steward.chat import chat
 
-_SESSION_FLAGS = {"--opus", "--sonnet"}
+_SESSION_FLAGS = {"--opus", "--sonnet", "--fable"}
 
 
 def main():
