@@ -4,8 +4,8 @@ import contextlib
 import re
 from pathlib import Path
 
-from life.comms import events
 from life.hooks import signals
+from lifeos.core.comms import events
 from lifeos.core.lib.frontmatter import field
 
 _SKILLS_DIR = Path.home() / "life" / "steward" / "skills"

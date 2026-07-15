@@ -10,11 +10,6 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 
 from life.achievements import get_achievements
-from life.comms.accounts import list_accounts
-from life.comms.drafts import list_pending_drafts
-from life.comms.events import peek_inbox
-from life.comms.messages.telegram import get_history
-from life.comms.services import get_email_adapter
 from life.contacts import get_stale_contacts
 from life.feedback import build_feedback_snapshot, render_feedback_headline
 from life.habit import get_habits
@@ -22,6 +17,11 @@ from life.improvements import get_improvements, get_improvements_done_on
 from life.mood import get_recent_moods
 from life.skills import list_skills
 from life.task import get_all_tasks, get_tasks
+from lifeos.core.comms.accounts import list_accounts
+from lifeos.core.comms.drafts import list_pending_drafts
+from lifeos.core.comms.events import peek_inbox
+from lifeos.core.comms.messages.telegram import get_history
+from lifeos.core.comms.services import get_email_adapter
 from lifeos.core.lib.clock import today
 from lifeos.core.lib.dates import list_dates
 from lifeos.core.lib.format import format_elapsed

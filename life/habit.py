@@ -5,8 +5,8 @@ from datetime import date, datetime, timedelta
 
 from fncli import UsageError, cli
 
-from life.comms.events import record as emit_event
 from life.tag import get_tags_for_habit, load_tags_for_habits
+from lifeos.core.comms.events import record as emit_event
 from lifeos.core.errors import NotFoundError, StoreIntegrityError, ValidationError
 from lifeos.core.lib import ansi, clock
 from lifeos.core.lib.converters import row_to_habit

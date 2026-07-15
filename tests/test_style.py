@@ -11,7 +11,7 @@ LIFE_ROOT = Path(__file__).parent.parent / "life"
 # Each entry is (file_suffix, import_name, alias_name).
 EXEMPTIONS = {
     # stdlib signal collision: `import signal as _signal` avoids shadowing
-    # life.comms.messages.signal used elsewhere in the same file
+    # lifeos.core.comms.messages.signal used elsewhere in the same file
     ("daemon/cli.py", "signal", "_signal"),
     # circular dep noqa'd separately; alias is load-bearing for fncli dispatch
     ("task/cli.py", "add", "_add"),

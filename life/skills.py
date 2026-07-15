@@ -12,7 +12,7 @@ from pathlib import Path
 
 from fncli import cli
 
-from life.comms import events
+from lifeos.core.comms import events
 from lifeos.core.errors import NotFoundError
 from lifeos.core.lib.frontmatter import _RE as _FM_RE
 from lifeos.core.lib.frontmatter import field

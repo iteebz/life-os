@@ -3,6 +3,7 @@ import math
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
+from typing import Any
 
 from fncli import cli
 
@@ -60,13 +61,13 @@ def _tag_weight(tags: set[str]) -> float:
     return max((TAG_WEIGHTS.get(t, DEFAULT_WEIGHT) for t in tags), default=DEFAULT_WEIGHT)
 
 
-def _net_latest(rows: list[tuple]) -> dict:
+def _net_latest(rows: list[tuple[str, str, str]]) -> dict[str, tuple[str, dict[str, Any]]]:
     """Collapse (kind, payload) rows ordered by ts into latest-state-per-key.
 
     rows: (ts, kind, payload_json) ordered ascending by ts. Later rows overwrite
     earlier ones for the same net key, mirroring "current row state" from a table.
     """
-    latest: dict[str, tuple[str, dict]] = {}
+    latest: dict[str, tuple[str, dict[str, Any]]] = {}
     for _ts, kind, payload_json in rows:
         payload = json.loads(payload_json)
         key = payload.get("_net_key")

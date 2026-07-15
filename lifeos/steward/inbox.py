@@ -2,7 +2,7 @@
 
 from fncli import cli
 
-from life.comms.events import peek_inbox
+from lifeos.core.comms.events import peek_inbox
 
 
 @cli("life")

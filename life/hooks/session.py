@@ -5,7 +5,7 @@ import os
 import time
 from datetime import UTC, datetime
 
-from life.comms import events
+from lifeos.core.comms import events
 from lifeos.core.config import get_user_name
 from lifeos.core.lib.store import get_db
 

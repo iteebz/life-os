@@ -6,10 +6,10 @@ import time
 from pathlib import Path
 
 import lifeos.steward.daemon.shared as shared
-from life.comms import accounts as accts_module
-from life.comms.events import mark_read_for_session
-from life.comms.messages import signal as signal_adapter
-from life.comms.messages import telegram as tg
+from lifeos.core.comms import accounts as accts_module
+from lifeos.core.comms.events import mark_read_for_session
+from lifeos.core.comms.messages import signal as signal_adapter
+from lifeos.core.comms.messages import telegram as tg
 from lifeos.core.lib.clock import is_quiet_now
 from lifeos.core.lib.frontmatter import parse as fm_parse
 from lifeos.steward import current_session, hookable_session

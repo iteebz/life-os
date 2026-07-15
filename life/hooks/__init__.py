@@ -7,8 +7,8 @@ import re
 import sys
 import time
 
-from life.comms import events
 from life.hooks import git, session, signals, skills
+from lifeos.core.comms import events
 from lifeos.core.lib.repos import push_repos
 from lifeos.core.lib.store import get_db
 from lifeos.core.store.migrations import init

@@ -4,8 +4,8 @@ import threading
 import time
 from pathlib import Path
 
-from life.comms.events import mark_read_for_session
-from life.comms.messages import telegram as tg
+from lifeos.core.comms.events import mark_read_for_session
+from lifeos.core.comms.messages import telegram as tg
 from lifeos.core.config import get_user_name
 from lifeos.core.lib.clock import is_quiet_now
 from lifeos.core.lib.resolve import resolve_people_field

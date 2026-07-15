@@ -6,7 +6,7 @@ from fncli import cli
 
 from life import utterances as utter
 from life.backup import run_backup, run_prune
-from life.comms.messages import telegram as tg
+from lifeos.core.comms.messages import telegram as tg
 from lifeos.core.lib import ansi
 from lifeos.core.lib.dates import parse_due_date
 from lifeos.core.lib.format import format_elapsed, print_info

@@ -3,8 +3,8 @@ import re
 import uuid
 from datetime import datetime
 
-from life.comms.events import record as emit_event
 from life.tag import add_tag, hydrate_tags, load_tags_for_tasks
+from lifeos.core.comms.events import record as emit_event
 from lifeos.core.errors import ConflictError, StoreIntegrityError, ValidationError
 from lifeos.core.lib import clock
 from lifeos.core.lib.converters import row_to_task

@@ -6,10 +6,10 @@ import subprocess
 import time
 from pathlib import Path
 
-from life.comms import events
 from life.habit import get_habits
 from life.mood import get_recent_moods
 from life.task import get_tasks
+from lifeos.core.comms import events
 from lifeos.core.lib.clock import today
 from lifeos.steward.ping import drain
 
