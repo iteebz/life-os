@@ -15,7 +15,7 @@ import keyring
 from telethon import TelegramClient
 from telethon.tl.types import MessageMediaPhoto, User
 
-from life.comms import events
+from lifeos.core.comms import events
 from lifeos.core.lib.store import get_db
 
 SESSION_DIR = Path.home() / ".life" / "telegram"

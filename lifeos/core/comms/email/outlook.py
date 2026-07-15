@@ -8,7 +8,7 @@ import keyring
 import msal
 import requests
 
-from life.comms.models import Draft
+from lifeos.core.comms.models import Draft
 
 AUTHORITY = "https://login.microsoftonline.com/common"
 SCOPES = ["https://graph.microsoft.com/Mail.ReadWrite", "https://graph.microsoft.com/Mail.Send"]

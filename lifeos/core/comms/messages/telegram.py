@@ -8,7 +8,7 @@ from typing import Any
 import keyring
 import requests
 
-from life.comms import events
+from lifeos.core.comms import events
 from lifeos.core.lib.resolve import resolve_people_field
 from lifeos.core.lib.store import get_db
 

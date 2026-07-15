@@ -6,15 +6,14 @@ from datetime import datetime
 
 from fncli import cli
 
+from lifeos.core.comms import claude, services
+from lifeos.core.comms import drafts as drafts_module
+from lifeos.core.comms import senders as senders_module
+from lifeos.core.comms.config import RULES_PATH
+from lifeos.core.comms.contacts import CONTACTS_PATH, get_all_contacts
+from lifeos.core.comms.drafts import get_draft, list_pending_drafts
+from lifeos.core.comms.services import compose_email_draft, get_unified_inbox, reply_to_thread
 from lifeos.core.errors import LifeError, NotFoundError, ValidationError
-
-from . import claude, services
-from . import drafts as drafts_module
-from . import senders as senders_module
-from .config import RULES_PATH
-from .contacts import CONTACTS_PATH, get_all_contacts
-from .drafts import get_draft, list_pending_drafts
-from .services import compose_email_draft, get_unified_inbox, reply_to_thread
 
 
 def _run_service(fn, *args, **kwargs):

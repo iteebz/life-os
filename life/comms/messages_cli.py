@@ -18,9 +18,9 @@ from typing import Any
 
 from fncli import cli
 
-from life.comms.messages import signal
-from life.comms.messages import telegram as _tg
-from life.comms.messages.telegram_sync import save_credentials, sync
+from lifeos.core.comms.messages import signal
+from lifeos.core.comms.messages import telegram as _tg
+from lifeos.core.comms.messages.telegram_sync import save_credentials, sync
 from lifeos.core.errors import LifeError, ValidationError
 from lifeos.core.lib.store import get_db
 
